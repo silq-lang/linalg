@@ -11,7 +11,6 @@ def poly_eval[d:!ℕ](coeffs:!ℂ^(d+1))(x:!ℂ):!ℂ{
 def pad[m:!ℕ][a:type,n:!ℕ](xs:a^n,const x:a):a^m⇒xs~vector(m sub n,x);
 
 // berntson-sünderhauf
-
 // https://arxiv.org/abs/2406.04246
 def heuristic_N₀(ε:!ℝ,δ:!ℝ,d:!ℕ):!ℕ{
 	rδm1:=expm1(-log1p(-δ)/d);
