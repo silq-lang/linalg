@@ -1,0 +1,35 @@
+import sign_func;
+
+def pe_poly(n:!ℕ,k:!ℝ){
+    p := cheby_to_mon[n](sign_func(n+1,k)) coerce !ℂ^(n+1);
+    p1 := shifted_coef(p,1/sqrt(2),1:!ℝ);
+    p2 := shifted_coef(p,-1/sqrt(2),1:!ℝ);
+    pq := vector(n+1,0:!ℂ);
+    for j in [0..n+1){
+        pq[j] = p2[j] - p1[j]; 
+    }
+    pq[0] -= 1:!ℝ;
+    return pq;
+}
+
+def mod_block[j:!ℕ,θ:!ℝ][n:!ℕ,m:!ℕ](anc:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)mfree{
+    (ex:𝔹^1)~(anc:𝔹^m) := anc;
+    ex[0] := H(ex[0]);
+    if ex[0]{
+        phase(-2*π*θ);
+        for j in [0..2^j){(anc,qs) := f(anc,qs);}
+    }
+    ex[0] := H(ex[0]);
+    return (ex~anc,qs);
+}
+
+//def bit_eval[j:!ℕ,θ:!ℝ]
+
+def main(){
+    κ := 0.23;
+    ϵ := 1e-8;
+    k := (sqrt(2)/κ)*sqrt(log(2/π/ϵ^2));
+    n := floor((1/κ)*log(1/ϵ)) coerce !ℕ;
+    print(n,k);
+    return pe_poly(19,10)
+}

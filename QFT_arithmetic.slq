@@ -1,0 +1,36 @@
+import QFT;
+
+def c_phase[n:!ℕ,m:!ℕ](const x:𝔹^n, y:𝔹^m) mfree{
+    assert(m=n+1);
+    for i in [0..n){
+        if x[n-1-i]{
+            phase(π/2^(i+2));
+            y[0] := rotZ(2*π/(2^(i+2)),y[0]);
+        }
+    }
+    for j in [0..n){
+        for i in [j..n){
+            if x[n-1-i]{
+                phase(π/2^(i-j+1));
+                y[j+1] := rotZ(2*π/(2^(i-j+1)),y[j+1]);
+            }
+        }
+    }
+    return y;
+}
+
+def qft_adder[n:!ℕ](const x:𝔹^n, y:𝔹^n) @[__operator] @nogarbage mfree{
+    anc := 0:𝔹;
+    anc := (anc,);
+    ys := (y)~(anc);
+    ys := QFT(ys);
+    ys := c_phase(x,ys);
+    ys := reverse(QFT)(ys);
+    return ys;
+}
+
+def main(){
+    x := 3:uint[4] as 𝔹^4;
+    y := 2:uint[4] as 𝔹^4;
+    return qft_adder(x,y) as uint[5];
+}

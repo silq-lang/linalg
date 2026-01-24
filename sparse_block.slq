@@ -1,0 +1,24 @@
+def sparse_block[m:!ℕ,n:!ℕ](ancilla:𝔹^m,qs:𝔹^n, const Oc: const 𝔹^(m sub 1) × 𝔹^n → mfree 𝔹^n,const Oa: 𝔹 × const 𝔹^(m sub 1) × const 𝔹^n → mfree 𝔹) mfree{
+    (anc:𝔹^1)~(l:𝔹^(m sub 1)) := ancilla;
+    (anc,) := anc;
+    for i in [0..m sub 1){l[i] := H(l[i]);}
+    anc := Oa(anc,l,qs);
+    qs := Oc(l,qs);
+    for i in [0..m sub 1){l[i] := H(l[i]);}
+    return ((anc,)~l,qs);
+}
+
+
+def herm_sparse_block[m:!ℕ,n:!ℕ](anc:𝔹^(n+2),qs:𝔹^n, const Oc: 𝔹^n × const 𝔹^n → mfree 𝔹^n,const Oa: 𝔹 × const 𝔹^n × const 𝔹^n → mfree 𝔹) mfree{
+    (anc1:𝔹^1)~(anc2:𝔹^1)~(l:𝔹^n) := anc;
+    (anc1,):=anc1;(anc2,):=anc2;
+    for i in [0..m){l[i] := H(l[i]);}
+    anc2 := Oa(anc2,l,qs);
+    l := Oc(l,qs);
+    (anc1,anc2) := (anc2,anc1);
+    for i in[0..n){(qs[i],l[i]) := (l[i],qs[i]);}
+    l := reverse(Oc)(l,qs);
+    anc2 := reverse(Oa)(anc2,l,qs);
+    for i in [0..m){l[i] := H(l[i]);}
+    return ((anc1,)~(anc2,)~l,qs);
+}

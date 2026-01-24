@@ -1,0 +1,25 @@
+def fft[N:!ℕ](xs:!ℂ^N):!ℂ^N {
+	if N=1 { return xs; }
+	assert(N%2=0);
+	xs_e:=vector(N div 2,0);
+	xs_o:=vector(N div 2,0);
+	for j in 0..N div 2{
+		xs_e[j]=xs[2·j];
+		xs_o[j]=xs[2·j+1];
+	}
+	ys_e:=fft(xs_e);
+	ys_o:=fft(xs_o);
+	ys:=vector(N,0);
+	for k in 0..N div 2{
+		t:=cis(-2·π·k/N)·ys_o[k];
+		ys[k]=ys_e[k]+t;
+		ys[k+N div 2]=ys_e[k]-t;
+	}
+	return ys;
+}
+def ifft[N:!ℕ](ys:!ℂ^N):!ℂ^N {
+	for i in 0..N{ ys[i]:=conj(ys[i]); }
+	xs:=fft(ys);
+	for i in 0..N{ xs[i]:=conj(xs[i])/N; }
+	return xs;
+}

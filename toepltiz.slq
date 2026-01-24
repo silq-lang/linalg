@@ -1,0 +1,35 @@
+import shift;
+import multiplexed;
+import uniform_superposition;
+import amplitude_amplification;
+
+def toepltiz[n:!ℕ,m:!ℕ,D:!ℕ](anc:𝔹^m,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^m × 𝔹^n{
+    assert(m = (log(D-1) div log(2))+3);
+    (data:𝔹^1)~(s:𝔹^(m sub 2))~(del:𝔹^1) := anc;
+    s := uniform_superposition[D](s);
+    (data,) := data;
+    data := multiplexed_rotX(s,data,v);
+    reg := qs~del;
+    reg := multiplexed_adder(s,reg);
+    reg := upshift_pow[(D-1) div 2 coerce !ℕ](reg);
+    s := reverse(uniform_superposition[D])(s);
+    (qs:𝔹^n)~(del:𝔹^1) := reg;
+    (anc,qs) := ((data,)~s~del,qs) coerce 𝔹^m × 𝔹^n;
+    return (anc,qs);
+}
+
+def Up(qs:𝔹^2) mfree{
+    qs[0] := X(qs[0]);
+    return qs;
+}
+
+def main(){
+    v := [-1,2,-1] : !ℝ^3;
+    qs := 0:uint[2] as 𝔹^2;
+    qs := Up(qs);
+    def toepltiz_amp[n:!ℕ,m:!ℕ](anc:𝔹^m,xs:𝔹^n){
+        return toepltiz(anc,xs,v);
+    }
+    (anc,qs) := toepltiz_amp(0:uint[4] as 𝔹^4,qs);
+    return fixed_point_AA(anc,qs,toepltiz_amp[2,4],Up);
+}

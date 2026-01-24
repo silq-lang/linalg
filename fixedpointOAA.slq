@@ -1,0 +1,40 @@
+def angle[n:!ℕ]{
+    // Ensures optimal number of iterations
+    return acos((1-sin(π/(2*n)))/(1+sin(π/(2*n))));
+}
+
+def walk[k:!ℕ][m:!ℕ,n:!ℕ](flag:𝔹,anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n) mfree{
+    // set the ancilla qubit
+    flag := rotY(angle[k],flag);
+    // apply -Z gate on the ancilla controled on the index register in the |0^m> state
+    if anc == vector(m,0){ 
+        if !flag{phase(π)}
+    }
+    // apply the inverse of the unitary to the working register
+    (anc,qs) := reverse(f)(anc,qs);
+    g(qs) := qs;
+    // flip the sign of the components with non-zeroed ancillas if the ancilla in the state V_n|0>
+    flag := rotY(-angle[k],flag);
+    if !flag{
+        if anc != vector(m,0){phase(π)}
+    }
+    // apply the unitary on the working register
+    qs := g(qs);
+    (anc,qs) := f(anc,qs);
+    return (flag,anc,qs);
+}
+
+def fixed_point_OAA[m:!ℕ,n:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n){
+    // set the counter
+    k := 1:!ℕ;
+    success := 0:!𝔹;
+    while success=0{ // stop the iteration when the ancilla is measured to be 1
+        flag := 0:𝔹; 
+        // apply the walk operator with angle[k]
+        (flag,anc,qs) := walk[k](flag,anc,qs,f,g); 
+        success |= measure(flag);
+        k += 1;
+    }
+    measure(anc); // measure the index qubits
+    return qs;
+}

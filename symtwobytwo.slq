@@ -1,0 +1,38 @@
+import sparse_block;
+import fixedpointOAA;
+
+def Oc(const l:𝔹^1, qs:𝔹^1) mfree{
+    if l[0]{qs[0] := X(qs[0]);}
+    return qs;
+}
+
+def Oa[alpha1:!ℝ,alpha2:!ℝ](anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
+    theta1 := 2*acos(alpha1);
+    theta2 := 2*acos(alpha2);
+    if !l[0]{anc := rotY(theta1,anc);}
+    if l[0]{anc := rotY(theta2,anc);}
+    return anc;
+}
+
+def twosym_block(ancilla:𝔹^2,qs:𝔹^1,alpha1:!ℝ,alpha2:!ℝ){
+    return sparse_block[2,1](ancilla,qs,Oc,Oa[alpha1,alpha2]);
+}
+
+def Up(qs:𝔹^1) mfree{
+    //qs[0] := X(qs[0]);
+    return qs;
+}
+
+def main(){
+    qs := 0:uint[1] as 𝔹^1;
+    qs := Up(qs);
+    // A = [[1/2 1/sqrt(2)],[1/sqrt(2) 1/2]]
+    alpha1 := (1/2):!ℝ;
+    alpha2 := (1/sqrt(2)):!ℝ;
+    // A/2 |0> = 1/4 |0> + sqrt(2)/4 |1> --> Normalization 1/sqrt(3) |0> + sqrt(2/3) |1>
+    def twosym_amp(anc:𝔹^2,xs:𝔹^1){
+        return twosym_block(anc,xs,alpha1,alpha2);
+    }
+    (anc,qs) := twosym_amp(0:uint[2] as 𝔹^2,qs);
+    return fixed_point_OAA(anc,qs,twosym_amp,Up);
+}

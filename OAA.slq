@@ -1,0 +1,22 @@
+def walk[m:!ℕ][n:!ℕ](qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n) mfree{
+    assert(m<=n); // number of ancilla qubits cannot be bigger than total number of qubits
+    // flip the sign of the components with zeroed ancillas
+    if qs[0..m] == vector(m,0){phase(π)}
+    // apply the inverse of the unitary
+    f(qs) := qs;
+    // flip the sign of the components with non-zeroed ancillas
+    if qs[0..m] != vector(m,0){phase(π)}
+    // apply the unitary
+    qs := f(qs);
+    return qs;
+}
+
+def amplitude_amplification[m:!ℕ][n:!ℕ](qs:𝔹^n,nIterations:!ℕ,const f:𝔹^n → mfree 𝔹^n){
+    for k in [0..nIterations){ // apply the walk operator nIterations times
+        qs := walk[m](qs,f);
+    }
+    (anc:𝔹^m)~(qs:𝔹^(n sub m)) := qs; // separate the ancilla qubits from the main register
+    success := (measure(anc) as !uint[m]) = 0; // measure the ancilla qubits
+    assert(success=1); // amplification amplitude is succesful if the ancilla qubits have been all measured to be zero
+    return qs;
+}

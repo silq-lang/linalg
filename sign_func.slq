@@ -1,0 +1,122 @@
+def bessi0(x:!ℝ){
+    ax := abs(x);
+    if ax < 3.75{
+        y := (x / 3.75)^2;
+        ans := (1.0+y*(3.5156229+y*(3.0899424+y*(1.2067492+y*(0.2659732+y*(0.0360768+y*0.0045813))))));
+    }else{
+        y := 3.75 / ax;
+        ans := (exp(ax)/sqrt(ax))*(0.39894228+y*(0.01328592+y*(0.00225319+y*(-0.00157565+y*(0.00916281+y*(-0.02057706+y*(0.02635537+y*(-0.01647633+y*0.00392377))))))));                               
+    }
+    return ans;
+}
+
+def bessi_asymptotic(n:!ℕ,x:!ℝ){
+    mu := 4*n^2;
+    series := 1:!ℝ;
+    denom := 1:!ℝ;
+    sign := -1:!ℝ;
+    for k in [1..6){
+        denom *= 8*x*k;
+        product := 1:!ℝ;
+        for j in [1..(k + 1)){product *= mu - (2 * j - 1)^2;}
+        series += sign * product / denom;
+        sign *= -1:!ℝ;
+    }
+    return exp(x)*series/sqrt(2*π*x)
+}
+
+def bessi_recurence(n:!ℕ,x:!ℝ){
+    BIGNO := 1.0e10;
+    BIGNI := 1.0e-10;
+    ACC := 40;
+    if n=(0:!ℕ){return bessi0(x);}
+    if x=(0:!ℝ){return 0:!ℝ;}
+    tox := 2.0 / abs(x);
+    bip := 0.0;
+    ans := 0.0;
+    bi := 1.0;
+    m := 2*(n + floor(sqrt(ACC*n)));
+    for j in [m..-1..0){
+        bim := bip+j*tox*bi;
+        bip = bi;
+        bi = bim;
+        if abs(bi) > BIGNO{
+            ans *= BIGNI;
+            bi *= BIGNI;
+            bip *= BIGNI;
+        }
+        if j=n{ans = bip;}
+    }
+    ans *= bessi0(x)/bi;
+    if (x < 0.0) && (n % 2 == 1){ans = -ans;}
+    return ans;
+}
+
+def besseli(n:!ℕ,x:!ℝ){
+    if x>(n^2){return bessi_asymptotic(n,x);}
+    else{return bessi_recurence(n,x)}
+}
+
+def cheby_sign_func(n:!ℕ,k:!ℝ){
+    m := floor((n-1)/2)+1 coerce !ℕ;
+    fac := 2*k*exp(-(k^2)/2)/sqrt(π);
+    v := vector(n+1,0:!ℂ);
+    for j in [0..m){
+        v[2*j+1] += fac*(((-1)^j)/(2*j+1))*(besseli(j,(k^2)/2)+besseli(j+1,(k^2)/2));
+    }
+    return v;
+}
+
+def cheby_to_mon[n:!ℕ](c:!ℂ^(n+1)) qfree{
+    if n==0 { return (c[0],); }
+    T := [(1,) coerce !ℂ^1, (0,1):!ℂ^2];
+    for j in [1..n) {   
+        t_curr := T[j];
+        t_prev := T[j-1];
+        t_next := vector(j+2 coerce !ℕ, 0:!ℂ);
+        for k in [0..j) {   
+            t_next[k+1] = 2*t_curr[k];
+            t_next[k] -= t_prev[k];
+        }
+        t_next[j+1] = 2*t_curr[j];  
+        T := T ~ [t_next];
+    }
+    a := vector(n+1, 0:!ℂ);
+    for j in [0..n+1) {   
+        t := T[j];
+        for k in [0..j+1) {
+            a[k] += c[j] * t[k];
+        }
+    }
+    return a coerce !ℂ^(n+1);
+}
+
+def shifted_coef[d:!ℕ](p:!ℂ^(d+1),a:!ℝ,c:!ℝ){
+    if d=0{return (p[0],);}
+    lower := p[1..d+1];
+    shifted := shifted_coef[d-1 coerce !ℕ](lower,a,c);
+    new_coef := vector(d+1,0:!ℂ);
+    for j in [0..d){
+        new_coef[j] += -c*a*shifted[j];
+        new_coef[j+1] += c*shifted[j];
+    }
+    new_coef[0] += p[0];
+    return new_coef;
+}
+
+def sign_func(n:!ℕ,k:!ℝ,δ:!ℝ){
+    return shifted_coef(cheby_to_mon[n](cheby_sign_func(n,k)) coerce !ℂ^(n+1),δ,0.5);
+}
+
+def rect_func(n:!ℕ,k:!ℝ,δ:!ℝ){
+    p1 := sign_func(n,k,δ);
+    p2 := sign_func(n,k,-δ);
+    p := vector(n+1,0:!ℂ);
+    for j in [0..n+1){p[j] = (p2[j] - p1[j]);}
+    p[0] -= 1;
+    return p;
+}
+
+def main(){
+    return rect_func(49,20,1/sqrt(2));
+}

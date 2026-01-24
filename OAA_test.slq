@@ -1,0 +1,53 @@
+//import OAA;  // regular OAA
+import fixedpointOAA; // fixed-point OAA
+
+def cnot(const x:𝔹,y:𝔹):𝔹{
+  if x{
+    y := X(y);
+  }
+  return y;
+}
+
+def tof(const x:𝔹,const y:𝔹,z:𝔹):𝔹{
+    if x&y{
+        z := X(z);
+    }
+    return z;
+}
+
+def gate1(qs:𝔹^3) mfree{
+    qs[0] := rotY(π/3,qs[0]);
+    qs[2] := rotY(π/3,qs[2]);
+    qs[1] := cnot(qs[0],qs[1]);
+    qs[0] := X(qs[0]);
+    qs[2] := cnot(qs[1],qs[2]);
+    // expected output for |000>  -->  1/2*|0>(1/2*|10> + sqrt{3}/2*|11>) + sqrt{3}/2*|1>(sqrt{3}/2|00> + 1/2*|01>)
+    return qs;  
+}
+
+def gate2(qs:𝔹^4) mfree{
+    qs[0] := rotY(π/3,qs[0]);
+    qs[0] := X(qs[0]);
+    qs[2] := rotY(π/3,qs[2]);
+    qs[1] := cnot(qs[0],qs[1]);
+    qs[2] := tof(qs[0],qs[1],qs[2]);
+    qs[3] := tof(qs[1],qs[2],qs[3]);
+    // expected output for |0000>  -->  1/2*|00>(1/2*|10> + sqrt{3}/2*|00>) + sqrt{3}/2*|11>(sqrt{3}/2|11> + 1/2*|00>)
+    return qs;
+}
+
+def gate3(qs:𝔹^4) mfree{
+    qs[0]:=H(qs[0]);
+    qs[1]:=H(qs[1]);
+    qs[2]:=H(qs[2]);
+    qs[3]:=H(qs[3]);
+    return qs;
+}
+
+def main(){
+    // OTHER EXAMPLE: qs:𝔹^3, m=1 with gate1
+    qs := 0:uint[4] as 𝔹^4;
+    qs := gate3(qs);
+    //return amplitude_amplification[2](qs,1,gate2); // regular OAA with nIterations=1
+    return fixed_point_OAA[1](qs,gate3);
+}

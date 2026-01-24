@@ -1,0 +1,23 @@
+def H_n[n:!ℕ](xs:𝔹^n){
+	for i in 0..n{ xs[i]:=H(xs[i]); }
+	return xs;
+}
+
+def decomp(N:!ℕ){
+	(k,L):=(0,N);
+	while (L&1)=0 { L div=2; k+=1; }
+	return (k,L);
+}
+
+def uniform_superposition[N:!ℕ][n:!ℕ](qs:𝔹^n)mfree:𝔹^n{
+	assert(n=floor(log(N-1)/log(2))+1);
+	(k,L) := decomp(N);
+	(a:𝔹^k)~(b:𝔹^(n sub k)) := qs;
+	b:=H_n(b);
+	φ:=acos(1-2^(n-k-1)/L);
+	if (b as uint[n sub k])<L { phase(φ); }
+	with b:=H_n(b) do if (b as uint[n sub k])=0{ phase(φ); }
+    phase(-(φ+π)/2);
+	qs := H_n(a)~b coerce 𝔹^(ceil(log(N)/log(2)) coerce !ℕ);
+	return qs coerce 𝔹^n;
+}

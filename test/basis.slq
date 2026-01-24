@@ -1,0 +1,11 @@
+def solve[n:!ℕ](bits:!𝔹^n){
+  x:=H(0:𝔹);
+  qs := if x then bits else (0:int[n]) as 𝔹^n;
+  forget(x=qs[0]);
+  return qs;
+}
+def main(){
+  x := 1:!int[2];
+  y := x as !𝔹^2;
+  return solve(y);
+}

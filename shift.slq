@@ -1,0 +1,55 @@
+import multicontrol;
+
+def lower_shift[n:!ℕ](qs:𝔹^n) mfree{
+    // implements lower shift operators on qs
+    for i in [0..n){ //succesive cnots
+        m := n sub i sub 1;
+        xs := dup(qs[0..m]);
+        qs[m] := mc(X)(xs,qs[m]);
+        forget(xs=qs[0..m]);
+    }
+    return qs;
+}
+
+def upper_shift[n:!ℕ](qs:𝔹^n) mfree{
+    // implements upper shift operators on qs
+    for i in [0..n){
+        m := n sub i sub 1;
+        xs := dup(qs[0..m]);
+        qs[m] := omc(X)(xs,qs[m]);
+        forget(xs=qs[0..m]);
+    }
+    return qs;
+}
+
+def pow[n:!ℕ](j:!ℕ) qfree{
+    return j as uint[n] as 𝔹^n;
+}
+
+def lowshift_pow[j:!ℕ][n:!ℕ](qs:𝔹^n) mfree{
+    // implements j-th power lower shift operators on qs
+    assert(j<=2^n sub 1);
+    k := pow[n:!ℕ](j); //set ancilla qubits to control shifts
+    for i in[0..n){
+        (nqs:𝔹^i)~(lqs:𝔹^(n sub i)) := qs; // separate used and un-used qubits
+        if k[i]{
+            lqs := lower_shift(lqs);
+        }
+        qs := (nqs)~(lqs); // re-assemble
+    }
+    return qs;
+}
+
+def upshift_pow[j:!ℕ][n:!ℕ](qs:𝔹^n) mfree{
+    // implements j-th power upper shift operators on qs
+    assert(j<=2^n sub 1);
+    k := pow[n:!ℕ](j);
+    for i in[0..n){
+        (nqs:𝔹^i)~(uqs:𝔹^(n sub i)) := qs;
+        if k[i]{
+            uqs := upper_shift(uqs);
+        }
+        qs := (nqs)~(uqs);
+    }
+    return qs;
+}

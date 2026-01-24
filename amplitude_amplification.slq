@@ -1,0 +1,24 @@
+def walk[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n) mfree{
+    if anc == vector(m,0){phase(π);}
+    (anc,qs) := reverse(f)(anc,qs);
+    g(qs) := qs;
+    if qs == vector(n,0){ 
+        if anc == vector(m,0){phase(π);}
+    }
+    qs := g(qs);
+    (anc,qs) := f(anc,qs);
+    return (anc,qs);
+}
+
+def fixed_point_AA[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n) {
+    r := measure(anc) as !uint[m];
+    success := (r == 0);
+    while success=0{
+        forget(success);
+        anc := r:uint[m] as 𝔹^m;
+        (anc,qs) := walk(anc,qs,f,g); 
+        r := measure(anc) as !uint[m];
+        success := (r == 0);
+    }
+    return qs;
+}

@@ -1,0 +1,101 @@
+import fft;
+
+def poly_eval[d:!ℕ](coeffs:!ℂ^(d+1))(x:!ℂ):!ℂ{
+	r:=coeffs[d];
+	for i in (d..-1..0]{
+		r=r·x+coeffs[i];
+	}
+	return r;
+}
+
+def pad[m:!ℕ][a:type,n:!ℕ](xs:a^n,const x:a):a^m⇒xs~vector(m sub n,x);
+
+def heuristic_N₀(ε:!ℝ,δ:!ℝ,d:!ℕ):!ℕ{
+	rδm1:=expm1(-log1p(-δ)/d);
+	N₀:=ceil(2·d/-log1p(-δ)·log(8·-log(δ)/(ε·rδm1))) coerce !ℕ;
+	return ceil(N₀·δ) coerce !ℕ; 
+}
+
+def complement_alg1[d:!ℕ](p:!ℂ^(d+1),N:!ℕ):!ℂ^(d+1){
+	ps:=fft(pad[N](p,0));
+	ℓ:=vector(N,0);
+	for j in 0..N { ℓ[j]=log(1-cabs(ps[j])^2); }
+	ℓ:=ifft(ℓ);
+	log_qs:=fft(pad[N]([ℓ[0]/2]~ℓ[1..N div 2+1],0));
+	qs:=vector(N,0);
+	for j in 0..N { qs[j]=cexp(log_qs[j]); }
+	return ifft(qs)[0..d+1];
+}
+
+def complement_alg2[d:!ℕ](p:!ℂ^(d+1),ε:!ℝ,N:!ℕ):!ℂ^(d+1){
+	for i in 0..d+1{ p[i]·=1-ε/4; }
+	return complement_alg1[d](p,N);
+}
+
+def num_samples(d:!ℕ,ε:!ℝ){
+	N₀:=heuristic_N₀(ε/4,ε/(5·(d+1)),d);
+	return 2^(ceil(log₂(max(N₀,d+1))) coerce !ℕ);
+}
+
+def complement[d:!ℕ](p:!ℂ^(d+1),ε:!ℝ):!ℂ^(d+1){
+	N:=num_samples(d,ε);
+	return complement_alg2[d](p,ε,N);
+}
+
+def is_complement[N:!ℕ][d:!ℕ](p:!ℂ^(d+1),q:!ℂ^(d+1),ε:!ℝ){
+	assert(N≥d+1∧(N&(N-1))=0);
+	ps:=fft(pad[N](p,0));
+	qs:=fft(pad[N](q,0));
+	ok:=1;
+	for j in 0..N{
+		ok&=abs(cabs(ps[j])^2+cabs(qs[j])^2-1)<ε;
+	}
+	return ok;
+}
+
+def gqsp_apply_Rdag[d:!ℕ](
+	θ:!ℝ,
+	φ:!ℝ,
+	λ:!ℝ,
+)(
+	P: !ℂ^(d+1),
+	Q: !ℂ^(d+1),
+):!ℂ^(d+1)×!ℂ^(d+1){
+	(c,s):=(cos(θ),sin(θ));
+	ac:=conj(cis(λ+φ)·c);
+	bc:=conj(cis(φ)·s);
+	cc:=conj(cis(λ)·s);
+	dc:=conj(-c);
+	(Pp,Qp):=vector(2,vector(d+1,0));
+	for k in 0..d+1 {
+		Pp[k]=ac·P[k]+cc·Q[k];
+		Qp[k]=bc·P[k]+dc·Q[k];
+	}
+	return (Pp,Qp);
+}
+
+def gqsp_compute_angles[d:!ℕ](
+	P:!ℂ^(d+1),
+	Q:!ℂ^(d+1),
+):!ℝ^(d+1)×!ℝ^(d+1)×!ℝ{
+	θd:=atan2(cabs(Q[d]),cabs(P[d]));
+	φd:=carg(P[d])-carg(Q[d]);
+	if d=0 {
+		λ:=carg(Q[d]);
+		return ([θd],[φd],λ) coerce !ℝ^(d+1)×!ℝ^(d+1)×!ℝ;
+	}
+	(Pp,Qp):=gqsp_apply_Rdag[d](θd,φd,0)(P,Q);
+	(θs,φs,λ):=gqsp_compute_angles[d sub 1](Pp[1..d+1],Qp[0..d]);
+	return (θs~[θd],φs~[φd],λ);
+}
+
+def main(){
+	p:=(0.07,0.35,0.35,0.2);
+	q:=complement[3](p,1e-8);
+	print(q);
+	assert(is_complement[128][3](p,q,1e-8));
+	angles:=gqsp_compute_angles[3](p,q);
+	z:=cis(-1/4);
+	print(poly_eval[3](p)(z));
+	return(poly_eval[3](q)(z));
+}

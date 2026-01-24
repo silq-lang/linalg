@@ -1,0 +1,21 @@
+import multicontrol;
+
+def block_projector[n:!ℕ](anc:𝔹^1,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n) mfree{
+    anc[0] := X(H(anc[0]));
+    (anc,) := anc;
+    anc := mc_sub(Z)(f,qs,anc);
+    anc := H(X(Z(anc)));
+    return (anc,qs);
+}
+
+def Up(qs:𝔹^1) mfree{
+    qs[0] := X(qs[0]);
+    return qs;
+}
+
+def main(){
+    qs := 0:uint[1] as 𝔹^1;
+    qs[0]:=H(qs[0]);
+    (anc,qs) := block_projector(0:uint[1] as 𝔹^1,qs,Up);
+    return (anc,qs);
+}

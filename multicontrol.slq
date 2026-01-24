@@ -1,0 +1,30 @@
+def mc[a:qtype](const gate: a→mfree a)[n:!ℕ](const xs:𝔹^n,x:a)mfree:a{
+    // applies on x gate multi-controled by xs = vector(n,1)
+	if n==0 {
+		x:=gate(x);
+	}else if xs[n sub 1]{
+		x:=mc(gate)(xs[0..n sub 1],x);
+	}
+	return x;
+}
+
+def omc[a:qtype](const gate: a→mfree a)[n:!ℕ](const xs:𝔹^n,x:a)mfree:a{
+    // applies on x gate multi-controled by xs = vector(n,0)
+	if n==0 {
+		x:=gate(x);
+	}else if xs[n sub 1]=0{
+		x:=omc(gate)(xs[0..n sub 1],x);
+	}
+	return x;
+}
+
+def mc_sub[a:qtype](const gate: a→mfree a)[n:!ℕ](const f:𝔹^n → mfree 𝔹^n,
+                    const xs:𝔹^n,x:a)mfree:a{
+    // applies on x gate multi-controled by xs = f(vector(n,1))
+    qs := dup(xs);
+	with f(qs) := qs{
+        x := mc(gate)(qs,x);
+    }
+    forget(qs=xs);
+    return x;
+}

@@ -1,0 +1,63 @@
+import multicontrol;
+import symtwobytwo;
+
+def qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+    (anc,qs) := f(anc,qs);
+    if anc != vector(m,0){phase(π);}
+    return (anc,qs);
+}
+
+def hermitianization[n:!ℕ,m:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
+    (ext:𝔹^1)~(anc:𝔹^m) := ancilla;
+    ext[0] := X(ext[0]);
+    (anc,qs) := (omc(f)[1])(ext,(anc,qs));
+    (anc,qs) := (mc(reverse(f))[1])(ext,(anc,qs));
+    return (ext~anc,qs);
+}
+
+def block_prod[n:!ℕ,m:!ℕ,k:!ℕ](anc:𝔹^(m+k),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^k × 𝔹^n → mfree 𝔹^k × 𝔹^n) mfree{
+    (ancf:𝔹^m)~(ancg:𝔹^k) := anc;
+    (ancg,qs) := g(ancg,qs);
+    (ancf,qs) := f(ancf,qs);
+    return (ancg~ancf,qs);
+}
+
+def block_tens[n1:!ℕ,m1:!ℕ,n2:!ℕ,m2:!ℕ](anc:𝔹^(m1+m2),qs:𝔹^(n1+n2),const f:𝔹^m1 × 𝔹^n1 → mfree 𝔹^m1 × 𝔹^n1,const g:𝔹^m2 × 𝔹^n2 → mfree 𝔹^m2 × 𝔹^n2) mfree{
+    (ancf:𝔹^m1)~(ancg:𝔹^m2) := anc;
+    (qsf:𝔹^n1)~(qsg:𝔹^n2) := qs;
+    (ancg,qsg) := g(ancg,qsg);
+    (ancf,qsf) := f(ancf,qsf);
+    return (ancf~ancg,qsf~qsg);
+}
+
+def block_LC[n:!ℕ,m:!ℕ,k:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,c:!ℝ^2,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^k × 𝔹^n → mfree 𝔹^k × 𝔹^n) mfree{
+    (ext:𝔹^1)~(anc:𝔹^m) := ancilla;
+    t := atan(c[1]/c[0]);
+    ext[0] := rotY(2*t,ext[0]);
+    (anc,qs) := (omc(f)[1])(ext,(anc,qs));
+    (ancf:𝔹^(m sub k))~(ancg:𝔹^k) := anc;
+    (ancg,qs) := (mc(g)[1])(ext,(ancg,qs));
+    anc := (ancf:𝔹^(m sub k))~(ancg:𝔹^k);
+    ext[0] := rotY(-2*t,ext[0]);
+    return (ext~anc,qs);
+}
+
+def Up(qs:𝔹^1) mfree{
+    qs[0] := X(qs[0]);
+    return qs;
+}
+
+def main(){
+    qs := 0:uint[1] as 𝔹^1;
+    qs := Up(qs);
+    alpha1 := (1/2):!ℝ;
+    alpha2 := (1/sqrt(2)):!ℝ;
+    def twosym1(anc:𝔹^2,xs:𝔹^1){
+        return twosym_block(anc,xs,alpha1,alpha2);
+    }
+    def twosym2(anc:𝔹^2,xs:𝔹^1){
+        return twosym_block(anc,xs,-alpha1,-alpha2);
+    }
+    (anc,qs) := block_LC[1,2,2](0:uint[3] as 𝔹^3,qs,[1,2],twosym1,twosym2);
+    return (anc,qs);
+}

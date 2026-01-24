@@ -1,0 +1,22 @@
+import list_op;
+import shift;
+
+def multiplexed_rotX[n:!ℕ,D:!ℕ](const d:𝔹^n,data:𝔹,v:!ℝ^D) mfree{
+    norm_max := max(abs_list(v));
+    for i in [0..D){
+        if i == (d as uint[n]){
+            φ := 2*acos(v[i]/norm_max);
+            data := rotX(φ,data);
+        }
+    }
+    return data;
+}
+
+def multiplexed_adder[n:!ℕ,m:!ℕ](const control:𝔹^n,target:𝔹^m) mfree{
+    for i in [0..2^n){
+        if i == (control as uint[n]){
+            target := lowshift_pow[i](target);
+        }
+    }
+    return target;
+}

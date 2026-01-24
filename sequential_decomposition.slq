@@ -1,0 +1,66 @@
+import multicontrol;
+
+def gray_scale(N:!ℕ){
+    ord := [];
+    for k in [0..N){
+        ord := ord~[k ⊕ floor(k/2)];
+    }
+    return ord coerce !ℕ^N;
+}
+
+def c_phase[t:!ℝ](x:𝔹) mfree{
+    phase(t/2);
+    x := rotZ(t,x);
+    return x;
+}
+
+def mc_phase[n:!ℕ](qs:𝔹^n,t:!ℝ) mfree{
+    cont := dup(qs[1..n]);
+    qs[0] := mc(c_phase[t])(cont,qs[0]);
+    forget(cont=qs[1..n]);
+    return qs;
+}
+
+def unit[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k,i:!ℕ) mfree{
+    qs := mc_phase(qs,t[ord[i]]);
+    j := log(ord[i] ⊕ ord[i+1])/log(2) coerce !ℕ;
+    qs[j] := X(qs[j]);
+    return qs;
+}
+
+def x_col[n:!ℕ](qs:𝔹^n,m:!ℕ) qfree{
+    for i in [0..n){
+        if (m as !uint[n])[i]=0{
+            qs[i] := X(qs[i]);
+        }
+    }
+    return qs;
+}
+
+def sequential_decomposition[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k) mfree{
+    qs := x_col(qs,ord[0] coerce !ℕ);
+    for i in [0..k sub 1){
+        qs := unit(qs,t,ord,i);
+    }
+    qs := mc_phase(qs,t[ord[k-1]]);
+    qs := x_col(qs,ord[k-1] coerce !ℕ);
+    return qs;
+}
+
+def sequential_decomposition_parallel[n:!ℕ,m:!ℕ](qs:𝔹^n,t:!ℝ^m,p:!ℕ) mfree{
+    ord := gray_scale(m);
+    xs := vector(p,qs);
+    k := floor(m/p) coerce !ℕ;
+    for i in [0..p){
+        xs[i] := sequential_decomposition(xs[i],t,ord[k*i..(k*i+k)]);
+    }
+    forget(xs=vector(p,qs));
+    return qs;
+}
+
+def main(){
+    v := [π/3,-π,-2*π,π/2] : !ℝ^4;
+    qs := 1:uint[2] as 𝔹^2;
+    qs[0] := H(qs[0]);
+    return sequential_decomposition_parallel(qs,v,2);
+}

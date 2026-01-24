@@ -1,0 +1,46 @@
+def toW[n:!ℕ](qs:𝔹^n)mfree:𝔹^n{
+  if n==1{ qs[0]:=X(qs[0]); }
+  else if n>1{
+    (head,)~tail:=qs;
+    θ:=2·asin(1/sqrt(n)); 
+    head:=rotY(θ,head); // |0⟩ ↦ cos(θ/2)|0⟩ + sin(θ/2)|1⟩
+    if !head { tail := toW(tail); }
+    qs:=(head,)~tail;
+  }
+  return qs;
+}
+
+def solve(qs:𝔹^3):!ℕ{
+  if qs[1]{ phase(-2·π/3); } 
+  if qs[2]{ phase(-4·π/3); }
+  qs:=reverse(toW[3])(qs);
+  return measure(qs as int[3])!=0;
+}
+
+def generate_input_state(state:!𝔹){
+  // prepare ψ_0 (state=false) or ψ_1 (state=true)
+  qs:=vector(3,0:𝔹);
+  qs:=toW[3](qs);
+  if state{
+    if qs[1]{ phase(4·π/3); }
+    else if qs[2]{ phase(2·π/3); }
+  }else{
+    if qs[1]{ phase(2·π/3); }
+    else if qs[2]{ phase(4·π/3); }
+  }
+  return qs;
+}
+
+def main(){
+  ψ_0:=generate_input_state(false);
+  ψ_1:=generate_input_state(true);
+  check0:=solve(ψ_0);
+  check1:=solve(ψ_1);
+  return (check0,check1);
+}
+
+//def main(){
+//    qs := vector(3,0:𝔹);
+//    r := toW[3](qs);
+//    return r;
+//}

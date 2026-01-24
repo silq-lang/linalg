@@ -1,0 +1,40 @@
+def minus[m:!ℕ](t:!ℝ^m){
+    v := [];
+    for i in [0..m){
+        v := v~[-t[i]];
+    }
+    return v coerce !ℝ^m;
+}
+
+def div_list[m:!ℕ](t:!ℝ^m,d:!ℝ){
+    v := [];
+    for i in [0..m){
+        v := v~[t[i]/d];
+    }
+    return v coerce !ℝ^m;
+}
+
+def abs_list[m:!ℕ](t:!ℝ^m){
+    v := [];
+    for i in [0..m){
+        v := v~[abs(t[i])];
+    }
+    return v coerce !ℝ^m;
+}
+
+def sqrt_list[m:!ℕ](t:!ℝ^m){
+    v := [];
+    for i in [0..m){
+        v := v~[sqrt(t[i])];
+    }
+    return v coerce !ℝ^m;
+}
+
+def arcsin[m:!ℕ](t:!ℝ^m){
+    maxt := max(abs_list(t));
+    v := [];
+    for i in [0..m){
+        v := v~[asin(t[i]/maxt)];
+    }
+    return v coerce !ℝ^m;
+}

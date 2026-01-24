@@ -1,0 +1,38 @@
+import multicontrol; 
+import multiplexed;
+import shift;
+import uniform_superposition;
+import amplitude_amplification;
+
+def tridiagonal[n:!ℕ,D:!ℕ](anc:𝔹^3,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^3 × 𝔹^n{
+    //assert(D=2^(n+1));
+    (data:𝔹^1)~(s:𝔹^2) := anc;
+    s := uniform_superposition[3](s);
+    s[0] := mc(X)((s[1],),s[0]);
+    qs := ([n:!N]⇒mc(upper_shift[n])[2])((s[0],!s[1]),qs);
+    data[0] := Z(data[0]);
+    data[0] := multiplexed_rotX((s[0],)~qs,data[0],v);
+    s[1] := mc(X)((s[0],),s[1]);
+    qs := ([n:!N]⇒mc(lower_shift[n])[2])((s[0],!s[1]),qs);
+    s[0] := mc(X)((s[1],),s[0]);
+    s := reverse(uniform_superposition[3])(s);
+    return (data~s,qs);
+}
+
+def Up(qs:𝔹^2) mfree{
+    //qs[0] := X(qs[0]);
+    //qs[1] := X(qs[1]);
+    return qs;
+}
+
+def main(){
+    v := [2,-1,2,-1,2,-1,2] : !ℝ^7;
+    qs := 0:uint[2] as 𝔹^2;
+    qs := Up(qs);
+    def tridiag_amp[n:!ℕ](anc:𝔹^3,xs:𝔹^n){
+        v := v~[0];
+        return tridiagonal(anc,xs,v);
+    }
+    (anc,qs) := tridiagonal(0:uint[3] as 𝔹^3,qs,v);
+    return fixed_point_AA(anc,qs,tridiag_amp[2],Up);
+}

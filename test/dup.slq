@@ -1,0 +1,11 @@
+def sw(const m:𝔹):𝔹^2{
+  x := H(m);
+	y := dup(x);
+  (x,y) := (H(y),H(x));
+  return (x,y)
+}
+def main(){
+  m := false:𝔹;
+  t := sw(m);
+  return t
+}

@@ -1,0 +1,115 @@
+import list_op;
+import multicontrol;
+
+def gray_scalew(N:!ℕ){
+    ord := [];
+    for k in [1..N){
+        ord := ord~[k ⊕ floor(k/2)];
+    }
+    return ord coerce !ℕ^(N-1 coerce !ℕ);
+}
+
+def walsh_function(j:!ℕ,x:!ℝ){
+    if j==0{
+        n := 0:!ℕ;
+    }else{
+        n := floor(log(j)/log(2))+1 coerce !ℕ;
+    }
+    b := [];
+    for _ in [0..n){
+        x *= 2;
+        b := b~[floor(x)];
+        x -= floor(x);
+    }
+    j := j as !uint[n] as !𝔹^(n);
+    s := 0:!ℕ;
+    for i in [0..n){
+        s += j[i]*b[i];
+    }
+    s %= 2;
+    if s==0{
+        return 1;
+    }else{
+        return -1;
+    }
+}
+
+def walsh_coefficient[m:!ℕ](j:!ℕ,t:!ℝ^m){
+    a := 0:!ℝ;
+    for k in [0..m){
+        a += t[k]*walsh_function(j,k/m);
+    }
+    return a/m;
+}
+
+def groups(N:!ℕ){
+    v := gray_scalew(N);
+    G := [[1]];
+    g := [];
+    for i in [1..(N sub 1)){
+        n1 := floor(log(v[i])/log(2))+1 coerce !ℕ;
+        n2 := floor(log(v[i-1])/log(2))+1 coerce !ℕ;
+        if (n1 != n2)&&(n2 != 1){
+            G := G~[g];
+            g := [];
+        }
+        g := g~[v[i]];
+    }
+    G := G~[g];
+    return G;
+}
+
+def c_cont(N:!ℕ){
+    n := floor(log(N)/log(2)) coerce !ℕ;
+    G := groups(N);
+    c := [0];
+    for i in [1..n){
+        for j in [0..2^i){
+            if j=0{
+                a := 0;
+                b := 2^i - 1;
+            }else{
+                a := j;
+                b := j-1;
+            }
+            c := c~[log(G[i][a] ⊕ G[i][b])/log(2) coerce !ℕ];
+        }
+    }
+    return c coerce !ℕ^(N-1 coerce !ℕ);
+}
+
+def walsh_hadamard[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k,cont:!ℕ^k) mfree{
+    for i in [0..k){
+        if ord[i]=0{phase(walsh_coefficient(0,t));}
+        else if ord[i]=1{qs[n sub 1] := rotZ(-2*walsh_coefficient(1,t),qs[n sub 1]);}
+        else{
+            j := floor(log(ord[i])/log(2))+1 coerce !ℕ;
+            a := ord[i] coerce !ℕ;
+            b := n sub 1 sub cont[i] coerce !ℕ;
+            d := dup(qs[b]);
+            qs[n sub j] := mc(X)((d,),qs[n sub j]);
+            forget(d=qs[b]);
+            qs[n sub j] := rotZ(-2*walsh_coefficient(a,t),qs[n sub j]);
+        }
+    }
+    return qs;
+}
+
+def walsh_hadamard_parallel[n:!ℕ,m:!ℕ](qs:𝔹^n,t:!ℝ^m,p:!ℕ) mfree{
+    ord := (0,)~gray_scalew(m);
+    cont := (0,)~c_cont(m);
+    xs := vector(p,qs);
+    k := floor(m/p) coerce !ℕ;
+    for i in [0..p){
+        xs[i] := walsh_hadamard(xs[i],t,ord[k*i..(k*i+k)],cont[k*i..(k*i+k)]);
+    }
+    forget(xs=vector(p,qs));
+    return qs;
+}
+
+def main(){
+    v := [π/3,-π,-2*π,π/2] : !ℝ^4;
+    qs := 1:uint[2] as 𝔹^2;
+    qs[0] := H(qs[0]);
+    return walsh_hadamard_parallel(qs,v,2);
+}

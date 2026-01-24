@@ -1,0 +1,109 @@
+import fft;
+import gqsp_angles;
+import block_subroutines;
+import tridiag;
+
+def R(θ:!ℝ,φ:!ℝ,λ:!ℝ)(anc:𝔹){
+	phase((π+λ+φ)/2);
+	anc:=rotZ(π-λ,anc);
+	anc:=rotY(2·θ,anc);
+	anc:=rotZ(-φ,anc);
+	return anc;
+}
+
+def gqsp[d:!ℕ](p:!ℂ^(d+1),k:!ℕ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+    (flag:𝔹^1)~(anc:𝔹^m) := anc;
+    (flag,) := flag;
+    q:=complement[d](p,1e-8);
+	assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
+	angles:=gqsp_compute_angles[d](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+	flag:=R(θs[0],φs[0],λ)(flag:𝔹);
+	for j in [1..d-k+1) {
+		if flag=0{ (anc,qs):=f(anc,qs); }
+		flag:=R(θs[j],φs[j],0)(flag);
+	}
+    for j in [d-k+1..d+1){
+        if flag=1{ (anc,qs):=reverse(f)(anc,qs); }
+		flag:=R(θs[j],φs[j],0)(flag);
+    }
+	return ((flag,)~anc,qs);
+}
+
+def chebyshev_coef[d:!ℕ](p:!ℂ^(d+1))qfree{
+    a := vector(d+1,0);
+    pow2 := 1;
+    a[0] = 2*p[0];
+    for k in [1..d+1){
+        fac := p[k] / pow2;
+        jm := k;
+        jp := 1;
+        for j in [k..-2..-1){
+            a[j] += fac;
+            fac *= jm / jp;
+            jm -= 1;
+            jp += 1;
+        }
+        pow2 *= 2
+    }   
+    a[0] /= 2;
+    return a;
+}
+
+def poly_cond[N:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
+    ok := 1;
+    for j in 0..N {
+        x := -1 + 2*j/N;
+        val := cabs(poly_eval(p)(x));
+        ok &= (val <= 1);
+    }
+    return ok;
+}
+
+def bound[N:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
+    ps:=fft(pad[N](p,0));
+    M := 0:!ℂ;
+    for j in [0..d+1){M += cabs(ps[j]);}
+    g1 := log(sin(1/2))/log(1/2);
+    t := 4*log(2*d^2)+sqrt(4+4*log(2*d^2)+2*(log(2*d^2))^2);
+    return M*(1+abs(cimag(p[0]))+g1*t/π);
+}
+
+def gqet[d:!ℕ](p:!ℂ^(d+1),k:!ℕ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+    N := num_samples(d,1e-8);
+    if !poly_cond[1000](p){
+        β := bound[N](p);
+        pq:=vector(d+1,0);
+        for j in [0..d+1){pq[j] = p[j]/β;}
+    }else{pq:=p;}
+    def qubitized_f(ancilla:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
+        return qubitize(ancilla,xs,f);
+    }
+    return gqsp[d](chebyshev_coef(pq),k)(qubitized_f)(anc,qs);
+}
+
+def gqsvt[d:!ℕ](p:!ℂ^(d+1),k:!ℕ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+2),qs:𝔹^n)mfree:𝔹^(m+2)×𝔹^n{
+    N := num_samples(d,1e-8);
+    if !poly_cond[1000](p){
+        β := bound[N](p);
+        pq:=vector(d+1,0);
+        for j in [0..d+1){pq[j] = p[j]/β;}
+    }else{pq:=p;}
+    def hermit_qubit_f(ancilla:𝔹^(m+1),xs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+        (flag:𝔹^1)~(ancilla:𝔹^m) := ancilla;
+        flag[0] := X(flag[0]);
+        if flag[0]=0{(ancilla,xs):=qubitize(ancilla,xs,f);}
+        if flag[0]=1{(ancilla,xs):=qubitize(ancilla,xs,reverse(f));}
+        return (flag~ancilla,xs);
+    }
+    return gqsp[d](chebyshev_coef(pq),k)(hermit_qubit_f)(anc,qs);
+
+}
+
+def main(){
+    def tridiag(anc:𝔹^3,xs:𝔹^2){
+        return tridiagonal(anc,xs,[2,-1,2,-1,2,-1,2,0]:!ℝ^8);
+    }
+    p:=(-1,0,2):!ℂ^3;
+    return gqsvt[2](p,0)(tridiag)(0:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2); //should give the same as gqet
+}
