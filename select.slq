@@ -4,6 +4,7 @@ import multiplexed;
 import fast_wh_transform;
 import amplitude_amplification;
 
+
 def select[l:!ℕ,n:!ℕ,L:!ℕ](const control:𝔹^l,qs:𝔹^n, index:(!ℕ^2)^L) mfree{
     for i in [0..L){
         if i == (control as uint[l]){
