@@ -1,6 +1,6 @@
 def walk[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n) mfree{
     if anc == vector(m,0){phase(π);}
-    (anc,qs) := reverse(f)(anc,qs);
+    (anc,qs) := reverse(f)(anc,qs); // apply the inverse of the unitary to the working register
     g(qs) := qs;
     if qs == vector(n,0){ 
         if anc == vector(m,0){phase(π);}
