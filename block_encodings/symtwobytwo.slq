@@ -1,5 +1,5 @@
-import sparse_block;
-import fixedpointOAA;
+import block_encodings.sparse_block;
+import Amplitude_Amplification.fixedpointOAA;
 
 def Oc(const l:𝔹^1, qs:𝔹^1) mfree{
     if l[0]{qs[0] := X(qs[0]);}

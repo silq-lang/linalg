@@ -1,7 +1,7 @@
-import fft;
-import gqsp_angles;
-import block_subroutines;
-import tridiag;
+import primitives.fft;
+import GQSVT.gqsp_angles;
+import block_encodings.block_subroutines;
+import block_encodings.tridiag;
 
 def R(θ:!ℝ,φ:!ℝ,λ:!ℝ)(anc:𝔹){
 	phase((π+λ+φ)/2);

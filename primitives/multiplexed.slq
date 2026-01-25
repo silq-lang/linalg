@@ -1,5 +1,5 @@
-import list_op;
-import shift;
+import primitives.list_op;
+import arithmetic.shift;
 
 def multiplexed_rotX[n:!ℕ,D:!ℕ](const d:𝔹^n,data:𝔹,v:!ℝ^D) mfree{
     norm_max := max(abs_list(v));

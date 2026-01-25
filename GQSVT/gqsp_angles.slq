@@ -1,4 +1,4 @@
-import fft;
+import primitives.fft;
 
 def poly_eval[d:!ℕ](coeffs:!ℂ^(d+1))(x:!ℂ):!ℂ{
 	r:=coeffs[d];

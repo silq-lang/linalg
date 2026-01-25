@@ -1,4 +1,4 @@
-import multicontrol;
+import primitives.multicontrol;
 
 def lower_shift[n:!ℕ](qs:𝔹^n) mfree{
     // implements lower shift operators on qs

@@ -1,8 +1,8 @@
-import multicontrol; 
-import multiplexed;
-import shift;
-import uniform_superposition;
-import amplitude_amplification;
+import primitives.multicontrol; 
+import primitives.multiplexed;
+import arithmetic.shift;
+import primitives.uniform_superposition;
+import Amplitude_Amplification.amplitude_amplification;
 
 def tridiagonal[n:!ℕ,D:!ℕ](anc:𝔹^3,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^3 × 𝔹^n{
     //assert(D=2^(n+1));

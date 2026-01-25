@@ -1,5 +1,5 @@
-import multicontrol;
-import symtwobytwo;
+import primitives.multicontrol;
+import block_encodings.symtwobytwo;
 
 def qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
     (anc,qs) := f(anc,qs);
