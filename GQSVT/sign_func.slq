@@ -1,3 +1,6 @@
+import GQSVT.gqsp_angles;
+import GQSVT.matrix_poly;
+
 def bessi0(x:!ℝ){
     ax := abs(x);
     if ax < 3.75{
@@ -97,7 +100,7 @@ def shifted_coef[d:!ℕ](p:!ℂ^(d+1),a:!ℝ,c:!ℝ){
     shifted := shifted_coef[d-1 coerce !ℕ](lower,a,c);
     new_coef := vector(d+1,0:!ℂ);
     for j in [0..d){
-        new_coef[j] += -c*a*shifted[j];
+        new_coef[j] += a*shifted[j];
         new_coef[j+1] += c*shifted[j];
     }
     new_coef[0] += p[0];
@@ -105,18 +108,59 @@ def shifted_coef[d:!ℕ](p:!ℂ^(d+1),a:!ℝ,c:!ℝ){
 }
 
 def sign_func(n:!ℕ,k:!ℝ,δ:!ℝ){
-    return shifted_coef(cheby_to_mon[n](cheby_sign_func(n,k)) coerce !ℂ^(n+1),δ,0.5);
+    return shifted_coef(cheby_to_mon[n](cheby_sign_func(n,k)) coerce !ℂ^(n+1),-δ*0.5,0.5);
 }
 
 def rect_func(n:!ℕ,k:!ℝ,δ:!ℝ){
     p1 := sign_func(n,k,δ);
     p2 := sign_func(n,k,-δ);
     p := vector(n+1,0:!ℂ);
-    for j in [0..n+1){p[j] = (p2[j] - p1[j]);}
-    p[0] -= 1;
+    for j in [0..n+1){p[j] = 0.5*(p2[j] - p1[j]);}
+    //p[0] -= 1;
     return p;
 }
 
+def trunc_lin(n:!ℕ,k:!ℝ,t:!ℝ){
+    p := [0]~rect_func(n,k,t);
+    for j in [0..n+1){p[j] /= t;}
+    return p;
+}
+
+def eigen_filt[d:!ℕ](p:!ℂ^(d+1), Δ:!ℝ) {
+    q := shifted_coef[d](p, -(1+Δ^2)/(1-Δ^2), 2/(1-Δ^2));
+    v := vector(2*d+1, 0:!ℂ);
+    fac := poly_eval(p)(- (1 + Δ^2)/(1 - Δ^2)); 
+    for j in [0..d+1) { v[2*j] = q[j]/fac;}
+    return v;
+}
+
+def choose(n:!ℕ, k:!ℕ){
+    if (k>n){return 0;}
+    K := min(k,n-k) coerce !ℕ;
+    result := 1:!ℕ;
+    for j in [1..K+1){
+        result *= (n - j + 1) / j;
+    }
+    return result
+}
+
+def inverse_func(ϵ:!ℝ,κ:!ℝ){
+    b := floor((κ^2)*log(κ/ϵ)) coerce !ℕ;
+    n := floor(sqrt(b*log(4*b/ϵ))) coerce !ℕ;
+    p := vector(2*n+2,0:!ℂ);
+    for j in [0..n+1){
+        prefac := 0:!ℝ;
+        for k in [j+1..b+1){prefac += choose(2*b,b+k);}
+        p[2*j+1] = 4*((-1)^j)*(2^(-2*b))*prefac;
+        forget(prefac);
+    }
+    return cheby_to_mon[2*n+1](p);
+}
+
 def main(){
-    return rect_func(49,20,1/sqrt(2));
+    //p := vector(23,0:!ℂ);
+    //p[22] = 1:!ℂ;
+    //return eigen_filt[22](cheby_to_mon[22](p) coerce !ℂ^23,0.1)
+    //b := floor((2.5^2)*log(2.5/1e-4)) coerce !ℕ;
+    return inverse_func(1e-4,2.5);
 }
