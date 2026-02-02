@@ -19,7 +19,7 @@ def heuristic_N₀(ε:!ℝ,δ:!ℝ,d:!ℕ):!ℕ{
 def complement_alg1[d:!ℕ](p:!ℂ^(d+1),N:!ℕ):!ℂ^(d+1){
 	ps:=fft(pad[N](p,0));
 	ℓ:=vector(N,0);
-	for j in 0..N { ℓ[j]=log(1-cabs(ps[j])^2); }
+	for j in 0..N {ℓ[j]=log(1-cabs(ps[j])^2); }
 	ℓ:=ifft(ℓ);
 	log_qs:=fft(pad[N]([ℓ[0]/2]~ℓ[1..N div 2+1],0));
 	qs:=vector(N,0);

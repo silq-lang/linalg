@@ -1,30 +1,36 @@
+import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
 import GQSVT.sign_func;
 import block_encodings.diagonal;
 
-def H_col[n:!ℕ](qs:𝔹^n){
-    for j in [0..n){qs[j] := H(qs[j]);}
-    return qs;
-}
-
-def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(ancilla:𝔹^(m+1),xs:𝔹^n)(ζ:!ℝ,Δ:!ℝ,δ:!ℝ,λ:!ℝ,α:!ℝ){
-    d := floor(α*log(4/ζ)/(2*Δ)) coerce !ℕ;
-    p := rect_func(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),λ/α);
+def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(ancilla:𝔹^(m+1),xs:𝔹^n)(ζ:!ℝ,Δ:!ℝ,δ:!ℝ,λt:!ℝ,α:!ℝ){
+    for j in [0..n){xs[j] := H(xs[j]);}
     N := floor((315/(32*ζ^2))*log(1/δ)) coerce !ℕ;
+    d := 2*floor(α*log(4/ζ)/(2*Δ)) coerce !ℕ;
+    p := rect_func(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),λt/α);
+    print(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),N);
+    for j in [0..d+1){p[j] = p[j]/1.0487;} // might need to change scaling factor 
+    p := chebyshev_coef[d](p);
+    q := complement[d](p,1e-8);
+    assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
+    angles := gqsp_compute_angles[d](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
     count := 0:!ℕ;
-    for _ in [0..N){
+    for j in [0..N){
         (anc,qs) := dup((ancilla,xs));
         flag := H(0:𝔹);
         if flag{
-            (anc,qs) := gqet[d](p,0)(f)(anc,qs);
+            (anc,qs) := gqet[0][d](θs,φs,λ)(f)(anc,qs);
         }
         flag := H(flag);
         r := measure(flag);
         if !r{count += 1;}
         measure(anc,qs);
+        print(j,r)
     }
     c1 := abs(count/N - (ζ^2)*(1-ζ/4));
     c2 := abs(count/N - (ζ^2)/32);
+    print(c1,c2);
     measure(ancilla,xs);
     return (c1<c2);
 }
@@ -34,6 +40,5 @@ def main(){
     def non_uni_diag[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
         return non_unitary_diag(anc,xs,v);
     }
-    qs := 0:uint[2] as 𝔹^2;
-    return eigenvalue_threshold[2,1](non_uni_diag[2])(0:uint[2] as 𝔹^2,qs)(4e-4,0.1,1e-4,0.4,max(v));
+    return eigenvalue_threshold[2,1](non_uni_diag[2])(0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2)(8e-2,0.07,1e-2,0.1,max(v));  // yields false
 }

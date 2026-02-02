@@ -240,18 +240,36 @@ def matrix_inv(e,kap):
             r[i+j] += p[i]*q[j]
     return q
 
+def chebyshev_coef(p):
+    d = len(p) - 1
+    a = np.zeros(d + 1, dtype=complex)
+    pow2 = 1
+    a[0] = 2 * p[0]
+    for k in range(1, d + 1):
+        fac = p[k] / pow2
+        jm = k
+        jp = 1
+        for j in range(k, -1, -2):
+            a[j] += fac
+            fac *= jm / jp
+            jm -= 1
+            jp += 1
+        pow2 *= 2
+    a[0] /= 2
+    return a
+
 
 # Parameters
-n = 30
+n = 40
 k = 20
 delta = 1/np.sqrt(2)
 
-coeffs1 = rect_func(49,20,0.5)
-
+coeffs = rect_func(n,k,0.2/0.75)
+coeffs = chebyshev_coef(coeffs)
 x_vals = np.linspace(-1, 1, 2000)
-y_poly = np.array([poly_eval(coeffs1, x).real for x in x_vals])
+y_poly = np.array([cheby_eval(coeffs, x).real for x in x_vals])
 
-
+print(np.max(y_poly))
 plt.figure(figsize=(10, 6))
 plt.plot(x_vals, y_poly, label='Polynomial Approximation')
 plt.xlabel('x')
