@@ -1,4 +1,4 @@
-import multicontrol;
+import primitives.multicontrol;
 
 def gray_scale(N:!ℕ){
     ord := [];

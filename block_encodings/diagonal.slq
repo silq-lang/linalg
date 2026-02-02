@@ -1,8 +1,8 @@
-import list_op;
-import amplitude_amplification;
-import multicontrol;
-import sequential_decomposition;
-import walsh_hadamard;
+import primitives.list_op;
+import Amplitude_Amplification.amplitude_amplification;
+import primitives.multicontrol;
+import block_encodings.sequential_decomposition;
+import block_encodings.walsh_hadamard;
 
 def non_unitary_diag[n:!ℕ,m:!ℕ](anc:𝔹^1,qs:𝔹^n,t:!ℝ^m) mfree:𝔹^1 × 𝔹^n{
     anc[0] := H(anc[0]);

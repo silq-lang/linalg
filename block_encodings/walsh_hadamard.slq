@@ -1,5 +1,5 @@
-import list_op;
-import multicontrol;
+//import primitves.list_op;
+import primitives.multicontrol;
 
 def gray_scalew(N:!ℕ){
     ord := [];

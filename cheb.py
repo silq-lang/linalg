@@ -242,15 +242,14 @@ def matrix_inv(e,kap):
 
 
 # Parameters
-n = 55
+n = 30
 k = 20
 delta = 1/np.sqrt(2)
 
-coeffs1 = inverse_function(1e-4,2.5)
-coeffs2 = rect_func(49,20,0.75/2.5)
+coeffs1 = rect_func(49,20,0.5)
 
 x_vals = np.linspace(-1, 1, 2000)
-y_poly = (0.5/2.5)*np.array([poly_eval(coeffs1, x).real for x in x_vals])*np.array([poly_eval(coeffs2, x).real for x in x_vals])
+y_poly = np.array([poly_eval(coeffs1, x).real for x in x_vals])
 
 
 plt.figure(figsize=(10, 6))

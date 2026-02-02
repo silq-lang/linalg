@@ -1,0 +1,39 @@
+import GQSVT.matrix_poly;
+import GQSVT.sign_func;
+import block_encodings.diagonal;
+
+def H_col[n:!ℕ](qs:𝔹^n){
+    for j in [0..n){qs[j] := H(qs[j]);}
+    return qs;
+}
+
+def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(ancilla:𝔹^(m+1),xs:𝔹^n)(ζ:!ℝ,Δ:!ℝ,δ:!ℝ,λ:!ℝ,α:!ℝ){
+    d := floor(α*log(4/ζ)/(2*Δ)) coerce !ℕ;
+    p := rect_func(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),λ/α);
+    N := floor((315/(32*ζ^2))*log(1/δ)) coerce !ℕ;
+    count := 0:!ℕ;
+    for _ in [0..N){
+        (anc,qs) := dup((ancilla,xs));
+        flag := H(0:𝔹);
+        if flag{
+            (anc,qs) := gqet[d](p,0)(f)(anc,qs);
+        }
+        flag := H(flag);
+        r := measure(flag);
+        if !r{count += 1;}
+        measure(anc,qs);
+    }
+    c1 := abs(count/N - (ζ^2)*(1-ζ/4));
+    c2 := abs(count/N - (ζ^2)/32);
+    measure(ancilla,xs);
+    return (c1<c2);
+}
+
+def main(){
+    v := [0.5,0.25,0.3,0.75] : !ℝ^4;
+    def non_uni_diag[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
+        return non_unitary_diag(anc,xs,v);
+    }
+    qs := 0:uint[2] as 𝔹^2;
+    return eigenvalue_threshold[2,1](non_uni_diag[2])(0:uint[2] as 𝔹^2,qs)(4e-4,0.1,1e-4,0.4,max(v));
+}

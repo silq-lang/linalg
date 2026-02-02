@@ -162,5 +162,5 @@ def main(){
     //p[22] = 1:!ℂ;
     //return eigen_filt[22](cheby_to_mon[22](p) coerce !ℂ^23,0.1)
     //b := floor((2.5^2)*log(2.5/1e-4)) coerce !ℕ;
-    return inverse_func(1e-4,2.5);
+    return rect_func(49,20,0.5);
 }
