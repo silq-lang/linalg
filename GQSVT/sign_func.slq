@@ -158,9 +158,9 @@ def inverse_func(ϵ:!ℝ,κ:!ℝ){
 }
 
 def main(){
-    //p := vector(23,0:!ℂ);
-    //p[22] = 1:!ℂ;
-    //return eigen_filt[22](cheby_to_mon[22](p) coerce !ℂ^23,0.1)
+    p := vector(23,0:!ℂ);
+    p[22] = 1:!ℂ;
+    return eigen_filt[22](cheby_to_mon[22](p) coerce !ℂ^23,0.1)
     //b := floor((2.5^2)*log(2.5/1e-4)) coerce !ℕ;
-    return rect_func(49,20,0.5);
+    //return rect_func(49,20,0.5);
 }

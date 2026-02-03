@@ -1,6 +1,7 @@
 import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
 import GQSVT.sign_func;
+import block_encodings.block_subroutines;
 import block_encodings.diagonal;
 
 def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(ancilla:𝔹^(m+1),xs:𝔹^n)(ζ:!ℝ,Δ:!ℝ,δ:!ℝ,λt:!ℝ,α:!ℝ){
@@ -35,10 +36,38 @@ def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
     return (c1<c2);
 }
 
+def det_H[n:!ℕ,m:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,λ:!ℂ,α:!ℝ,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^(m+1)×𝔹^n{
+    def identity[n:!ℕ,m:!ℕ](anc:𝔹^m,xs:𝔹^n){
+        return (anc,xs);
+    }
+    return block_LC[n,m,m](ancilla,qs,[-λ,1],[1,α],identity[n,m],f);
+}
+
+def eigenstate_filtering[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+2),qs:𝔹^n,k:!ℕ,Δ:!ℝ,λf:!ℂ,α:!ℝ){
+    def H_tild(ancilla:𝔹^(m+1),xs:𝔹^n){
+        return det_H(ancilla,xs,λf,α,f);
+    }
+    v := vector(k+1,0:!ℂ);
+    v[k] = 1:!ℂ;
+    p := eigen_filt[k](cheby_to_mon[k](v) coerce !ℂ^(k+1),Δ/(2*α));
+    p := chebyshev_coef[2*k](p);
+    β := bound[num_samples(2*k,1e-8)][2*k](p);
+    for j in [0..2*k+1){p[j] = p[j]/β;}
+    q := complement[2*k](p,1e-8);
+    assert(is_complement[num_samples(2*k+1,1e-8)][2*k](p,q,1e-8));
+    angles := gqsp_compute_angles[2*k](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    return gqet[0][2*k](θs,φs,λ)(H_tild)(anc,qs);
+}
+
+
 def main(){
-    v := [0.5,0.25,0.3,0.75] : !ℝ^4;
+    v := [0.75,0.25,0.25,0.75] : !ℝ^4;
     def non_uni_diag[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
         return non_unitary_diag(anc,xs,v);
     }
-    return eigenvalue_threshold[2,1](non_uni_diag[2])(0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2)(8e-2,0.07,1e-2,0.1,max(v));  // yields false
+    qs := 0:uint[2] as 𝔹^2;
+    //return eigenvalue_threshold[2,1](non_uni_diag[2])(0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2)(1e-1,0.07,5e-2,0.1,max(v));  // yields false
+    (anc,qs) := eigenstate_filtering[2,1](non_uni_diag[2],0:uint[3] as 𝔹^3,qs,22,0.15,0.25,max(v));
+    return (anc,qs);
 }

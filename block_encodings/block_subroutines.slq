@@ -30,15 +30,17 @@ def block_tens[n1:!ℕ,m1:!ℕ,n2:!ℕ,m2:!ℕ](anc:𝔹^(m1+m2),qs:𝔹^(n1+n2)
     return (ancf~ancg,qsf~qsg);
 }
 
-def block_LC[n:!ℕ,m:!ℕ,k:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,c:!ℝ^2,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^k × 𝔹^n → mfree 𝔹^k × 𝔹^n) mfree{
+def block_LC[n:!ℕ,m:!ℕ,k:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,c:!ℂ^2,a:!ℝ^2,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^k × 𝔹^n → mfree 𝔹^k × 𝔹^n) mfree{
     (ext:𝔹^1)~(anc:𝔹^m) := ancilla;
-    t := atan(c[1]/c[0]);
+    t := atan(sqrt((a[0]*cabs(c[1]))/(a[1]*cabs(c[0]))));
     ext[0] := rotY(2*t,ext[0]);
+    ext[0] := rotZ(carg(c[1])-carg(c[0]),ext[0]);
     (anc,qs) := (omc(f)[1])(ext,(anc,qs));
     (ancf:𝔹^(m sub k))~(ancg:𝔹^k) := anc;
     (ancg,qs) := (mc(g)[1])(ext,(ancg,qs));
     anc := (ancf:𝔹^(m sub k))~(ancg:𝔹^k);
     ext[0] := rotY(-2*t,ext[0]);
+    phase((carg(c[1])+carg(c[0]))/2);
     return (ext~anc,qs);
 }
 
@@ -56,8 +58,8 @@ def main(){
         return twosym_block(anc,xs,alpha1,alpha2);
     }
     def twosym2(anc:𝔹^2,xs:𝔹^1){
-        return twosym_block(anc,xs,-alpha1,-alpha2);
+        return twosym_block(anc,xs,alpha1,alpha2);
     }
-    (anc,qs) := block_LC[1,2,2](0:uint[3] as 𝔹^3,qs,[1,2],twosym1,twosym2);
+    (anc,qs) := block_LC[1,2,2](0:uint[3] as 𝔹^3,qs,[-1,2],[2,2],twosym1,twosym2);
     return (anc,qs);
 }
