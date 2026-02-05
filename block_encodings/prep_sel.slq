@@ -1,9 +1,9 @@
-import list_op;
-import uniform_superposition;
-import multiplexed;
-import multicontrol;
-import fast_wh_transform;
-import amplitude_amplification;
+import primitives.list_op;
+import primitives.uniform_superposition;
+import primitives.multiplexed;
+import primitives.multicontrol;
+import block_encodings.wh_transform_BE;
+import Amplitude_Amplification.amplitude_amplification;
 
 def select[l:!ℕ,n:!ℕ,L:!ℕ](const control:𝔹^l,qs:𝔹^n, index:(!ℕ^2)^L) mfree{
     for i in [0..L){

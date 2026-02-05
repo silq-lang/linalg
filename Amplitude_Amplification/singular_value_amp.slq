@@ -1,0 +1,25 @@
+import GQSVT.gqsp_angles;
+import GQSVT.matrix_poly;
+import GQSVT.func_approx;
+import block_encodings.diagonal;
+
+def singular_value_amplification[n:!ℕ,m:!ℕ](anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,d:!ℕ,k:!ℝ,γ:!ℝ){
+    anc[1] := X(anc[1]); //ancilla initialization for odd polynomial
+    p := trunc_lin(d,k,γ);
+    p := chebyshev_coef[d+1](p);
+    q:=complement[d+1](p,1e-8);
+	assert(is_complement[num_samples(d+1,1e-8)][d+1](p,q,1e-8));
+	angles:=gqsp_compute_angles[d+1](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    return gqsvt[0][d+1](θs,φs,λ)(f)(anc,qs);
+}
+
+def main(){
+    v := [0.5,0.25,0.3,0.75] : !ℝ^4;
+    def non_uni_diag[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
+        return non_unitary_diag(anc,xs,v);
+    }
+    qs := 0:uint[2] as 𝔹^2;
+    (anc,qs) := singular_value_amplification[2,1](0:uint[3] as 𝔹^3,qs,non_uni_diag[2],30,10,0.8);
+    return (anc,qs);
+}

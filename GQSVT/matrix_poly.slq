@@ -100,5 +100,5 @@ def main(){
     def tridiag(anc:𝔹^3,xs:𝔹^2){
         return tridiagonal(anc,xs,[2,-1,2,-1,2,-1,2,0]:!ℝ^8);
     }
-    return gqsvt[0][2](θs,φs,λ)(tridiag)(0:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2); //should give the same as gqet
+    return gqsvt[0][2](θs,φs,λ)(tridiag)(2:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2); //should give the same as gqet initialized for ancilla=|0>^m
 }

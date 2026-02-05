@@ -1,0 +1,35 @@
+import GQSVT.gqsp_angles;
+import GQSVT.matrix_poly;
+import GQSVT.func_approx;
+import block_encodings.tridiag;
+
+def hermitian_conjugate[n:!ℕ](A:(!ℂ^n)^n){
+    A_dag := vector(n,vector(n,0));
+    for j in [0..n){
+        for k in [0..n){
+            A_dag[k][j] = conj(A[j][k]);
+        }
+    }
+    return A_dag;
+}
+
+def invert_matrix[n:!ℕ,m:!ℕ](anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,ϵ:!ℝ,κ:!ℝ){
+    b := floor((κ^2)*log(κ/ϵ)) coerce !ℕ;
+    d := floor(sqrt(b*log(4*b/ϵ))) coerce !ℕ;
+    p := inverse_func(d,b);
+    β := bound[num_samples(2*d+1,1e-8)][2*d+1](p);
+    for j in [0..2*d+2){p[j] = p[j]/β;}
+    q:=complement[2*d+1](p,1e-8);
+	assert(is_complement[num_samples(2*d+1,1e-8)][2*d+1](p,q,1e-8));
+	angles:=gqsp_compute_angles[2*d+1](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    return gqsvt[0][2*d+1](θs,φs,λ)(f)(anc,qs);
+}
+
+def main(){
+    def tridiag(anc:𝔹^3,xs:𝔹^2){
+        return tridiagonal(anc,xs,[2,0.2,2,0.2,2,0.2,2,0]:!ℝ^8);
+    }
+    (anc,qs) := invert_matrix[2,3](2:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2,tridiag,1e-6,1);
+    return (anc,qs);
+}

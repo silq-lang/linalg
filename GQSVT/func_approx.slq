@@ -232,9 +232,7 @@ def choose(n:!ℕ, k:!ℕ){
     return result
 }
 
-def inverse_func(ϵ:!ℝ,κ:!ℝ){
-    b := floor((κ^2)*log(κ/ϵ)) coerce !ℕ;
-    n := floor(sqrt(b*log(4*b/ϵ))) coerce !ℕ;
+def inverse_func(n:!ℕ,b:!ℕ){
     p := vector(2*n+2,0:!ℂ);
     for j in [0..n+1){
         prefac := 0:!ℝ;
@@ -242,7 +240,7 @@ def inverse_func(ϵ:!ℝ,κ:!ℝ){
         p[2*j+1] = 4*((-1)^j)*(2^(-2*b))*prefac;
         forget(prefac);
     }
-    return cheby_to_mon[2*n+1](p);
+    return p;
 }
 
 def cos_poly(n:!ℕ,t:!ℝ){
@@ -276,5 +274,5 @@ def main(){
     //return eigen_filt[22](cheby_to_mon[22](p) coerce !ℂ^23,0.1)
     //b := floor((2.5^2)*log(2.5/1e-4)) coerce !ℕ;
     //return rect_func(49,20,0.5);
-    return ei_poly(30,5);
+    return inverse_func(77,10);
 }
