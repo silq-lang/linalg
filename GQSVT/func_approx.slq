@@ -243,6 +243,29 @@ def inverse_func(n:!ℕ,b:!ℕ){
     return p;
 }
 
+def cheby_mul[d:!ℕ,t:!ℕ](p:!ℂ^(d+1),q:!ℂ^(t+1)){
+    v := vector(d+t-1 coerce !ℕ,0:!ℂ);
+    for j in [0..d){
+        for k in [0..t){
+            prod := 0.5 * p[j] * q[k];
+            v[j+k] += prod;
+            v[abs(j - k) coerce !ℕ] += prod;
+            forget(prod);
+        }
+    }
+    return v;
+}
+
+def matrix_inv(n1:!ℕ,b:!ℕ,n2:!ℕ,k:!ℝ,κ:!ℝ){
+    p := inverse_func(n1,b);
+    q := rect_func(n2,k,0.75/2/κ);
+    for j in [0..n2){q[j] *= -1;}
+    q[0] += 1;
+    for j in [0..n2){q[j] *= 0.5/κ;}
+    q := chebyshev_coef(q);
+    return cheby_mul[2*n1+1,n2](p,q) coerce !ℂ^(2*n1+n2);
+}
+
 def cos_poly(n:!ℕ,t:!ℝ){
     p := vector(2*n+1,0:!ℂ);
     p[0] = bessj0(t);
@@ -274,5 +297,5 @@ def main(){
     //return eigen_filt[22](cheby_to_mon[22](p) coerce !ℂ^23,0.1)
     //b := floor((2.5^2)*log(2.5/1e-4)) coerce !ℕ;
     //return rect_func(49,20,0.5);
-    return inverse_func(77,10);
+    return matrix_inv(30,63,7*7,30.7,1.25);
 }

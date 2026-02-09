@@ -16,20 +16,25 @@ def hermitian_conjugate[n:!ℕ](A:(!ℂ^n)^n){
 def invert_matrix[n:!ℕ,m:!ℕ](anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,ϵ:!ℝ,κ:!ℝ){
     b := floor((κ^2)*log(κ/ϵ)) coerce !ℕ;
     d := floor(sqrt(b*log(4*b/ϵ))) coerce !ℕ;
-    p := inverse_func(d,b);
-    β := bound[num_samples(2*d+1,1e-8)][2*d+1](p);
-    for j in [0..2*d+2){p[j] = p[j]/β;}
-    q:=complement[2*d+1](p,1e-8);
-	assert(is_complement[num_samples(2*d+1,1e-8)][2*d+1](p,q,1e-8));
-	angles:=gqsp_compute_angles[2*d+1](p,q);
+    e := min(((2*ϵ)/(5*κ),κ/(2*d)));
+    t := floor(7*(1/κ)*log(1/e)) coerce !ℕ;
+    k := (sqrt(2)/(0.25/κ))*sqrt(log(2/π/(e^2)));
+    bp := floor((4*κ^2)*log(8*κ/ϵ)) coerce !ℕ;
+    dp := floor(sqrt(bp*log(8*bp/ϵ))) coerce !ℕ;
+    p := matrix_inv(dp,bp,t,k,κ);
+    β := bound[num_samples(2*dp + t -1  coerce !ℕ,1e-8)][2*dp + t -1  coerce !ℕ](p);
+    for j in [0..2*dp+t){p[j] = p[j]/1.5;}
+    q:=complement[2*dp + t -1  coerce !ℕ](p,1e-8);
+	assert(is_complement[num_samples(2*dp + t -1  coerce !ℕ,1e-8)][2*dp + t -1  coerce !ℕ](p,q,1e-8));
+	angles:=gqsp_compute_angles[2*dp + t -1  coerce !ℕ](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    return gqsvt[0][2*d+1](θs,φs,λ)(f)(anc,qs);
+    return gqsvt[0][2*dp + t -1  coerce !ℕ](θs,φs,λ)(f)(anc,qs);
 }
 
 def main(){
     def tridiag(anc:𝔹^3,xs:𝔹^2){
         return tridiagonal(anc,xs,[2,0.2,2,0.2,2,0.2,2,0]:!ℝ^8);
     }
-    (anc,qs) := invert_matrix[2,3](2:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2,tridiag,1e-6,1);
+    (anc,qs) := invert_matrix[2,3](2:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2,tridiag,2e-4,1);
     return (anc,qs);
 }

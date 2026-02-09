@@ -36,19 +36,12 @@ def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
     return (c1<c2);
 }
 
-def det_H[n:!ℕ,m:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,λ:!ℂ,α:!ℝ,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^(m+1)×𝔹^n{
-    def identity[n:!ℕ,m:!ℕ](anc:𝔹^m,xs:𝔹^n){
-        return (anc,xs);
-    }
-    return block_LC[n,m,m](ancilla,qs,[-λ,1],[1,α],identity[n,m],f);
-}
-
 def eigenstate_filtering[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+2),qs:𝔹^n,k:!ℕ,Δ:!ℝ,λf:!ℂ,α:!ℝ){
     def det_H(ancilla:𝔹^(m+1),xs:𝔹^n){
         def identity[n:!ℕ,m:!ℕ](ancilla:𝔹^m,xs:𝔹^n){
-            return (anc,xs);
+            return (ancilla,xs);
         }
-        return block_LC[n,m,m](ancilla,xs,[-λ,1],[1,α],identity[n,m],f);
+        return block_LC[n,m,m](ancilla,xs,[-λf,1],[1,α],identity[n,m],f);
     }
     v := vector(k+1,0:!ℂ);
     v[k] = 1:!ℂ;
@@ -60,7 +53,20 @@ def eigenstate_filtering[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
     assert(is_complement[num_samples(2*k+1,1e-8)][2*k](p,q,1e-8));
     angles := gqsp_compute_angles[2*k](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    return gqet[0][2*k](θs,φs,λ)(H_tild)(anc,qs);
+    return gqet[0][2*k](θs,φs,λ)(det_H)(anc,qs);
+}
+
+def singular_vector_trans[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+2),qs:𝔹^n,ϵ:!ℝ,κ:!ℝ){
+    d := floor(2*log(1/ϵ)/κ) coerce !ℕ;
+    k := (sqrt(2)/κ)*sqrt(log(2/π/ϵ^2));
+    p := sign_func(d,k,0) coerce !ℂ^(d+1);
+    p := chebyshev_coef[d](p);
+    for j in [0..d){p[j] = p[j]/2;}
+    q := complement[d](p,1e-8);
+    assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
+    angles := gqsp_compute_angles[d](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    return gqsvt[0][d](θs,φs,λ)(f)(anc,qs);
 }
 
 
@@ -72,5 +78,6 @@ def main(){
     qs := 0:uint[2] as 𝔹^2;
     //return eigenvalue_threshold[2,1](non_uni_diag[2])(0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2)(1e-1,0.07,5e-2,0.1,max(v));  // yields false
     (anc,qs) := eigenstate_filtering[2,1](non_uni_diag[2],0:uint[3] as 𝔹^3,qs,22,0.15,0.25,max(v));
+    //(anc,qs) := singular_vector_trans[2,1](non_uni_diag[2],2:uint[3] as 𝔹^3,qs,1e-4,0.8);
     return (anc,qs);
 }
