@@ -30,7 +30,8 @@ def non_unitary_diag[n:!ℕ,m:!ℕ](anc:𝔹^1,qs:𝔹^n,t:!ℝ^m) mfree:𝔹^1 
 
     anc[0] := X(c_phase[-π/2](H(anc[0])));
     return (anc,qs);
-}   
+} 
+
 
 def Up(qs:𝔹^2) mfree{
     qs[1] := X(qs[1]);

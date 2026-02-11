@@ -20,3 +20,12 @@ def multiplexed_adder[n:!ℕ,m:!ℕ](const control:𝔹^n,target:𝔹^m) mfree{
     }
     return target;
 }
+
+def multiplexed_unitaries[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,const control:𝔹^m,target:𝔹^n) mfree{
+    for j in [0..2^m){
+        if j == (control as uint[m]){
+            for k in [0..j){target := f(target);}
+        }
+    }
+    return target;
+}

@@ -1,4 +1,4 @@
-import multicontrol;
+import primitives.multicontrol;
 
 def block_projector[n:!ℕ](anc:𝔹^1,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n) mfree{
     anc[0] := X(H(anc[0]));
