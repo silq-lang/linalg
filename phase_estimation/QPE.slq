@@ -1,0 +1,66 @@
+import phase_estimation.QFT;
+import primitives.multiplexed;
+import block_encodings.diagonal;
+import Amplitude_Amplification.amplitude_amplification;
+import GQSVT.func_approx;
+
+def H_col[m:!ℕ](xs:𝔹^m){
+    for j in [0..m){xs[j] := H(xs[j]);}
+    return xs;
+}
+
+def qpe[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n)(const window:!ℝ → qfree !ℝ,anc:𝔹^m,qs:𝔹^n){
+    anc := H_col(anc);
+    t := vector(2^m,0:!ℝ);
+    for j in [0..2^m){t[j] = window(j);}
+    def non_unitary_diag_amp[m:!ℕ](flag:𝔹^1,xs:𝔹^m){
+        return non_unitary_diag(flag,xs,t);
+    }
+    (flag,anc) := non_unitary_diag_amp(0:uint[1] as 𝔹^1,anc);
+    anc := fixed_point_AA(flag,anc,non_unitary_diag_amp[m],H_col[m]);
+    qs := multiplexed_unitaries(f,anc,qs);
+    QFT(anc) := anc;
+    return (anc,qs);
+}
+
+def estimate_phase[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n)(const window:!ℝ → qfree !ℝ ,const ancilla:𝔹^m,const xs:𝔹^n){
+    counts := vector(2^m,0:!ℕ);
+    for j in [0..shots){
+        anc := dup(ancilla);qs := dup(xs);
+        (anc,qs) := qpe[n,m](f)(window,anc,qs);
+        ϕ := measure(anc) as !uint[m] as !ℕ;
+        counts[ϕ] += 1;
+        measure(qs);
+    }
+    highest := 0:!ℕ;
+    for j in [0..2^m){
+        if counts[j]>counts[highest]{highest = j;}
+    }
+    return highest/2^m as !ℝ;
+}
+
+def rect_window(x:!ℝ) qfree{
+    return 1:!ℝ;
+}
+
+def sine_window[m:!ℕ](x:!ℝ) qfree{
+    return sin((π*(x+1))/(2^m+1));
+}
+
+def kaiser_window[α:!ℝ][m:!ℕ](x:!ℝ) qfree{
+    def kaiser_func(y:!ℝ){
+        return (1/(2^m)/bessi0(π*α))*bessi0(π*α*sqrt(1-(y/(2^(m-1)))^2));
+    }
+    if (x<2^(m-1)){return kaiser_func(x);}
+    else{return kaiser_func(x-2^m);}
+}
+
+def T(x:𝔹^1){
+    x[0] := rotZ(2*π/3,x[0]);
+    phase(π/3);
+    return x;
+}
+
+def main(){
+    return estimate_phase[10][1,5](T)(kaiser_window[2][5],0:uint[5] as 𝔹^5,1:uint[1] as 𝔹^1);
+}
