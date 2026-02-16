@@ -1,0 +1,63 @@
+import primitives.multicontrol;
+import phase_estimation.QPE;
+
+def real_hadamard_test[n:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),xs:𝔹^n) mfree{
+    (flag:𝔹^1)~(qs:𝔹^(n sub 1)) := xs;
+    qs := g(qs);
+    flag[0] := H(flag[0]);
+    qs := mc(f)(flag,qs);
+    flag[0] := H(flag[0]);
+    return (flag~qs);
+}
+
+def imag_hadamard_test[n:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),xs:𝔹^n) mfree{
+    (flag:𝔹^1)~(qs:𝔹^(n sub 1)) := xs;
+    qs := g(qs);
+    flag[0] := H(flag[0]);
+    if flag[0]=1{phase(-π/2);}
+    qs := mc(f)(flag,qs);
+    flag[0] := H(flag[0]);
+    return (flag~qs);
+}
+
+def real_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1))(const window:!ℝ → qfree !ℝ ,const anc:𝔹^m,const qs:𝔹^n){
+    def real_had_test(xs:𝔹^n) mfree{return real_hadamard_test(f,g,xs);}
+    def G_real(xs:𝔹^n) mfree{
+        if xs[0]=0{phase(π);}
+        with real_had_test(xs):=xs{
+            if xs==vector(n,0){phase(π);}
+        }
+        return xs;
+    }
+    tr := estimate_phase[shots][n,m](G_real)(window,anc,qs);
+    return (2*(cos(π*tr))^2-1) 
+}
+
+def imag_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1))(const window:!ℝ → qfree !ℝ ,const anc:𝔹^m,const qs:𝔹^n){
+    def imag_had_test(xs:𝔹^n) mfree{return imag_hadamard_test(f,g,xs);}
+    def G_imag(xs:𝔹^n) mfree{
+        if xs[0]=0{phase(π);}
+        with imag_had_test(xs):=xs{
+            if xs==vector(n,0){phase(π);}
+        }
+        return xs;
+    }
+    ti := estimate_phase[shots][n,m](G_imag)(window,anc,qs);
+    return (2*(cos(π*ti))^2-1);
+}
+
+def cP(x:𝔹^1){
+    if x[0]=1{phase(π/2);}
+    phase(π);
+    return x;
+}
+
+def Up(x:𝔹^1){
+    x[0] := H(x[0]);
+    return x;
+}
+
+def main(){
+    return real_expectation_value[10][2,5](cP,Up)(sine_window[5],0:uint[5] as 𝔹^5,2:uint[2] as 𝔹^2);
+    //return imag_expectation_value[10][2,5](cP,Up)(sine_window[5],0:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2);
+}
