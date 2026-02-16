@@ -1,5 +1,6 @@
 import phase_estimation.QFT;
 import primitives.multiplexed;
+import block_encodings.block_subroutines;
 import block_encodings.diagonal;
 import Amplitude_Amplification.amplitude_amplification;
 import GQSVT.func_approx;
@@ -9,7 +10,7 @@ def H_col[m:!ℕ](xs:𝔹^m){
     return xs;
 }
 
-def qpe[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n)(const window:!ℝ → qfree !ℝ,anc:𝔹^m,qs:𝔹^n){
+def qpe[q:qtype,m:!ℕ](const f:q → mfree q)(const window:!ℝ → qfree !ℝ,anc:𝔹^m,qs:q){
     anc := H_col(anc);
     t := vector(2^m,0:!ℝ);
     for j in [0..2^m){t[j] = window(j);}
@@ -23,11 +24,11 @@ def qpe[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n)(const window:!ℝ → qf
     return (anc,qs);
 }
 
-def estimate_phase[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n)(const window:!ℝ → qfree !ℝ ,const ancilla:𝔹^m,const xs:𝔹^n){
+def estimate_phase[shots:!ℕ][q:qtype,m:!ℕ](const f:q → mfree q)(const window:!ℝ → qfree !ℝ ,const ancilla:𝔹^m,const xs:q){
     counts := vector(2^m,0:!ℕ);
     for j in [0..shots){
         anc := dup(ancilla);qs := dup(xs);
-        (anc,qs) := qpe[n,m](f)(window,anc,qs);
+        (anc,qs) := qpe[q,m](f)(window,anc,qs);
         ϕ := measure(anc) as !uint[m] as !ℕ;
         counts[ϕ] += 1;
         measure(qs);
@@ -37,6 +38,14 @@ def estimate_phase[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n)(c
         if counts[j]>counts[highest]{highest = j;}
     }
     return highest/2^m as !ℝ;
+}
+
+def hermitian_phase_estimate[shots:!ℕ][n:!ℕ,m:!ℕ,k:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(const window:!ℝ → qfree !ℝ ,const ancilla:𝔹^k,const qs:𝔹^m × 𝔹^n){
+    def qubitized_f(anc:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
+        return qubitize(anc,xs,f);
+    }
+    γ := estimate_phase[shots][𝔹^m × 𝔹^n,k](qubitized_f)(window,ancilla,qs);
+    return γ;
 }
 
 def rect_window(x:!ℝ) qfree{
@@ -62,5 +71,5 @@ def T(x:𝔹^1){
 }
 
 def main(){
-    return estimate_phase[10][1,5](T)(kaiser_window[2][5],0:uint[5] as 𝔹^5,1:uint[1] as 𝔹^1);
+    return estimate_phase[10][𝔹^1,5](T)(kaiser_window[2][5],0:uint[5] as 𝔹^5,1:uint[1] as 𝔹^1);
 }

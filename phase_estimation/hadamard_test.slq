@@ -29,7 +29,7 @@ def real_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) →
         }
         return xs;
     }
-    tr := estimate_phase[shots][n,m](G_real)(window,anc,qs);
+    tr := estimate_phase[shots][𝔹^n,m](G_real)(window,anc,qs);
     return (2*(cos(π*tr))^2-1) 
 }
 
@@ -42,7 +42,7 @@ def imag_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) →
         }
         return xs;
     }
-    ti := estimate_phase[shots][n,m](G_imag)(window,anc,qs);
+    ti := estimate_phase[shots][𝔹^n,m](G_imag)(window,anc,qs);
     return (2*(cos(π*ti))^2-1);
 }
 
