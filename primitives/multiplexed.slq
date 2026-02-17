@@ -29,3 +29,13 @@ def multiplexed_unitaries[q:qtype,m:!ℕ](const f:q → mfree q,const control:�
     }
     return target;
 }
+
+def multiplexed_rotY[m:!ℕ](const control:𝔹^m,target:𝔹^1,C:!ℝ) mfree{
+    for j in [0..2^m){
+        if j == (control as uint[m]){
+            θ := 2*asin(C/j);
+            target[0] := rotY(θ,target[0]);
+        }
+    }
+    return target;
+}

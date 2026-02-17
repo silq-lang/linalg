@@ -1,0 +1,34 @@
+import phase_estimation.QFT;
+import primitives.multiplexed;
+import Amplitude_Amplification.fixedpointOAA;
+
+def HHL[C:!ℝ,m:!ℕ][n:!ℕ](const f:𝔹^n → mfree 𝔹^n)(qs:𝔹^n){
+    anc := 0:uint[m] as 𝔹^m;
+    for j in [0..m){anc[j] := H(anc[j]);}
+    qs := multiplexed_unitaries(f,anc,qs);
+    QFT(anc) := anc;
+    def cR(ext:𝔹^1,ancilla:𝔹^m) mfree{
+        ext := multiplexed_rotY(ancilla,ext,C);
+        ext[0] := X(ext[0]);
+        return (ext,ancilla);
+    }
+    (flag,anc) := cR(0:uint[1] as 𝔹^1,anc);
+    anc := fixed_point_OAA(flag,anc,cR);
+    anc := QFT(anc);
+    multiplexed_unitaries(f,anc,qs) := qs;
+    for j in [0..m){anc[j] := H(anc[j]);}
+    forget(anc=0:uint[m] as 𝔹^m);
+    return qs;
+}
+
+def Ob(x:𝔹^1) mfree:𝔹^1{
+    x[0] := H(x[0]);
+    if x[0]=0{phase(π/2);}
+    if x[0]{phase(π);}
+    x[0] := H(x[0]);
+    return x
+}
+
+def main(){
+    return HHL[1:!ℝ,2](Ob)(1:uint[1] as 𝔹^1);
+}
