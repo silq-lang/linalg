@@ -12,6 +12,14 @@ def multiplexed_rotX[n:!ℕ,D:!ℕ](const d:𝔹^n,data:𝔹,v:!ℝ^D) mfree{
     return data;
 }
 
+def multiplexed_phase[n:!ℕ,D:!ℕ](const d:𝔹^n,v:!ℂ^D) mfree{
+    for i in [0..D){
+        if i == (d as uint[n]){
+            phase(carg(v[i]));
+        }
+    }
+}
+
 def multiplexed_adder[n:!ℕ,m:!ℕ](const control:𝔹^n,target:𝔹^m) mfree{
     for i in [0..2^n){
         if i == (control as uint[n]){

@@ -9,15 +9,24 @@ def select[l:!ℕ,n:!ℕ,L:!ℕ](const control:𝔹^l,qs:𝔹^n, index:(!ℕ^2)^
     for i in [0..L){
         if i == (control as uint[l]){
             for j in [0..n){
-                if (index[i][0] as !uint[n])[j]{qs[n sub j sub 1]:=X(qs[n sub j sub 1]);}
-                if (index[i][1] as !uint[n])[j]{qs[n sub j sub 1]:=Z(qs[n sub j sub 1]);}
+                if (index[i][0] as !uint[n])[j]{qs[j]:=X(qs[j]);}
+                if (index[i][1] as !uint[n])[j]{qs[j]:=Z(qs[j]);}
+                if (index[i][0] as !uint[n])[j]&(index[i][1] as !uint[n])[j]{phase(π/2);}
             }
         }
     }
     return qs;
 }
 
-def prepare[m:!ℕ,D:!ℕ](ex:𝔹^1,anc:𝔹^m,coef:!ℝ^D) mfree{
+def prepare[m:!ℕ,D:!ℕ](ex:𝔹^1,anc:𝔹^m,coef:!ℂ^D) mfree{
+    anc := uniform_superposition[D](anc);
+    (ex,) := ex;
+    multiplexed_phase(anc,coef);
+    ex := multiplexed_rotX(anc,ex,sqrt_list(coef));
+    return ((ex,),anc);
+}
+
+def unprepare[m:!ℕ,D:!ℕ](ex:𝔹^1,anc:𝔹^m,coef:!ℂ^D) mfree{
     anc := uniform_superposition[D](anc);
     (ex,) := ex;
     ex := multiplexed_rotX(anc,ex,sqrt_list(coef));
@@ -30,13 +39,13 @@ def prep_sel[n:!ℕ,m:!ℕ,D:!ℕ](ancilla:𝔹^m,qs:𝔹^n,index:(!ℕ^2)^D,coe
     qs := select(anc,qs,index);
     ext1[0] := mc(X)(ext2,ext1[0]);
     if ext1[0]=0{
-        prepare(ext2,anc,coef) := (ext2,anc);
+        unprepare(ext2,anc,coef) := (ext2,anc);
     }
     return(ext1~ext2~anc,qs);
 }
 
 def Up(qs:𝔹^2) mfree{
-    //qs[0] := X(qs[0]);
+    qs[0] := X(qs[0]);
     qs[1] := X(qs[1]);
     return qs;
 }

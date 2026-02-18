@@ -22,10 +22,10 @@ def abs_list[m:!ℕ](t:!ℝ^m){
     return v coerce !ℝ^m;
 }
 
-def sqrt_list[m:!ℕ](t:!ℝ^m){
+def sqrt_list[m:!ℕ](t:!ℂ^m){
     v := [];
     for i in [0..m){
-        v := v~[sqrt(t[i])];
+        v := v~[sqrt(cabs(t[i]))];
     }
     return v coerce !ℝ^m;
 }
