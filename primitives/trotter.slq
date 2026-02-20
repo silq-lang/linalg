@@ -1,0 +1,49 @@
+import primitives.multicontrol;
+import block_encodings.wh_transform_BE;
+
+def pauli_basis_change(x:𝔹,rj:!𝔹,sj:!𝔹) mfree{
+    if rj&&!sj{x := H(x);}
+    if rj&&sj{if x{phase(-π/2);}x := H(x);}
+    return x;
+}
+
+def cnot_col[n:!ℕ](qs:𝔹^n,r:!ℕ,s:!ℕ,j:!ℕ,target:!ℕ) mfree{
+    temp := dup(qs[j]);
+    if (r as !uint[n])[j]||(s as !uint[n])[j]{qs[target] := mc(X)((temp,),qs[target]);}
+    forget(temp=qs[j]);
+    return qs;
+}
+
+def identity_string[n:!ℕ](r:!ℕ,s:!ℕ)qfree{
+    k := 0:!ℕ;
+    for j in [0..n){if (r as !uint[n])[j]||(s as !uint[n])[j]{k = j;}}
+    return k;
+}
+
+def pauli_exp[n:!ℕ](θ:!ℝ,qs:𝔹^n,r:!ℕ,s:!ℕ) mfree{
+    if (r=0)&&(s=0){phase(θ);}else{
+        target := identity_string[n](r,s);
+        for j in [0..n){qs[j] := pauli_basis_change(qs[j],(r as !uint[n])[j],(s as !uint[n])[j]);}
+        for j in [0..n){if j!=target{qs := cnot_col(qs,r,s,j,target);}}
+        qs[target] := rotZ(-2*θ,qs[target]);
+        for j in (n..-1..0]{if j!=target{cnot_col(qs,r,s,j,target) := qs;}}
+        for j in [0..n){pauli_basis_change(qs[j],(r as !uint[n])[j],(s as !uint[n])[j]) := qs[j];}
+    }
+    return qs;
+}
+
+def trotterization[n:!ℕ,D:!ℕ](qs:𝔹^n,coef:!ℝ^D,index:(!ℕ^2)^D,t:!ℝ,r:!ℕ) mfree{
+    for _ in [0..r){
+        for j in [0..D){qs := pauli_exp(t*coef[j]/(2*r),qs,index[j][0],index[j][1]);}
+        for j in (D..-1..0]{qs := pauli_exp(t*coef[j]/(2*r),qs,index[j][0],index[j][1]);}
+    }
+    return qs;
+}
+
+def main(){
+    A := [[1,-1/3],[-1/3,1]] coerce (!ℝ^2)^2;
+    index := wh_index(A);
+    ind := index[1] coerce (!ℕ^2)^index[0];
+    coef := wh_coefficients(A) coerce !ℝ^index[0];
+    return trotterization[1,index[0]](0:uint[1] as 𝔹^1,coef,ind,3*π/4,2:!ℕ);
+}

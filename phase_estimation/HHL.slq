@@ -1,34 +1,38 @@
 import phase_estimation.QFT;
 import primitives.multiplexed;
-import Amplitude_Amplification.fixedpointOAA;
+import block_encodings.wh_transform_BE;
+import Amplitude_Amplification.amplitude_amplification;
+import primitives.trotter;
 
-def HHL[C:!ℝ,m:!ℕ][n:!ℕ](const f:𝔹^n → mfree 𝔹^n)(qs:𝔹^n){
+def HHL[κ:!ℝ,m:!ℕ][n:!ℕ](A:(!ℝ^(2*n))^(2*n),flag:𝔹^1,qs:𝔹^n){
+    def f(xs:𝔹^n) mfree:𝔹^n{
+        index := wh_index(A);
+        ind := index[1] coerce (!ℕ^2)^index[0];
+        coef := wh_coefficients(A) coerce !ℝ^index[0];
+        return trotterization[n,index[0]](xs,coef,ind,π,2:!ℕ);
+    }
     anc := 0:uint[m] as 𝔹^m;
     for j in [0..m){anc[j] := H(anc[j]);}
     qs := multiplexed_unitaries(f,anc,qs);
     QFT(anc) := anc;
-    def cR(ext:𝔹^1,ancilla:𝔹^m) mfree{
-        ext := multiplexed_rotY(ancilla,ext,C);
-        ext[0] := X(ext[0]);
-        return (ext,ancilla);
-    }
-    (flag,anc) := cR(0:uint[1] as 𝔹^1,anc);
-    anc := fixed_point_OAA(flag,anc,cR);
+    flag := multiplexed_rotY(anc,flag,κ);
+    flag[0] := X(flag[0]);
     anc := QFT(anc);
     multiplexed_unitaries(f,anc,qs) := qs;
     for j in [0..m){anc[j] := H(anc[j]);}
     forget(anc=0:uint[m] as 𝔹^m);
-    return qs;
-}
-
-def Ob(x:𝔹^1) mfree:𝔹^1{
-    x[0] := H(x[0]);
-    if x[0]=0{phase(π/2);}
-    if x[0]{phase(π);}
-    x[0] := H(x[0]);
-    return x
+    return (flag,qs);
 }
 
 def main(){
-    return HHL[1:!ℝ,2](Ob)(1:uint[1] as 𝔹^1);
+    def Up(x:𝔹^1){
+        x[0] := X(x[0]);
+        return x;
+    }
+    A := [[3/4,-1/4],[-1/4,3/4]] coerce (!ℝ^2)^2;
+    def HHL_amp(ext:𝔹^1,xs:𝔹^1){
+        return HHL[2,2][1](A,ext:𝔹^1,xs:𝔹^1)
+    }
+    (flag,qs) := HHL_amp(0:uint[1] as 𝔹^1,1:uint[1] as 𝔹^1);
+    return fixed_point_AA(flag,qs,HHL_amp,Up);
 }
