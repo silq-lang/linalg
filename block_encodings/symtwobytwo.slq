@@ -1,5 +1,5 @@
 import block_encodings.sparse_block;
-import Amplitude_Amplification.fixedpointOAA;
+import Amplitude_Amplification.amplitude_amplification;
 
 def Oc(const l:𝔹^1, qs:𝔹^1) mfree{
     if l[0]{qs[0] := X(qs[0]);}
@@ -14,12 +14,34 @@ def Oa[alpha1:!ℝ,alpha2:!ℝ](anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree
     return anc;
 }
 
+def Oc_sym(l:𝔹^1, const qs:𝔹^1) mfree{
+    if qs[0]{l[0] := X(l[0]);}
+    return l;
+}
+
+def Oa_sym[alpha1:!ℂ,alpha2:!ℂ](anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
+    theta1 := 2*acos(sqrt(cabs(alpha1)));
+    theta2 := 2*acos(sqrt(cabs(alpha2)));
+    if !l[0]{anc := rotY(theta1,anc);}
+    if l[0]{anc := rotY(theta2,anc);}
+    return anc;
+}
+
+def Oap[alpha1:!ℂ,alpha2:!ℂ](const anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
+    if !l[0]{phase(carg(alpha1));}
+    if l[0]{phase(carg(alpha2));}
+}
+
 def twosym_block(ancilla:𝔹^2,qs:𝔹^1,alpha1:!ℝ,alpha2:!ℝ){
     return sparse_block[2,1](ancilla,qs,Oc,Oa[alpha1,alpha2]);
 }
 
+def twosym_herm(ancilla:𝔹^3,qs:𝔹^1,alpha1:!ℂ,alpha2:!ℂ){
+    return herm_sparse_block[1,1](ancilla,qs,Oc_sym,Oa_sym[alpha1,alpha2],Oap[alpha1,alpha2]);
+}
+
 def Up(qs:𝔹^1) mfree{
-    //qs[0] := X(qs[0]);
+    qs[0] := X(qs[0]);
     return qs;
 }
 
@@ -30,9 +52,9 @@ def main(){
     alpha1 := (1/2):!ℝ;
     alpha2 := (1/sqrt(2)):!ℝ;
     // A/2 |0> = 1/4 |0> + sqrt(2)/4 |1> --> Normalization 1/sqrt(3) |0> + sqrt(2/3) |1>
-    def twosym_amp(anc:𝔹^2,xs:𝔹^1){
-        return twosym_block(anc,xs,alpha1,alpha2);
+    def twosym_amp(anc:𝔹^3,xs:𝔹^1){
+        return twosym_herm(anc,xs,1,-1/3);
     }
-    (anc,qs) := twosym_amp(0:uint[2] as 𝔹^2,qs);
-    return fixed_point_OAA(anc,qs,twosym_amp,Up);
+    (anc,qs) := twosym_amp(0:uint[3] as 𝔹^3,qs);
+    return fixed_point_AA(anc,qs,twosym_amp,Up);
 }
