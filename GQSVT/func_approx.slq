@@ -279,7 +279,7 @@ def sin_poly(n:!ℕ,t:!ℝ){
     return p;
 }
 
-def ei_poly(n:!ℕ,t:!ℝ){
+def c_exp(n:!ℕ,t:!ℝ){
     p := cos_poly(n,t);
     q := sin_poly(n,t);
     v := vector(2*n+1,0:!ℂ);
@@ -290,6 +290,7 @@ def ei_poly(n:!ℕ,t:!ℝ){
     v[2*n] = p[2*n];
     return v;
 }
+
 
 def main(){
     //p := vector(23,0:!ℂ);

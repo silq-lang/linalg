@@ -3,34 +3,35 @@ import GQSVT.matrix_poly;
 import GQSVT.func_approx;
 import Amplitude_Amplification.amplitude_amplification;
 import block_encodings.block_subroutines;
-import block_encodings.diagonal;
+import block_encodings.symtwobytwo;
 
 def time_evolution[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+2),qs:𝔹^n,t:!ℝ,α:!ℝ,ϵ:!ℝ){
     def spd_f(ancilla:𝔹^(m+1),xs:𝔹^n){
-        def identity[n:!ℕ,m:!ℕ](ancilla:𝔹^m,xs:𝔹^n){
-            return (ancilla,xs);
-        }
-        return block_LC[n,m,m](ancilla,xs,[0.5,0.5],[1,α],identity[n,m],f);
+        (flag:𝔹^1)~(ancilla:𝔹^m) := ancilla;
+        flag[0] := H(flag[0]);
+        if !flag[0]{(ancilla,xs) := f(ancilla,xs);}
+        flag[0] := H(flag[0]);
+        return (flag~ancilla,xs);
     }
     e := 2.71828182845904523536;
     ϵ /= 4;
     d := ceil(0.5*(e*α*abs(t)/2+(log(4/5/ϵ))/log(e+2*log(4/5/ϵ)/e/abs(t)/α))) coerce !ℕ;
-    p := ei_poly(d,-t);
-    for j in [0..2*d+1){p[j] = p[j]/1.4;}
+    p := c_exp(d,t);
+    for j in [0..2*d+1){p[j] = p[j]/1.75;}
     q := complement[2*d](p,1e-8);
     assert(is_complement[num_samples(2*d,1e-8)][2*d](p,q,1e-8));
 	angles:=gqsp_compute_angles[2*d](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
     (anc,qs) := gqet[0][2*d](θs,φs,λ)(spd_f)(anc,qs);
+    phase(t/2);
     return (anc,qs);
 }
 
 def main(){
-    v := [0.5,0.25,0.3,0.75] : !ℝ^4;
-    def non_uni_diag[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
-        return non_unitary_diag(anc,xs,v);
+    def twosym(anc:𝔹^3,xs:𝔹^1){
+        return twosym_herm(anc,xs,1,-1/3);
     }
-    qs := 0:uint[2] as 𝔹^2;
-    (anc,qs) := time_evolution[2,1](non_uni_diag[2],0:uint[3] as 𝔹^3,qs,0.4,max(v),1e-4);
+    qs := 0:uint[1] as 𝔹^1;
+    (anc,qs) := time_evolution[1,3](twosym,0:uint[5] as 𝔹^5,qs,π/12,2,4e-2);
     return (anc,qs);
 }
