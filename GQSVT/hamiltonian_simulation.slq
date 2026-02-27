@@ -16,22 +16,22 @@ def time_evolution[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × �
     e := 2.71828182845904523536;
     ϵ /= 4;
     d := ceil(0.5*(e*α*abs(t)/2+(log(4/5/ϵ))/log(e+2*log(4/5/ϵ)/e/abs(t)/α))) coerce !ℕ;
-    p := c_exp(d,t);
+    p := c_exp(d,2*α*t);
     for j in [0..2*d+1){p[j] = p[j]/1.75;}
     q := complement[2*d](p,1e-8);
     assert(is_complement[num_samples(2*d,1e-8)][2*d](p,q,1e-8));
 	angles:=gqsp_compute_angles[2*d](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
     (anc,qs) := gqet[0][2*d](θs,φs,λ)(spd_f)(anc,qs);
-    phase(t/2);
+    phase(α*t);
     return (anc,qs);
 }
 
 def main(){
     def twosym(anc:𝔹^3,xs:𝔹^1){
-        return twosym_herm(anc,xs,1,-1/3);
+        return twosym_herm(anc,xs,1/4,-1);
     }
     qs := 0:uint[1] as 𝔹^1;
-    (anc,qs) := time_evolution[1,3](twosym,0:uint[5] as 𝔹^5,qs,π/12,2,4e-2);
+    (anc,qs) := time_evolution[1,3](twosym,0:uint[5] as 𝔹^5,qs,π/16,2,4e-4);
     return (anc,qs);
 }
