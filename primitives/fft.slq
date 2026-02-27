@@ -1,3 +1,5 @@
+import primitives.list_op;
+
 def fft[N:!ℕ](xs:!ℂ^N):!ℂ^N {
 	if N=1 { return xs; }
 	assert(N%2=0);
@@ -22,4 +24,42 @@ def ifft[N:!ℕ](ys:!ℂ^N):!ℂ^N {
 	xs:=fft(ys);
 	for i in 0..N{ xs[i]:=conj(xs[i])/N; }
 	return xs;
+}
+
+def pad[m:!ℕ][a:type,n:!ℕ](xs:a^n,const x:a):a^m⇒xs~vector(m sub n,x);
+
+def conv[n:!ℕ](a:!ℂ^n,b:!ℂ^n):!ℂ^(2·n sub 1){
+	if n=1 { return [a[0]·b[0]] coerce !ℂ^(2·n sub 1); }
+	Af:=fft[2·n](pad[2·n](a,0));
+	Bf:=fft[2·n](pad[2·n](b,0));
+	Cf:=vector(2·n,0);
+	for i in 0..2·n { Cf[i]=Af[i]·Bf[i]; }
+	return ifft[2·n](Cf)[0..2·n sub 1];
+}
+
+def inlfft[n:!ℕ](a0s:!ℂ^n,b0:!ℂ^n):(!ℂ^n)^3{ // (alg. 1)
+	assert(n≥1∧(n&(n-1))=0);
+	if n=1 {
+		γ0:=b0[0]/a0s[0];
+		η0:=1/sqrt(1+cabs(γ0)^2);
+		ξ0:=γ0·η0;
+		return ([γ0],[ξ0],[η0]) coerce (!ℂ^n)^3;
+	}
+	m:=n div 2;
+	(γ_up,ξm,ηm):=inlfft[m](a0s[0..m],b0[0..m]);
+	ηm_sh:=pad[n]([0]~sharp[m](ηm),0);
+	ξm_sh:=pad[n]([0]~sharp[m](ξm),0);
+	ηm_n:=pad[n](ηm,0);
+	ξm_n:=pad[n](ξm,0);
+	ams:=vadd[m](conv[n](ηm_sh,a0s)[n-m..n],conv[n](ξm_sh,b0)[n-m..n]);
+	bm:=vadd[m](vscale[m](-1,conv[n](ξm_n,a0s)[n-m..n]),conv[n](ηm_n,b0)[n-m..n]);
+	(γ_dn,ξr,ηr):=inlfft[m](ams,bm);
+	γ:=γ_up~γ_dn coerce _^n;
+	ηr_sh:=pad[n]([0]~sharp[m](ηr),0);
+	ξr_sh:=pad[n]([0]~sharp[m](ξr),0);
+	ηr_n:=pad[n](ηr,0);
+	ξr_n:=pad[n](ξr,0);
+	ξn:=vadd[n](conv[n](ηm_sh,ξr_n)[0..n],conv[n](ξm_n,ηr_n)[0..n]);
+	ηn:=vadd[n](vscale[n](-1,conv[n](ξm_sh,ξr_n)[0..n]),conv[n](ηm_n,ηr_n)[0..n]);
+	return (γ,ξn,ηn);
 }

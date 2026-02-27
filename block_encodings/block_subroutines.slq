@@ -1,7 +1,15 @@
 import primitives.multicontrol;
 import block_encodings.symtwobytwo;
 
-def qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+def hermitian_qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+    (anc,qs) := f(anc,qs);
+    if anc != vector(m,0){phase(π);}
+    return (anc,qs);
+}
+
+def nonhermitian_qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+    (anc,qs) := reverse(f)(anc,qs);
+    if anc != vector(m,0){phase(π);}
     (anc,qs) := f(anc,qs);
     if anc != vector(m,0){phase(π);}
     return (anc,qs);

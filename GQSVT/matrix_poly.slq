@@ -3,26 +3,26 @@ import GQSVT.gqsp_angles;
 import block_encodings.block_subroutines;
 import block_encodings.tridiag;
 
-def R(θ:!ℝ,φ:!ℝ,λ:!ℝ)(anc:𝔹){
-	phase((π+λ+φ)/2);
-	anc:=rotZ(π-λ,anc);
-	anc:=rotY(2·θ,anc);
-	anc:=rotZ(-φ,anc);
+def R(θ:!ℝ,φ:!ℝ)(anc:𝔹):𝔹{
+	with anc:=rotZ(φ,anc){
+		anc:=rotY(θ,anc);
+	}
 	return anc;
 }
 
-def gqsp[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+def gqsp[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),ρ:!ℝ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{	
     (flag:𝔹^1)~(anc:𝔹^m) := anc;
     (flag,) := flag;
-	flag:=R(θs[0],φs[0],λ)(flag:𝔹);
-	for j in [1..d-k+1) {
-		if flag=0{ (anc,qs):=f(anc,qs); }
-		flag:=R(θs[j],φs[j],0)(flag);
+	flag:=R(θs[0],φs[0])(flag:𝔹);
+	for j in [1..d-k+1){
+		if flag=0{(anc,qs):=f(anc,qs);}
+		flag:=R(θs[j],φs[j])(flag);
 	}
     for j in [d-k+1..d+1){
-        if flag=1{ (anc,qs):=reverse(f)(anc,qs); }
-		flag:=R(θs[j],φs[j],0)(flag);
+        if flag=1{(anc,qs):=reverse(f)(anc,qs);}
+		flag:=R(θs[j],φs[j])(flag);
     }
+	phase(ρ);
 	return ((flag,)~anc,qs);
 }
 
@@ -67,7 +67,14 @@ def bound[N:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
 
 def gqet[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
     def qubitized_f(ancilla:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
-        return qubitize(ancilla,xs,f);
+        return hermitian_qubitize(ancilla,xs,f);
+    }
+    return gqsp[k][d](θs,φs,λ)(qubitized_f)(anc,qs);
+}
+
+def gqet_nh[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+    def qubitized_f(ancilla:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
+        return nonhermitian_qubitize(ancilla,xs,f);
     }
     return gqsp[k][d](θs,φs,λ)(qubitized_f)(anc,qs);
 }
@@ -76,8 +83,8 @@ def gqsvt[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](
     def hermit_qubit_f(ancilla:𝔹^(m+1),xs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
         (flag:𝔹^1)~(ancilla:𝔹^m) := ancilla;
         flag[0] := X(flag[0]);
-        if flag[0]=0{(ancilla,xs):=qubitize(ancilla,xs,f);}
-        if flag[0]=1{(ancilla,xs):=qubitize(ancilla,xs,reverse(f));}
+        if flag[0]=0{(ancilla,xs):=hermitian_qubitize(ancilla,xs,f);}
+        if flag[0]=1{(ancilla,xs):=hermitian_qubitize(ancilla,xs,reverse(f));}
         return (flag~ancilla,xs);
     }
     return gqsp[k][d](θs,φs,λ)(hermit_qubit_f)(anc,qs);

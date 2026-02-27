@@ -1,3 +1,4 @@
+import primitives.list_op;
 import primitives.fft;
 
 def poly_eval[d:!ℕ](coeffs:!ℂ^(d+1))(x:!ℂ):!ℂ{
@@ -7,8 +8,6 @@ def poly_eval[d:!ℕ](coeffs:!ℂ^(d+1))(x:!ℂ):!ℂ{
 	}
 	return r;
 }
-
-def pad[m:!ℕ][a:type,n:!ℕ](xs:a^n,const x:a):a^m⇒xs~vector(m sub n,x);
 
 def heuristic_N₀(ε:!ℝ,δ:!ℝ,d:!ℕ):!ℕ{
 	rδm1:=expm1(-log1p(-δ)/d);
@@ -53,40 +52,21 @@ def is_complement[N:!ℕ][d:!ℕ](p:!ℂ^(d+1),q:!ℂ^(d+1),ε:!ℝ){
 	return ok;
 }
 
-def gqsp_apply_Rdag[d:!ℕ](
-	θ:!ℝ,
-	φ:!ℝ,
-	λ:!ℝ,
-)(
-	P: !ℂ^(d+1),
-	Q: !ℂ^(d+1),
-):!ℂ^(d+1)×!ℂ^(d+1){
-	(c,s):=(cos(θ),sin(θ));
-	ac:=conj(cis(λ+φ)·c);
-	bc:=conj(cis(φ)·s);
-	cc:=conj(cis(λ)·s);
-	dc:=conj(-c);
-	(Pp,Qp):=vector(2,vector(d+1,0));
-	for k in 0..d+1 {
-		Pp[k]=ac·P[k]+cc·Q[k];
-		Qp[k]=bc·P[k]+dc·Q[k];
-	}
-	return (Pp,Qp);
-}
-
 def gqsp_compute_angles[d:!ℕ](
 	P:!ℂ^(d+1),
 	Q:!ℂ^(d+1),
 ):!ℝ^(d+1)×!ℝ^(d+1)×!ℝ{
-	θd:=atan2(cabs(Q[d]),cabs(P[d]));
-	φd:=carg(P[d])-carg(Q[d]);
-	if d=0 {
-		λ:=carg(Q[d]);
-		return ([θd],[φd],λ) coerce !ℝ^(d+1)×!ℝ^(d+1)×!ℝ;
-	}
-	(Pp,Qp):=gqsp_apply_Rdag[d](θd,φd,0)(P,Q);
-	(θs,φs,λ):=gqsp_compute_angles[d sub 1](Pp[1..d+1],Qp[0..d]);
-	return (θs~[θd],φs~[φd],λ);
+	a0s:=sharp[d+1](P);
+	b0:=sharp[d+1](Q);
+	ρ:=a0s[0]/cabs(a0s[0]);
+	a0s:=vscale[d+1](1/ρ,a0s);
+	b0:=vscale[d+1](-1/ρ,b0);
+	n:=2^(ceil(log₂(d+1)) coerce !ℕ);
+	(γn,ξn,ηn):=inlfft[n](pad[n](a0s,0),pad[n](b0,0));
+	γs:=rev[d+1](vscale[d+1](-1,γn[0..d+1]));
+	(θs,φs):=vector(2,vector(d+1,0));
+	for i in 0..d+1{ (θs[i],φs[i])=(2·atan(cabs(γs[i])),carg(γs[i])); }
+	return (θs,φs,-carg(ρ));
 }
 
 def main(){

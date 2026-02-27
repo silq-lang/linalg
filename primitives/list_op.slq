@@ -38,3 +38,29 @@ def arcsin[m:!ℕ](t:!ℝ^m){
     }
     return v coerce !ℝ^m;
 }
+
+def vadd[n:!ℕ](a:!ℂ^n,b:!ℂ^n):!ℂ^n{
+	r:=vector(n,0);
+	for i in 0..n { r[i]=a[i]+b[i]; }
+	return r;
+}
+def vsub[n:!ℕ](a:!ℂ^n,b:!ℂ^n):!ℂ^n{
+	r:=vector(n,0);
+	for i in 0..n { r[i]=a[i]-b[i]; }
+	return r;
+}
+def vscale[n:!ℕ](c:!ℂ,a:!ℂ^n):!ℂ^n{
+	r:=vector(n,0);
+	for i in 0..n { r[i]=c·a[i]; }
+	return r;
+}
+def rev[n:!ℕ](a:!ℂ^n):!ℂ^n{
+	r:=vector(n,0);
+	for i in 0..n { r[i]=a[n-1-i]; }
+	return r;
+}
+def sharp[n:!ℕ](a:!ℂ^n):!ℂ^n{
+	r:=vector(n,0);
+	for i in 0..n { r[i]=conj(a[n-1-i]); }
+	return r;
+}
