@@ -214,12 +214,55 @@ def trunc_lin(n:!ℕ,k:!ℝ,t:!ℝ){
     return p;
 }
 
-def eigen_filt[d:!ℕ](p:!ℂ^(d+1), Δ:!ℝ) {
-    q := shifted_coef[d](p, -(1+Δ^2)/(1-Δ^2), 2/(1-Δ^2));
-    v := vector(2*d+1, 0:!ℂ);
-    fac := poly_eval(p)(- (1 + Δ^2)/(1 - Δ^2)); 
-    for j in [0..d+1) { v[2*j] = q[j]/fac;}
-    return v;
+def cheby_eval[d:!ℕ](coeffs:!ℝ^(d+1))(x:!ℝ):!ℝ{
+	b_kplus1 := 0:!ℝ;
+    b_kplus2 := 0:!ℝ;
+    for k in (d..-1..1]{
+        ck := coeffs[k];
+        b_k := 2*x*b_kplus1 - b_kplus2 + ck;
+        b_kplus2 = b_kplus1;
+        b_kplus1 = b_k;
+    }
+    return coeffs[0] + x*b_kplus1 - b_kplus2;
+}
+
+def chebyshev_polynomial[d:!ℕ](x:!ℝ):!ℝ{
+    if d=0{return 1;}
+    if d=1{return x;}
+    else{
+        Tnm2 := 1:!ℝ;
+        Tnm1 := x;
+        for k in [2..d+1){
+            Tn := 2*x*Tnm1 - Tnm2;
+            Tnm2 = Tnm1;
+            Tnm1 = Tn;
+        }
+        return Tnm1;
+    }
+}
+
+def filter_func[k:!ℕ,a:!ℝ](x:!ℝ):!ℝ{
+    y := (2*x^2 - (1 + a^2)) / (1 - a^2);
+    numer := chebyshev_polynomial[k](y);   // ← use y
+    denom := chebyshev_polynomial[k](-(1 + a^2) / (1 - a^2));
+    return numer / denom;
+}
+
+def eigen_filt(d:!ℕ, Δ:!ℝ) {               
+    c := vector(2*d+1,0:!ℝ);
+    N := 2*d+1;
+    for j in [0..N){          
+        sum := 0:!ℝ;
+        for k in [0..N){         
+            x := cos(π*(2*k+1)/(2*N));
+            f := filter_func[d,Δ](x);   
+            T := chebyshev_polynomial[j](x);
+            sum += f*T;
+        }
+        if j=0{c[j] = sum/N;}
+        else{c[j] = 2*sum/N;}
+    }
+    return c;
 }
 
 def choose(n:!ℕ, k:!ℕ){
@@ -241,29 +284,6 @@ def inverse_func(n:!ℕ,b:!ℕ){
         forget(prefac);
     }
     return p;
-}
-
-def cheby_mul[d:!ℕ,t:!ℕ](p:!ℂ^(d+1),q:!ℂ^(t+1)){
-    v := vector(d+t-1 coerce !ℕ,0:!ℂ);
-    for j in [0..d){
-        for k in [0..t){
-            prod := 0.5 * p[j] * q[k];
-            v[j+k] += prod;
-            v[abs(j - k) coerce !ℕ] += prod;
-            forget(prod);
-        }
-    }
-    return v;
-}
-
-def matrix_inv(n1:!ℕ,b:!ℕ,n2:!ℕ,k:!ℝ,κ:!ℝ){
-    p := inverse_func(n1,b);
-    q := rect_func(n2,k,0.75/2/κ);
-    for j in [0..n2){q[j] *= -1;}
-    q[0] += 1;
-    for j in [0..n2){q[j] *= 0.5/κ;}
-    q := chebyshev_coef(q);
-    return cheby_mul[2*n1+1,n2](p,q) coerce !ℂ^(2*n1+n2);
 }
 
 def cos_poly(n:!ℕ,t:!ℝ){
@@ -295,7 +315,7 @@ def c_exp(n:!ℕ,t:!ℝ){
 def main(){
     //p := vector(23,0:!ℂ);
     //p[22] = 1:!ℂ;
-    //return eigen_filt[22](cheby_to_mon[22](p) coerce !ℂ^23,0.1)
+    return eigen_filt(22,0.1);
     //b := floor((2.5^2)*log(2.5/1e-4)) coerce !ℕ;
     //return rect_func(49,20,0.5);
     //return matrix_inv(30,63,7*7,30.7,1.25);

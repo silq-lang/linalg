@@ -261,16 +261,12 @@ delta = 1/np.sqrt(2)
 
 coeffs = (0.5/2)*inverse_function(2e-4,2)
 
-print(cheby_eval(coeffs, 2/3)/1.7)
 
 x_vals = np.linspace(-1, 1, 2000)
 y_poly = np.array([cheby_eval(coeffs, x).real for x in x_vals])
 
-y_inv = (0.5/2)*np.where(np.abs(x_vals) > 1e-1, 1/x_vals, np.nan)
-
 plt.figure(figsize=(10, 6))
 plt.plot(x_vals, y_poly, label='Polynomial Approximation')
-plt.plot(x_vals, y_inv, label='1/x', linestyle='--')
 
 plt.xlabel('x')
 plt.ylabel('y')

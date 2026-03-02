@@ -2,7 +2,7 @@ import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
 import GQSVT.func_approx;
 import block_encodings.block_subroutines;
-import block_encodings.diagonal;
+import block_encodings.symtwobytwo;
 
 def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(ancilla:𝔹^(m+1),xs:𝔹^n)(ζ:!ℝ,Δ:!ℝ,δ:!ℝ,λt:!ℝ,α:!ℝ){
     for j in [0..n){xs[j] := H(xs[j]);}
@@ -38,17 +38,19 @@ def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
 
 def eigenstate_filtering[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+2),qs:𝔹^n,k:!ℕ,Δ:!ℝ,λf:!ℂ,α:!ℝ){
     def det_H(ancilla:𝔹^(m+1),xs:𝔹^n){
-        def identity[n:!ℕ,m:!ℕ](ancilla:𝔹^m,xs:𝔹^n){
-            return (ancilla,xs);
+        (flag:𝔹^1)~(ancilla:𝔹^m) := ancilla;
+        θ := 2*atan(sqrt(α/cabs(λf)));
+        flag[0] := rotY(θ,flag[0]);
+        if flag[0]{
+            phase(-carg(λf));
+            (ancilla,xs) := f(ancilla,xs);
         }
-        return block_LC[n,m,m](ancilla,xs,[-λf,1],[1,α],identity[n,m],f);
+        flag[0] := rotY(-θ,flag[0]);
+        return (flag~ancilla,xs);
     }
-    v := vector(k+1,0:!ℂ);
-    v[k] = 1:!ℂ;
-    p := eigen_filt[k](cheby_to_mon[k](v) coerce !ℂ^(k+1),Δ/(2*α));
-    p := chebyshev_coef[2*k](p);
+    p := eigen_filt(k,Δ/(2*α));
     β := bound[num_samples(2*k,1e-8)][2*k](p);
-    for j in [0..2*k+1){p[j] = p[j]/β;}
+    for j in [0..2*k+1){p[j] = p[j]/1.01;}
     q := complement[2*k](p,1e-8);
     assert(is_complement[num_samples(2*k+1,1e-8)][2*k](p,q,1e-8));
     angles := gqsp_compute_angles[2*k](p,q);
@@ -71,13 +73,12 @@ def singular_vector_trans[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹
 
 
 def main(){
-    v := [0.75,0.25,0.25,0.75] : !ℝ^4;
-    def non_uni_diag[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
-        return non_unitary_diag(anc,xs,v);
+    def twosym(anc:𝔹^3,xs:𝔹^1){
+        return twosym_herm(anc,xs,1,0.35);
     }
-    qs := 0:uint[2] as 𝔹^2;
+    qs := 1:uint[1] as 𝔹^1;
     //return eigenvalue_threshold[2,1](non_uni_diag[2])(0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2)(1e-1,0.07,5e-2,0.1,max(v));  // yields false
-    (anc,qs) := eigenstate_filtering[2,1](non_uni_diag[2],0:uint[3] as 𝔹^3,qs,22,0.15,0.25,max(v));
+    (anc,qs) := eigenstate_filtering[1,3](twosym,0:uint[5] as 𝔹^5,qs,14,0.7,0.65,2);
     //(anc,qs) := singular_vector_trans[2,1](non_uni_diag[2],2:uint[3] as 𝔹^3,qs,1e-4,0.8);
     return (anc,qs);
 }
