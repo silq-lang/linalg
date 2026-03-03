@@ -1,5 +1,5 @@
 import primitives.multicontrol;
-import block_encodings.wh_transform_BE;
+import block_encodings.pauli_LCU;
 
 def pauli_basis_change(x:𝔹,rj:!𝔹,sj:!𝔹) mfree{
     if rj&&!sj{x := H(x);}

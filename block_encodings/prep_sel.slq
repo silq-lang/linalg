@@ -2,7 +2,7 @@ import primitives.list_op;
 import primitives.uniform_superposition;
 import primitives.multiplexed;
 import primitives.multicontrol;
-import block_encodings.wh_transform_BE;
+import block_encodings.pauli_LCU;
 import Amplitude_Amplification.amplitude_amplification;
 
 def select[l:!ℕ,n:!ℕ,L:!ℕ](const control:𝔹^l,qs:𝔹^n, index:(!ℕ^2)^L) mfree{
@@ -37,16 +37,14 @@ def prep_sel[n:!ℕ,m:!ℕ,D:!ℕ](ancilla:𝔹^m,qs:𝔹^n,index:(!ℕ^2)^D,coe
     (ext1:𝔹^1)~(ext2:𝔹^1)~(anc:𝔹^(m sub 2)) := ancilla;
     (ext2,anc) := prepare(ext2,anc,coef);
     qs := select(anc,qs,index);
-    ext1[0] := mc(X)(ext2,ext1[0]);
-    if ext1[0]=0{
-        unprepare(ext2,anc,coef) := (ext2,anc);
-    }
+    (ext1,ext2) := (ext2,ext1);
+    unprepare(ext2,anc,coef) := (ext2,anc);
     return(ext1~ext2~anc,qs);
 }
 
 def Up(qs:𝔹^2) mfree{
-    //qs[0] := X(qs[0]);
-    qs[1] := X(qs[1]);
+    qs[0] := X(qs[0]);
+    //qs[1] := X(qs[1]);
     return qs;
 }
 

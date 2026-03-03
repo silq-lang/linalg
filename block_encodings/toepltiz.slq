@@ -3,7 +3,7 @@ import multiplexed;
 import uniform_superposition;
 import amplitude_amplification;
 
-def toepltiz[n:!ℕ,m:!ℕ,D:!ℕ](anc:𝔹^m,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^m × 𝔹^n{
+def toeplitz[n:!ℕ,m:!ℕ,D:!ℕ](anc:𝔹^m,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^m × 𝔹^n{
     assert(m = (log(D-1) div log(2))+3);
     (data:𝔹^1)~(s:𝔹^(m sub 2))~(del:𝔹^1) := anc;
     s := uniform_superposition[D](s);

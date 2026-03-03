@@ -7,14 +7,6 @@ def hermitian_qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × �
     return (anc,qs);
 }
 
-def nonhermitian_qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
-    (anc,qs) := reverse(f)(anc,qs);
-    if anc != vector(m,0){phase(π);}
-    (anc,qs) := f(anc,qs);
-    if anc != vector(m,0){phase(π);}
-    return (anc,qs);
-}
-
 def hermitianization[n:!ℕ,m:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
     (ext:𝔹^1)~(anc:𝔹^m) := ancilla;
     ext[0] := X(ext[0]);
