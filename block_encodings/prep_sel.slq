@@ -37,8 +37,7 @@ def prep_sel[n:!ℕ,m:!ℕ,D:!ℕ](ancilla:𝔹^m,qs:𝔹^n,index:(!ℕ^2)^D,coe
     (ext1:𝔹^1)~(ext2:𝔹^1)~(anc:𝔹^(m sub 2)) := ancilla;
     (ext2,anc) := prepare(ext2,anc,coef);
     qs := select(anc,qs,index);
-    (ext1,ext2) := (ext2,ext1);
-    unprepare(ext2,anc,coef) := (ext2,anc);
+    unprepare(ext1,anc,coef) := (ext1,anc);
     return(ext1~ext2~anc,qs);
 }
 

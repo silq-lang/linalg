@@ -1,0 +1,48 @@
+import GQSVT.func_approx;
+import GQSVT.gqsp_angles;
+import GQSVT.matrix_poly;
+import GQSVT.hamiltonian_simulation;
+import block_encodings.symtwobytwo;
+
+def non_homogeneous_term[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+1),qs:𝔹^n,t:!ℝ,α:!ℝ,ϵ:!ℝ) mfree{
+    e := 2.71828182845904523536;
+    ϵ /= 4;
+    d := ceil(0.5*(e*α*abs(t)/2+(log(4/5/ϵ))/log(e+2*log(4/5/ϵ)/e/abs(t)/α))) coerce !ℕ;
+    p := expm1ox(d,α*t);
+    for j in [0..2*d){p[j] = (1i/α)*p[j]/1.75;}
+    q := complement[2*d sub 1 coerce !ℕ](p,1e-8);
+    assert(is_complement[num_samples(2*d sub 1 coerce !ℕ,1e-8)][2*d sub 1 coerce !ℕ](p,q,1e-8));
+	angles:=gqsp_compute_angles[2*d sub 1 coerce !ℕ](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    (anc,qs) := gqet[0][2*d sub 1 coerce !ℕ](θs,φs,λ)(f)(anc,qs);
+    phase(α*t);
+    return (anc,qs);
+}
+
+def ODE_solver[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g_x0:𝔹^n → mfree 𝔹^n,const g_b:𝔹^n → mfree 𝔹^n,anc:𝔹^(m+1+m+1+1),qs:𝔹^n,t:!ℝ,α:!ℝ,ϵ:!ℝ) mfree{
+    (anc_x0:𝔹^(m+1))~(anc_b:𝔹^(m+1))~(flag:𝔹^1) := anc;
+    flag[0] := H(flag[0]);
+    if !flag[0]{qs := g_x0(qs);}
+    if flag[0]{qs := g_b(qs);}
+    if !flag[0]{(anc_x0,qs) := time_evolution[n,m](f,anc_x0,qs,t,α,ϵ);}
+    if flag[0]{(anc_b,qs) := non_homogeneous_term[n,m](f,anc_b,qs,t,α,ϵ);}
+    flag[0] := H(flag[0]);
+    return (anc_x0~anc_b~flag,qs);
+}
+
+def main(){
+    def twosym(anc:𝔹^3,xs:𝔹^1) mfree{
+        return twosym_herm(anc,xs,1/4,-1);
+    }
+    def g_x0(xs:𝔹^1) mfree{
+        xs[0] := X(xs[0]);
+        return xs;
+    }
+    def g_b(xs:𝔹^1) mfree{
+        xs[0] := H(xs[0]);
+        return xs;
+    }
+    qs := 0:uint[1] as 𝔹^1;
+    (anc,qs) := ODE_solver[1,3](twosym,g_x0,g_b,0:uint[9] as 𝔹^9,qs,π/16,2,4e-4);
+    return (anc,qs);
+}

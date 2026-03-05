@@ -1,0 +1,67 @@
+import primitives.list_op;
+import primitives.uniform_superposition;
+import GQSVT.threshold;
+
+def count_edges[N:!ℕ](W:(!ℝ^N)^N)qfree{
+    count := 0:!ℕ;
+    for i in [0..N){
+        for j in [i+1..N){
+            if W[i][j]!=0{count += 1;}
+        }
+    }
+    return count;
+}
+
+def degree_matrix[N:!ℕ](W:(!ℝ^N)^N)qfree{
+    d := vector(N,0:!ℝ);
+    for i in [0..N){
+        for j in [0..N){
+            d[i] += W[i][j];
+        }
+    }
+    return d;
+}
+
+def maxcut_ising_ham[n:!ℕ,m:!ℕ](W:(!ℝ^n)^n,anc:𝔹^(2*m+2),qs:𝔹^n) mfree{
+    α := sum(degree_matrix(W));
+    N := count_edges(W);
+    (anc_i:𝔹^m)~(anc_j:𝔹^m)~(ext1:𝔹^1)~(ext2:𝔹^1) := anc;
+    anc_i := uniform_superposition[N](anc_i);
+    anc_j := uniform_superposition[N](anc_j);
+    for i in [0..n){
+        for j in [i+1..n){
+            if (i==(anc_i as uint[m]))&(j==(anc_j as uint[m])){
+                φ := 2*acos(W[i][j]/α);
+                ext2[0] :=  rotX(φ,ext2[0]);
+                qs[i] := Z(qs[i]);qs[j] := Z(qs[j]);
+            }
+        }
+    }
+    (ext1,ext2) := (ext2,ext1);
+    for i in [0..n){
+        for j in [i+1..n){
+            if (i==(anc_i as uint[m]))&(j==(anc_j as uint[m])){
+                φ := 2*acos(W[i][j]/α);
+                ext2[0] :=  rotX(-φ,ext2[0]);
+            }
+        }
+    }
+    uniform_superposition[N](anc_i) := anc_i;
+    uniform_superposition[N](anc_j) := anc_j;
+    return (anc_i~anc_j~ext1~ext2,qs);
+}
+
+def maxcut[m:!ℕ][n:!ℕ](W:(!ℝ^n)^n,k:!ℕ,Δ:!ℝ,λf:!ℝ){
+    //m := count_edges(W);
+    qs := 0:uint[n] as 𝔹^n;
+    for j in [0..n){qs[j] := H(qs[j]);}
+    anc := 0:uint[2*m+4] as 𝔹^(2*m+4);
+    def ising(ancilla:𝔹^(2*m+2),xs:𝔹^n){return maxcut_ising_ham[n,m](W,ancilla,xs);}
+    α := sum(degree_matrix(W));
+    return eigenstate_filtering[n,2*m+2](ising,anc,qs,k,Δ,λf,α);
+}
+
+def main(){
+    W := [[0,2,5],[2,0,3],[5,3,0]]:(!ℝ^3)^3;
+    return maxcut[2](W,14,0.6,-6);
+}

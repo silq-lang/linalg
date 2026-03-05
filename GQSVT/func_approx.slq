@@ -243,7 +243,7 @@ def chebyshev_polynomial[d:!ℕ](x:!ℝ):!ℝ{
 
 def filter_func[k:!ℕ,a:!ℝ](x:!ℝ):!ℝ{
     y := (2*x^2 - (1 + a^2)) / (1 - a^2);
-    numer := chebyshev_polynomial[k](y);   // ← use y
+    numer := chebyshev_polynomial[k](y);  
     denom := chebyshev_polynomial[k](-(1 + a^2) / (1 - a^2));
     return numer / denom;
 }
@@ -309,6 +309,24 @@ def c_exp(n:!ℕ,t:!ℝ){
     }
     v[2*n] = p[2*n];
     return v;
+}
+
+def cheb_divide_by_x[d:!ℕ](p:!ℂ^(d+1)){
+    b := vector(d+1,0:!ℂ);
+    next_val := 0:!ℂ;
+    for j in (d+1..-1..1]{
+        current := 2*p[j] - next_val;
+        b[j sub 1] = current;
+        next_val = current;
+        forget(current);
+    }
+    return b[0..d];
+}
+
+def expm1ox(n:!ℕ,t:!ℝ){
+    p := c_exp(n,t);
+    p[0] -= 1:!ℝ;
+    return cheb_divide_by_x(p);
 }
 
 

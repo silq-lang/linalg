@@ -1,3 +1,11 @@
+def sum[m:!ℕ](t:!ℝ^m) qfree{
+    s := 0:!ℝ;
+    for i in [0..m){
+        s += t[i];
+    }
+    return s;
+}
+
 def minus[m:!ℕ](t:!ℝ^m){
     v := [];
     for i in [0..m){
