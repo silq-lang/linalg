@@ -1,6 +1,6 @@
 import phase_estimation.QFT;
 import primitives.multiplexed;
-import block_encodings.wh_transform_BE;
+import block_encodings.pauli_LCU;
 import Amplitude_Amplification.amplitude_amplification;
 import primitives.trotter;
 

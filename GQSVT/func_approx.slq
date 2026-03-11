@@ -205,7 +205,7 @@ def rect_func(n:!ℕ,k:!ℝ,δ:!ℝ){
     p := vector(n+1,0:!ℂ);
     for j in [0..n+1){p[j] = 0.5*(p2[j] - p1[j]);}
     //p[0] -= 1;
-    return p;
+    return p[0..n];
 }
 
 def trunc_lin(n:!ℕ,k:!ℝ,t:!ℝ){
@@ -263,6 +263,14 @@ def eigen_filt(d:!ℕ, Δ:!ℝ) {
         else{c[j] = 2*sum/N;}
     }
     return c;
+}
+
+def kernel_reflection(d:!ℕ,Δ:!ℝ){
+    F := filter_func[d,Δ](Δ);
+    p := eigen_filt(d,Δ);
+    for j in [0..2*d+1){p[j] *= 2/(1+F);}
+    p[0] += (F-1)/(F+1);
+    return p;
 }
 
 def choose(n:!ℕ, k:!ℕ){
@@ -329,12 +337,23 @@ def expm1ox(n:!ℕ,t:!ℝ){
     return cheb_divide_by_x(p);
 }
 
+def arcsin_poly(n:!ℕ){
+    coeffs := vector(2*n+2,0:!ℝ);
+    for ell in [0..n+1){
+        c := (2 / π)*choose(2*ell,ell)/(2^(2*ell)*(2*ell+1));
+        coeffs[2*ell + 1] = c;
+        forget(c);
+    }
+    return chebyshev_coef[2*n+1](coeffs);
+}
 
 def main(){
     //p := vector(23,0:!ℂ);
     //p[22] = 1:!ℂ;
     return eigen_filt(22,0.1);
+    //return kernel_reflection(22,0.1);
     //b := floor((2.5^2)*log(2.5/1e-4)) coerce !ℕ;
     //return rect_func(49,20,0.5);
     //return matrix_inv(30,63,7*7,30.7,1.25);
+    //return arcsin_poly(30);
 }

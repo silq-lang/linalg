@@ -11,17 +11,17 @@ def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
     p := rect_func(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),λt/α);
     print(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),N);
     for j in [0..d+1){p[j] = p[j]/1.0487;} // might need to change scaling factor 
-    p := chebyshev_coef[d](p);
-    q := complement[d](p,1e-8);
-    assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
-    angles := gqsp_compute_angles[d](p,q);
+    p := chebyshev_coef[d sub 1](p);
+    q := complement[d sub 1](p,1e-8);
+    assert(is_complement[num_samples(d sub 1,1e-8)][d sub 1](p,q,1e-8));
+    angles := gqsp_compute_angles[d sub 1](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
     count := 0:!ℕ;
     for j in [0..N){
         (anc,qs) := dup((ancilla,xs));
         flag := H(0:𝔹);
         if flag{
-            (anc,qs) := gqet[0][d](θs,φs,λ)(f)(anc,qs);
+            (anc,qs) := gqet[0][d sub 1](θs,φs,λ)(f)(anc,qs);
         }
         flag := H(flag);
         r := measure(flag);

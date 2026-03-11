@@ -42,8 +42,8 @@ def prep_sel[n:!ℕ,m:!ℕ,D:!ℕ](ancilla:𝔹^m,qs:𝔹^n,index:(!ℕ^2)^D,coe
 }
 
 def Up(qs:𝔹^2) mfree{
-    qs[0] := X(qs[0]);
-    //qs[1] := X(qs[1]);
+    //qs[0] := X(qs[0]);
+    qs[1] := X(qs[1]);
     return qs;
 }
 

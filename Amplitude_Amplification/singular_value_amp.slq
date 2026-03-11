@@ -1,25 +1,26 @@
 import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
 import GQSVT.func_approx;
-import block_encodings.diagonal;
+import block_encodings.symtwobytwo;
 
-def singular_value_amplification[n:!ℕ,m:!ℕ](anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,d:!ℕ,k:!ℝ,γ:!ℝ){
-    anc[1] := X(anc[1]); //ancilla initialization for odd polynomial
+def singular_value_amplification[n:!ℕ,m:!ℕ](anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,ϵ:!ℝ,κ:!ℝ,γ:!ℝ){
+    d := ceil((1/κ)*log(1/ϵ)) coerce !ℕ;
+    k := (2/κ)*sqrt(log(2/π/(ϵ^2)));
     p := trunc_lin(d,k,γ);
-    p := chebyshev_coef[d+1](p);
-    q:=complement[d+1](p,1e-8);
-	assert(is_complement[num_samples(d+1,1e-8)][d+1](p,q,1e-8));
-	angles:=gqsp_compute_angles[d+1](p,q);
+    p := chebyshev_coef[d](p);
+    q:=complement[d](p,1e-8);
+	assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
+	angles:=gqsp_compute_angles[d](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    return gqsvt[0][d+1](θs,φs,λ)(f)(anc,qs);
+    return gqsvt[0][d](θs,φs,λ)(f)(anc,qs);
 }
 
 def main(){
-    v := [0.5,0.25,0.3,0.75] : !ℝ^4;
-    def non_uni_diag[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
-        return non_unitary_diag(anc,xs,v);
+    def twosym_amp(anc:𝔹^2,xs:𝔹^1){
+        return twosym_block(anc,xs,0.2,0.1);
     }
-    qs := 0:uint[2] as 𝔹^2;
-    (anc,qs) := singular_value_amplification[2,1](0:uint[3] as 𝔹^3,qs,non_uni_diag[2],30,10,0.8);
+    qs := 0:uint[1] as 𝔹^1;
+    //(anc,qs) := twosym_amp(0:uint[2] as 𝔹^2,qs);
+    (anc,qs) := singular_value_amplification[1,2](2:uint[4] as 𝔹^4,qs,twosym_amp,0.1,0.16,0.5);
     return (anc,qs);
 }
