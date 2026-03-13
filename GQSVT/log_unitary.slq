@@ -1,33 +1,34 @@
 import GQSVT.func_approx;
 import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
+import block_encodings.pauli_LCU;
+import primitives.trotter;
 
 def sin_H[n:!ℕ](anc:𝔹^1,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n){
     with anc[0]:=H(anc[0]){
         if anc[0]{qs := f(qs);}
-        anc[0] := Z(X(anc[0]));
+        anc[0] := Y(anc[0]);
         if anc[0]{qs := reverse(f)(qs);}
     }
-    phase(-π/2);
     return (anc,qs);
 }
 
-def log_U[d:!ℕ][n:!ℕ](anc:𝔹^3,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n){
+def log_U[d:!ℕ][n:!ℕ](anc:𝔹^2,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n){
     def sin_H_(ancilla:𝔹^1,xs:𝔹^n){return sin_H(ancilla,xs,f);}
     p := arcsin_poly(d);
     q:=complement[2*d+1](p,1e-8);
 	assert(is_complement[num_samples(2*d+1,1e-8)][2*d+1](p,q,1e-8));
 	angles:=gqsp_compute_angles[2*d+1](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    return gqsvt[0][2*d+1](θs,φs,λ)(sin_H_)(anc,qs);
+    (anc,qs) := gqet[0][2*d+1](θs,φs,λ)(sin_H_)(anc,qs);
+    return (anc,qs);
 }
 
 def main(){
-    def U(qs:𝔹^1) mfree:𝔹^1{
-        qs[0] := rotX(-1,qs[0]);
-        return qs;
-    }
-    qs := 1:uint[1] as 𝔹^1;
-    qs[0] := H(qs[0]);
-    return log_U[30][1](2:uint[3] as 𝔹^3,qs,U);
+    A := [[1/2,-1/6],[-1/6,1/2]] coerce (!ℝ^2)^2;
+    index := wh_index(A);
+    ind := index[1] coerce (!ℕ^2)^index[0];
+    coef := wh_coefficients(A) coerce !ℝ^index[0];
+    def U(xs:𝔹^1)mfree{return trotterization[1,index[0]](xs,coef,ind,1,2);}
+    return log_U[10][1](0:uint[2] as 𝔹^2,0:uint[1] as 𝔹^1,U);
 }
