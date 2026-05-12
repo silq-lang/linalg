@@ -1,25 +1,28 @@
 def gray_scale(j:!ℕ){return j⊕(j div 2);}
 
+def gray_permute[N:!ℕ](t:!ℝ^N){
+    out := vector(N,0:!ℝ);
+    for i in [0..N){out[i] = t[gray_scale(i)];}
+    return out;
+}
+
 def diff_bit(j:!ℕ, N:!ℕ){
     assert((N & (N - 1 coerce !ℕ)) == 0); assert(j < N);
-    x := j + 1;
-    if x == N {x = N div 2;}
+    x := j + 1; if x == N {x = N div 2;}
     bit := 0:!ℕ;
-    while (x & 1) == 0 {x = x div 2; bit += 1;} 
+    while (x & 1) == 0 {x = x div 2; bit += 1;}
     return bit;
 }
 
 def fwht[N:!ℕ](t:!ℝ^N){
     assert((N & (N-1 coerce !ℕ)) == 0);
-    out := vector(N,0:!ℝ);
-    mask := N-1 coerce !ℕ;
-    h := 1:!ℕ;
+    out := vector(N,0:!ℝ); h := 1:!ℕ;
     while h < N {
         for i in [0..2*h..N) {
             for j in [i..i+h) {
-                if h == 1 {x := t[j ⊕ ((2*j) & mask)]; y := t[(j+h) ⊕ ((2*(j+h)) & mask)];}
+                if h == 1 {x := t[j]; y := t[j+h];}
                 else {x := out[j]; y := out[j+h];}
-                out[j] = x + y; out[j+h] = x - y;
+                out[j] = (x + y)/2; out[j+h] = (x - y)/2;
             }
         }
         h *= 2;
@@ -27,61 +30,68 @@ def fwht[N:!ℕ](t:!ℝ^N){
     return out;
 }
 
-def uni_control[j:!ℕ][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ){
+def uni_control[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j:!ℕ){
     assert(j < 2^n);
-    data := rotY(θ/2,data);
+    if axis=0{data := rotY(θ,data);}    
+    if axis=1{data := rotZ(θ,data);}
     if control[diff_bit(j,2^n)]{data := X(data);}
     return data;
 }
 
-def uni_simpli[j1:!ℕ,j2:!ℕ][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ){
-    assert(j1 < 2^n); assert(j2 < 2^n);
-    data := rotY(θ/2,data);
+def uni_simpli[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j1:!ℕ,j2:!ℕ){
+    assert(j1 < 2^n); assert(j2 <= 2^n);
+    if axis=0{data := rotY(θ,data);}    
+    if axis=1{data := rotZ(θ,data);}
     index := vector(n,0:!ℕ);
     for j in [j1..j2){index[diff_bit(j,2^n)] += 1;}
-    for i in [0..n){if (index[i]%2 == 1){if control[index[i]]{data := X(data);}}}
+    for i in [0..n){if (index[i]%2 == 1){if control[i]{data := X(data);}}}
     return data;
 }
 
-def entry_angles[N:!ℕ](A:(!ℝ^N)^N){
-    angles := [];
+def entry_angles[N:!ℕ](A:(!ℂ^N)^N){
+    mag_angles := []; phase_angles := [];
     for i in [0..N){
         for j in [0..N){
-            assert(A[i][j]<=1);
-            angles = angles~[acos(A[i][j])];
+            assert(cabs(A[i][j]) <= 1);
+            mag_angles = mag_angles~[2*acos(cabs(A[i][j]))];
+            if cabs(A[i][j]) == 0 {phase_angles = phase_angles~[0:!ℝ];}
+            else {phase_angles = phase_angles~[-2*carg(A[i][j])];}
         }
     }
-    return angles coerce !ℝ^(N^2);
+    return (mag_angles coerce !ℝ^(N^2),phase_angles coerce !ℝ^(N^2));
 }
 
-def Oa[n:!ℕ,N:!ℕ](δ:!ℝ,const control:𝔹^n,data:𝔹,A:(!ℝ^N)^N){
-    assert(N=2^(n sub 1));
-    angles := fwht(entry_angles(A));
-    for j in [0..2^n){if (angles[j]<δ){angles[j]=0;}}
+def Oa[axis:!𝔹][n:!ℕ,N:!ℕ](δ:!ℝ,const control:𝔹^n,data:𝔹,angles:!ℝ^(N^2)){
+    assert(N^2 == 2^n); assert(δ >= 0);
+    angles := gray_permute(fwht(angles));
+    for j in [0..2^n){if (abs(angles[j]) <= δ){angles[j] = 0;}}
     for j in [0..2^n sub 1){
-        if angles[j]=0{
-            if j=0{
-                nul := 0; while ((nul<2^n sub 1)&&(angles[nul]=0)){nul += 1;}
-                data := uni_simpli[0,nul][n](control,data,angles[0]);
+        if angles[j] == 0 {
+            if j == 0 {
+                nul := 0; while ((nul < 2^n) && (angles[nul] == 0)){nul += 1;}
+                data := uni_simpli[axis][n](control,data,angles[0],0,nul);
             }
         }
-        else{
-            if angles[j+1]!=0{data := uni_control[j][n](control,data,angles[j]);}
-            else{
-                nul := j+1; while ((nul<2^n sub 1)&&(angles[nul]=0)){nul += 1;}
-                data := uni_simpli[j,nul][n](control,data,angles[j]);
+        else {
+            if angles[j+1] != 0 {data := uni_control[axis][n](control,data,angles[j],j);}
+            else {
+                nul := j+1;while ((nul < 2^n) && (angles[nul] == 0)){nul += 1;}
+                data := uni_simpli[axis][n](control,data,angles[j],j,nul);
             }
         }
     }
-    j := 2^n sub 1; if angles[j]!=0{data := uni_control[j][n](control,data,angles[j]);}
+    j := 2^n sub 1; if angles[j] != 0 {data := uni_control[axis][n](control,data,angles[j],j);}
     return data;
 }
 
-def fable[n:!ℕ,N:!ℕ](ancilla:𝔹^(1+n),qs:𝔹^n,A:(!ℝ^N)^N,δ:!ℝ){
-    (data:𝔹^1)~(anc:𝔹^n) := ancilla; (data,) := data; 
+def fable[n:!ℕ,N:!ℕ](ancilla:𝔹^(1+n),qs:𝔹^n,A:(!ℂ^N)^N,δ:!ℝ){
+    angles := entry_angles(A);
+    mag_angles := angles[0]; phase_angles := angles[1];
+    (data:𝔹^1)~(anc:𝔹^n) := ancilla; (data,) := data;
     for j in [0..n){anc[j] := H(anc[j]);}
     control := anc~qs;
-    data := Oa[2*n,N](δ,control,data,A);
+    data := Oa[0][2*n,N](δ,control,data,mag_angles);
+    data := Oa[1][2*n,N](δ,control,data,phase_angles);
     (qs:𝔹^n)~(anc:𝔹^n) := control;
     for j in [0..n){anc[j] := H(anc[j]);}
     return ((data,)~anc,qs);
@@ -90,6 +100,6 @@ def fable[n:!ℕ,N:!ℕ](ancilla:𝔹^(1+n),qs:𝔹^n,A:(!ℝ^N)^N,δ:!ℝ){
 def main(){
     ancilla := 0:uint[2] as 𝔹^2;
     qs := 1:uint[1] as 𝔹^1;
-    A := [[1/2,-1/3],[-1/4,1/6]]:(!ℝ^2)^2;
-    return fable[1,2](ancilla,qs,A,-7);
+    A := [[0.5+0.5i, -1/3],[-0.25i, 1/6]]:(!ℂ^2)^2;
+    return fable[1,2](ancilla,qs,A,0);
 }
