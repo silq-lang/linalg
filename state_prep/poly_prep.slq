@@ -1,0 +1,39 @@
+import GQSVT.gqsp_angles;
+import GQSVT.matrix_poly;
+
+def mod_sel[n:!ℕ](const anc:𝔹^n,qs:𝔹^n) mfree:𝔹^n{
+    for k in [0..n){
+        if (anc as uint[n])==(2^k){qs[k] := Z(qs[k]);}
+    }
+    return qs;
+}
+
+def shifted_linear_diag[n:!ℕ](anc:𝔹^n,qs:𝔹^n) mfree:𝔹^n×𝔹^n{
+    for k in [0..n){anc[k] := rotY(2*asin(1/sqrt(1+2^(k+1))),anc[k]);}
+    qs := mod_sel(anc,qs);
+    for k in [0..n){anc[k] := rotY(-2*asin(1/sqrt(1+2^(k+1))),anc[k])}
+    return (anc,qs);
+}
+
+def linear_diag[n:!ℕ](anc:𝔹^(n+1),qs:𝔹^n) mfree:𝔹^(n+1)×𝔹^n{
+    (ext:𝔹^1)~(anc:𝔹^n) := anc;
+    ext[0] := H(ext[0]);
+    if ext[0]{phase(π);(anc,qs) := shifted_linear_diag(anc,qs);}
+    ext[0] := H(ext[0]);
+    return (ext~anc,qs);
+}
+
+def state_prep[n:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
+    pq := chebyshev_coef[d](p);
+    q:=complement[d](pq,1e-8);
+	assert(is_complement[num_samples(d,1e-8)][d](pq,q,1e-8));
+	angles:=gqsp_compute_angles[d](pq,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    qs := 0:uint[n] as 𝔹^n;
+    for k in [0..n){qs[k] := H(qs[k]);}
+    return gqet[0][d](θs,φs,λ)(linear_diag[n])(0:uint[n+2] as 𝔹^(n+2),qs);
+}
+
+def main(){
+    return state_prep[1][2]((-1,0,2):!ℂ^3);
+}
