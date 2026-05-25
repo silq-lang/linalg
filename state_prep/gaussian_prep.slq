@@ -1,0 +1,52 @@
+def Z_rot[α:!ℝ,m:!ℝ](x:𝔹) mfree:𝔹{if x{phase(α*2^m);} return x;}
+def A[α:!ℝ,m:!ℝ](x:𝔹) mfree:𝔹{return rotY(2*acos(1/sqrt(1+α^(2^(m+1)))),x);}
+def B[α:!ℝ,m:!ℝ](x:𝔹) mfree:𝔹{return rotY(2*acos(α^(2^m)),x);}
+
+def linear_phase_state(n:!ℕ,α:!ℝ) mfree:𝔹^n{
+    qs := 0:uint[n] as 𝔹^n;
+    for j in [0..n){qs[j] := Z_rot[α,j](H(qs[j]));}
+    return qs;
+}
+
+def quadratic_phase_state(n:!ℕ,α:!ℝ) mfree:𝔹^n{
+    qs := 0:uint[n] as 𝔹^n;
+    for j in [0..n){qs[j] := Z_rot[α,2*j](H(qs[j]));}
+    for j in [1..n){
+        temp := dup(qs[j]);
+        if temp{
+            for k in [0..j){qs[k] := Z_rot[α,j+k+1](qs[k]);}
+        }
+        forget(temp=qs[j]);
+    }
+    return qs;
+}
+
+def exponential_state(n:!ℕ,α:!ℝ) mfree:𝔹^n{
+    qs := 0:uint[n] as 𝔹^n;
+    for j in [0..n){qs[j] := A[α,j](qs[j]);}
+    return qs;
+}
+
+def gaussian_state(n:!ℕ,α:!ℝ) mfree{
+    qs := 0:uint[n] as 𝔹^n;
+    anc := 0:uint[(n-1)*(n-2)/2 coerce !ℕ] as 𝔹^((n-1)*(n-2)/2 coerce !ℕ);
+    for j in [0..n sub 1){qs[j] := A[α,log₂(2^j + 4^j)](qs[j]);}
+    qs[n sub 1] := H(qs[n sub 1]);
+    l := 0:!ℕ;
+    for j in [1..n sub 1){
+        for k in [0..j){
+            if qs[j]&&qs[k]{
+                anc[l] := B[α,j+k+1](anc[l]);
+            }
+        l += 1;
+        }
+    }
+    temp := dup(qs[n sub 1]);
+    if !temp{for j in [0..n sub 1){qs[j] := X(qs[j]);}}
+    forget(temp=qs[n sub 1]);
+    return (anc,qs);
+}
+
+def main(){
+    return gaussian_state(6,0.2);
+}
