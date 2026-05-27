@@ -1,0 +1,39 @@
+import arithmetic.shift;
+import GQSVT.gqsp_angles;
+
+def R(θ:!ℝ,φ:!ℝ)(anc:𝔹):𝔹{
+	with anc:=rotZ(φ,anc){
+		anc:=rotY(θ,anc);
+	}
+	return anc;
+}
+
+def GQSP[d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),ρ:!ℝ)[a:qtype](const f:a → mfree a)(qs:a)mfree:𝔹×a{	
+	flag:=R(θs[0],φs[0])(0:𝔹);
+	for j in [1..d+1){
+		if flag=0{qs:=f(qs);}
+		flag:=R(θs[j],φs[j])(flag);
+	}
+	phase(ρ);
+	return (flag,qs);
+}
+
+def convolution[n:!ℕ,d:!ℕ](qs:𝔹^n,p:!ℂ^(d+1)) mfree{
+    q:=complement[d](p,1e-8);
+	assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
+	angles:=gqsp_compute_angles[d](p,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    return GQSP(θs,φs,λ)(lower_shift[n])(qs);
+}
+
+def main(){
+    p := (0.07,0.35,0.35,0.2):!ℂ^4;
+    qs := 0:uint[2] as 𝔹^2;
+    qs[0] := H(qs[0]); 
+    x := dup(qs[0]);
+    if x{
+        qs[1] := H(qs[1]); 
+    }
+    forget(x=qs[0]);
+    return convolution[2,3](qs,p);
+}
