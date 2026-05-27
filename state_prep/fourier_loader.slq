@@ -1,0 +1,186 @@
+import primitives.fft;
+import phase_estimation.QFT;
+
+def fourier_coeff[N:!ℕ](const f:!ℝ→!ℝ){
+    assert(N > 0);
+    xs := vector(N, 0);
+    for j in 0..N {
+        x := j / N;
+        xs[j] = f(x);
+    }
+    ys := fft(xs);
+    cs := vector(N, 0);
+    for k in 0..N {
+        cs[k] = ys[k] / N;
+    }
+    return cs;
+}
+
+def norm[N:!ℕ](v:!ℂ^N)qfree:!ℝ{
+    sum := 0;
+    for i in [0..N) {
+        sum += cabs(v[i])^2;
+    }
+    return sqrt(sum);
+}
+
+def normalize[N:!ℕ](v:!ℂ^N)lifted:!ℂ^N{
+    p := norm(v);
+    t := vector(N,0:!ℂ);
+    for i in [0..N){
+        t[i] = v[i]/p;
+    }
+	return t;
+}
+
+def angles_y[N:!ℕ](ψ:!ℂ^N,ϵ:!ℝ) {
+    n := log₂(N) coerce !ℕ;
+    α := [];
+    for depth in [0..n) {
+        j := (n - depth - 1) coerce !ℕ;
+        two_j := (2^j) coerce !ℕ;
+        two_j1 := (2^(j+1)) coerce !ℕ;
+        m := (2^depth) coerce !ℕ;
+        α_j := [];
+        for r in [0..m) {
+            base := 0;
+            for b in [0..depth) {
+                p := (2^b) coerce !ℕ;
+                q := (2^(b+1)) coerce !ℕ;
+                bit := 0;
+                if (r % q) >= p {
+                    bit = 1;
+                }
+                weight := (2^(n-b-1)) coerce !ℕ;
+                base = base + bit * weight;
+            }
+            num_sq := 0.0;
+            den_sq := 0.0;
+            for l in [0..two_j) {
+                idx_left  := (base + l) coerce !ℕ;
+                idx_right := (base + two_j + l) coerce !ℕ;
+                den_sq = den_sq + cabs(ψ[idx_left])^2;
+                den_sq = den_sq + cabs(ψ[idx_right])^2;
+                num_sq = num_sq + cabs(ψ[idx_right])^2;
+            }
+
+            if den_sq < ϵ {angle := 0.0;} 
+            else {
+                ratio := sqrt(num_sq / den_sq);
+                if ratio > 1.0 {
+                    ratio = 1.0;
+                }
+                angle := 2.0 * asin(ratio);
+            }
+            α_j ~= [angle];
+        }
+        α ~= [α_j];
+    }
+    return α;
+}
+
+def angles_z[N:!ℕ](ψ:!ℂ^N,ϵ:!ℝ) {
+    n := log₂(N) coerce !ℕ;
+    ω := vector(N,0.0);
+    for r in [0..N) {
+        if cabs(ψ[r]) < ϵ {
+            ω[r] = 0.0;
+        } else {
+            ω[r] = carg(ψ[r]);
+        }
+    }
+    α := [];
+    for depth in [0..n) {
+        j := (n - depth - 1) coerce !ℕ;
+        two_j := (2^j) coerce !ℕ;
+        m := (2^depth) coerce !ℕ;
+        α_j := [];
+        for r in [0..m) {
+            base := 0;
+            for b in [0..depth) {
+                p := (2^b) coerce !ℕ;
+                q := (2^(b+1)) coerce !ℕ;
+                bit := 0;
+                if (r % q) >= p {
+                    bit = 1;
+                }
+                weight := (2^(n-b-1)) coerce !ℕ;
+                base = base + bit * weight;
+            }
+            s := 0.0;
+            for l in [0..two_j) {
+                idx_left  := (base + l) coerce !ℕ;
+                idx_right := (base + two_j + l) coerce !ℕ;
+
+                s = s + ω[idx_right] - ω[idx_left];
+            }
+            angle := s / two_j;
+            α_j ~= [angle];
+        }
+        α ~= [α_j];
+    }
+    return α;
+}
+
+def 𝜙[N:!ℕ](ψ:!ℂ^N,ϵ:!ℝ){
+    s := 0.0;
+    for r in [0..N) {
+        if cabs(ψ[r]) >= ϵ {
+            s = s + carg(ψ[r]);
+        }
+    }
+    return s / N;
+}
+
+def multiplexed_rotY[n:!ℕ](const d:𝔹^n, data:𝔹, v:!ℝ^(2^n)) mfree {
+    for i in [0..2^n) {
+        if i == (d as uint[n]) {
+            data := rotY(v[i], data);
+        }
+    }
+    return data;
+}
+
+def multiplexed_rotZ[n:!ℕ](const d:𝔹^n, data:𝔹, v:!ℝ^(2^n)) mfree {
+    for i in [0..2^n) {
+        if i == (d as uint[n]) {
+            data := rotZ(v[i], data);
+        }
+    }
+    return data;
+}
+
+def Uc[m:!ℕ](const f:!ℝ→!ℝ,ϵ:!ℝ) {
+    qs := 0:uint[m] as 𝔹^m;
+    ψ := normalize(fourier_coeff[2^m](f));
+    qs[0] := rotZ(-𝜙(ψ,ϵ), qs[0]);
+    α_y := angles_y(ψ,ϵ); α_z := angles_z(ψ,ϵ);
+    qs[0] := rotY(α_y[0][0], qs[0]);
+    for j in [1..m) {
+        temp := dup(qs[0..j]);
+        qs[j] := multiplexed_rotY[j](temp,qs[j],α_y[j] coerce !ℝ^(2^j));
+        forget(temp = qs[0..j]);
+    }
+    qs[0] := rotZ(α_z[0][0], qs[0]);
+    for j in [1..m) {
+        temp := dup(qs[0..j]);
+        qs[j] := multiplexed_rotZ[j](temp,qs[j],α_z[j] coerce !ℝ^(2^j));
+        forget(temp = qs[0..j]);
+    }
+    return qs;
+}
+
+def fourier_loader[n:!ℕ,m:!ℕ](const f:!ℝ→!ℝ,ϵ:!ℝ) {
+    qs := Uc[m](f,ϵ);
+    xs := vector(n sub m,qs[0])~qs;
+    for k in [0..n div 2){
+		(xs[k],xs[n-k-1]) := (xs[n-k-1],xs[k]);
+	}
+    return QFT(xs);
+}
+
+def test(x:!ℝ){return 3+2*cos(2*π*x)-sin(4*π*x);}
+
+def main(){
+    return fourier_loader[5,3](test,1e-4);
+}
