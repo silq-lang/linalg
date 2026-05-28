@@ -1,29 +1,64 @@
 import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
 
-def mod_sel[n:!ℕ](const anc:𝔹^n,qs:𝔹^n) mfree:𝔹^n{
+def overlap(k:!ℕ,n:!ℕ){
+    prod := 1:!ℝ;
+    for j in [1..n+1){prod *= sqrt(1-1/(2^j + 1));}
+    return prod/sqrt(2^k);
+}
+
+def pn(n:!ℕ){
+    s := 0:!ℝ;
+    for k in [1..n+1){s += cabs(overlap(k,n))^2;}
+    return s;
+}
+
+def exact1[n:!ℕ](xs:𝔹^(n+1)) mfree{
+    (flag:𝔹^1)~(qs:𝔹^n) := xs; 
+    for k in [0..n){qs[k] := rotY(2*asin(1/sqrt(1+2^(k+1))),qs[k]);}
     for k in [0..n){
-        if (anc as uint[n])==(2^k){qs[k] := Z(qs[k]);}
+        if (qs as uint[n])==(2^k){flag[0] := X(flag[0]);}
+    }
+    flag[0] := X(flag[0]);
+    return (flag~qs);
+}
+
+def mod_prep[n:!ℕ](qs:𝔹^(n+1),ϵ:!ℝ) mfree{
+    qs := exact1[n](qs);
+    p := pn(n);
+    𝛷 := acos((2*p-1+sqrt(ϵ/(1-p)))/(2*p));
+    if !qs[0]{phase(𝛷);}
+    exact1[n](qs) := qs;
+    if qs!=vector(n+1,0:𝔹){phase(-𝛷);}
+    qs := exact1[n](qs);
+    qs[0] := X(qs[0]);
+    return qs;
+}
+
+def mod_sel[n:!ℕ](const ancilla:𝔹^(n+1),qs:𝔹^n) mfree:𝔹^n{
+    (flag:𝔹^1)~(anc:𝔹^n) := ancilla;
+    for k in [0..n){
+        if flag[0]&&anc[k]{qs[k] := Z(qs[k]);}
     }
     return qs;
 }
 
-def shifted_linear_diag[n:!ℕ](anc:𝔹^n,qs:𝔹^n) mfree:𝔹^n×𝔹^n{
-    for k in [0..n){anc[k] := rotY(2*asin(1/sqrt(1+2^(k+1))),anc[k]);}
+def shifted_linear_diag[n:!ℕ](anc:𝔹^(n+1),qs:𝔹^n,ϵ:!ℝ) mfree:𝔹^(n+1)×𝔹^n{
+    anc := mod_prep[n](anc,ϵ);
     qs := mod_sel(anc,qs);
-    for k in [0..n){anc[k] := rotY(-2*asin(1/sqrt(1+2^(k+1))),anc[k])}
+    mod_prep[n](anc,dup(ϵ)) := anc;
     return (anc,qs);
 }
 
-def linear_diag[n:!ℕ](anc:𝔹^(n+1),qs:𝔹^n) mfree:𝔹^(n+1)×𝔹^n{
-    (ext:𝔹^1)~(anc:𝔹^n) := anc;
+def linear_diag[ϵ:!ℝ][n:!ℕ](anc:𝔹^(n+2),qs:𝔹^n) mfree:𝔹^(n+2)×𝔹^n{
+    (ext:𝔹^1)~(anc:𝔹^(n+1)) := anc;
     ext[0] := H(ext[0]);
-    if ext[0]{phase(π);(anc,qs) := shifted_linear_diag(anc,qs);}
+    if ext[0]{phase(π);(anc,qs) := shifted_linear_diag(anc,qs,ϵ);}
     ext[0] := H(ext[0]);
     return (ext~anc,qs);
 }
 
-def state_prep[n:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
+def state_prep[n:!ℕ][d:!ℕ](p:!ℂ^(d+1),ϵ:!ℝ){
     pq := chebyshev_coef[d](p);
     q:=complement[d](pq,1e-8);
 	assert(is_complement[num_samples(d,1e-8)][d](pq,q,1e-8));
@@ -31,9 +66,9 @@ def state_prep[n:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
     qs := 0:uint[n] as 𝔹^n;
     for k in [0..n){qs[k] := H(qs[k]);}
-    return gqet[0][d](θs,φs,λ)(linear_diag[n])(0:uint[n+2] as 𝔹^(n+2),qs);
+    return gqet[0][d](θs,φs,λ)(linear_diag[ϵ][n])(0:uint[n+3] as 𝔹^(n+3),qs);
 }
 
 def main(){
-    return state_prep[1][2]((-1,0,2):!ℂ^3);
+    return state_prep[1][2]((-1,0,2):!ℂ^3,1e-6);
 }
