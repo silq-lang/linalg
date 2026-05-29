@@ -1,0 +1,77 @@
+import primitives.uniform_superposition;
+import block_encodings.block_subroutines;
+import block_encodings.symtwobytwo;
+import GQSVT.gqsp_angles;
+import GQSVT.matrix_poly;
+
+def compute_Q[d:!ℕ](g:(!ℂ^(d+1))^(d+1))qfree{
+    Q := vector(d+1, vector(d+1, 0:!ℂ));
+    for j in [0..d+1){
+        p_j := vector(d+1, 0:!ℂ);
+        for i in [0..d+1){p_j[i] = g[i][j];}
+        a := chebyshev_coef(p_j);
+        for s in [0..d+1){Q[s][j] = a[s];}
+    }
+    return Q;
+}
+
+def Tf[k:!ℕ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+    repeat k{(anc,qs) := qubitize[n:!ℕ,m:!ℕ](anc,qs,f);}
+    return (anc,qs);
+}
+
+def remove_right_zeros[N:!ℕ](v:!ℂ^N)qfree{
+    n := N; vr := [];
+    while v[n sub 1] == 0{n -= 1;}
+    for i in [0..n){vr ~= [v[i]];}
+    return vr;
+}
+
+def uni_GQET[d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+    p := remove_right_zeros(p); l := p.length-1 coerce !ℕ; p := p coerce !ℂ^(l+1);
+    N := num_samples(l,1e-8);
+    if !poly_cond[1000][l](p){
+        β := bound[N][l](p);
+        pq:=vector(l+1,0);
+        for j in [0..l){pq[j] = p[j]/β;}
+    }else{pq:=p;}
+    pq := chebyshev_coef[l](pq);
+    q:=complement[l](pq,1e-8);
+	assert(is_complement[num_samples(l,1e-3)][l](pq,q,1e-3));
+	angles:=gqsp_compute_angles[l](pq,q);
+    θs:=angles[0];φs:=angles[1];λ:=angles[2];
+    return gqet[0][l](θs,φs,λ)(f)(anc,qs);
+}
+
+def prod_term[k:!ℕ][d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹^(m1+m2+1),qs:𝔹^n,const f:𝔹^m1 × 𝔹^n → mfree 𝔹^m1 × 𝔹^n,const g:𝔹^m2 × 𝔹^n → mfree 𝔹^m2 × 𝔹^n)mfree:𝔹^(m1+m2+1)×𝔹^n{
+    (anc1:𝔹^m1)~(anc2:𝔹^(m2+1)) := ancilla;
+    (anc1,qs) := Tf[k][n,m1](anc1,qs,f);
+    (anc2,qs) := uni_GQET[d](p)[n,m2](g)(anc2,qs);
+    return (anc1~anc2,qs);
+}
+
+def biv_GQET[d:!ℕ](p:(!ℂ^(d+1))^(d+1))[n:!ℕ,m:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹^(m+m1+m2+1),qs:𝔹^n,const f:𝔹^m1 × 𝔹^n → mfree 𝔹^m1 × 𝔹^n,const g:𝔹^m2 × 𝔹^n → mfree 𝔹^m2 × 𝔹^n)mfree:𝔹^(m+m1+m2+1)×𝔹^n{
+    Q := compute_Q(p);
+    (flag:𝔹^m)~(anc:𝔹^(m1+m2+1)) := ancilla;
+    flag := uniform_superposition[d+1][m](flag);
+    for k in [0..d){
+        if k == (flag as uint[m]){
+            (anc,qs) := prod_term[k][d](Q[k])[n,m1,m2](anc,qs,f,g);
+        }
+    }
+    uniform_superposition[d+1][m](flag) := flag;
+    return (flag~anc,qs);
+}
+
+def main(){
+    p := [[0, 0, 0],[0, 0, 1],[0, 1, 0]]:(!ℂ^3)^3; //x^1 * y^2 + x^2 * y^1
+    alpha1 := (1/2):!ℝ;
+    alpha2 := (1/sqrt(2)):!ℝ;
+    def twosym1(anc:𝔹^2,xs:𝔹^1){
+        return twosym_block(anc,xs,alpha1,alpha2);
+    }
+    def twosym2(anc:𝔹^2,xs:𝔹^1){
+        return twosym_block(anc,xs,alpha1,-alpha2);
+    }
+    return biv_GQET[2](p)[1,2,2,2](0:uint[7] as 𝔹^7,0:uint[1] as 𝔹^1,twosym1,twosym2);
+}
