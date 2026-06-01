@@ -1,7 +1,7 @@
 import primitives.multicontrol;
 import block_encodings.symtwobytwo;
 
-def hermitian_qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+def qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
     (anc,qs) := f(anc,qs);
     if anc != vector(m,0){phase(π);}
     return (anc,qs);
@@ -28,6 +28,30 @@ def block_tens[n1:!ℕ,m1:!ℕ,n2:!ℕ,m2:!ℕ](anc:𝔹^(m1+m2),qs:𝔹^(n1+n2)
     (ancg,qsg) := g(ancg,qsg);
     (ancf,qsf) := f(ancf,qsf);
     return (ancf~ancg,qsf~qsg);
+}
+
+def norm[N:!ℕ](v:!ℝ^N)qfree:!ℝ{
+    sum := 0;
+    for i in [0..N) {
+        sum += v[i]^2;
+    }
+    return sqrt(sum);
+}
+
+def abs_sum[m:!ℕ](t:!ℝ^m) qfree:!ℝ{
+    s := 0:!ℝ;
+    for i in [0..m){
+        s += cabs(t[i]);
+    }
+    return s;
+}
+
+def normalize[N:!ℕ](v:!ℝ^N)qfree:!ℝ^N{
+    p := norm(v);
+    for i in [0..N){
+        v[i] /= p;
+    }
+	return v;
 }
 
 def block_LC[n:!ℕ,m:!ℕ,k:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,c:!ℂ^2,a:!ℝ^2,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^k × 𝔹^n → mfree 𝔹^k × 𝔹^n) mfree{
