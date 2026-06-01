@@ -67,7 +67,7 @@ def bound[N:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
 
 def gqet[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
     def qubitized_f(ancilla:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
-        return hermitian_qubitize(ancilla,xs,f);
+        return qubitize(ancilla,xs,f);
     }
     return gqsp[k][d](θs,φs,λ)(qubitized_f)(anc,qs);
 }
@@ -76,8 +76,8 @@ def gqsvt[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](
     def hermit_qubit_f(ancilla:𝔹^(m+1),xs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
         (flag:𝔹^1)~(ancilla:𝔹^m) := ancilla;
         flag[0] := X(flag[0]);
-        if flag[0]=0{(ancilla,xs):=hermitian_qubitize(ancilla,xs,f);}
-        if flag[0]=1{(ancilla,xs):=hermitian_qubitize(ancilla,xs,reverse(f));}
+        if flag[0]=0{(ancilla,xs):=qubitize(ancilla,xs,f);}
+        if flag[0]=1{(ancilla,xs):=qubitize(ancilla,xs,reverse(f));}
         return (flag~ancilla,xs);
     }
     return gqsp[k][d](θs,φs,λ)(hermit_qubit_f)(anc,qs);
