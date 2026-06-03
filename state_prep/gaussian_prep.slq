@@ -27,26 +27,85 @@ def exponential_state(n:!ℕ,α:!ℝ) mfree:𝔹^n{
     return qs;
 }
 
-def gaussian_state(n:!ℕ,α:!ℝ) mfree{
-    qs := 0:uint[n] as 𝔹^n;
-    anc := 0:uint[(n-1)*(n-2)/2 coerce !ℕ] as 𝔹^((n-1)*(n-2)/2 coerce !ℕ);
-    for j in [0..n sub 1){qs[j] := A[α,log₂(2^j + 4^j)](qs[j]);}
-    qs[n sub 1] := H(qs[n sub 1]);
-    l := 0:!ℕ;
-    for j in [1..n sub 1){
-        for k in [0..j){
-            if qs[j]&&qs[k]{
-                anc[l] := B[α,j+k+1](anc[l]);
+def shift[m:!ℕ](v:!ℕ^m){
+    return [v[0]] ~ [v[m sub 1]] ~ v[1..m sub 1];
+}
+
+def control_schedule(m:!ℕ){
+    qubits := []; for j in [0..m){qubits ~= [j]}
+    layers := [];
+    for _ in [0..m sub 1){
+        layer := [];
+        for t in [0..m div 2){
+            i := qubits[t]; j := qubits[m sub t sub 1];
+            layer ~= [(i,j)];
+        }
+        layers ~= [layer];
+        qubits = shift(qubits coerce !ℕ^m);
+    }
+    return layers;
+}
+
+def gaussian_state(n:!ℕ, α:!ℝ):𝔹^n{
+    assert(n%2!=0);
+    qs := 0:uint[n sub 1] as 𝔹^(n sub 1);
+    m := floor((n sub 1)/2) coerce !ℕ;
+    cont := control_schedule(n sub 1);
+    p := n sub 2;
+    for j in [0..p){
+        flagged := 0:!𝔹;
+        while !flagged{
+            measure(qs);
+            qs := 0:uint[n sub 1] as 𝔹^(n sub 1);
+            for k in [0..n sub 1){qs[k] := A[α,log₂(2^k + 4^k)](qs[k]);}
+            anc := 0:uint[m] as 𝔹^m;
+            for k in [0..m){
+                if qs[cont[j][k][0]]&&qs[cont[j][k][1]]{
+                    anc[k] := B[α,cont[j][k][0]+cont[j][k][1]+1](anc[k]);
+                }
             }
-        l += 1;
+            r := measure(anc) as !uint[m];
+            if r=0{flagged = 1:!𝔹;}
         }
     }
-    temp := dup(qs[n sub 1]);
-    if !temp{for j in [0..n sub 1){qs[j] := X(qs[j]);}}
-    forget(temp=qs[n sub 1]);
-    return (anc,qs);
+    x := H(0:𝔹);
+    if !x{for j in [0..n sub 1){qs[j] := X(qs[j]);}}
+    return (qs~(x,));
+}
+
+def twod_gaussian_state(n:!ℕ, α:!ℝ){
+    assert(n%2=0);
+    xs := 0:uint[n div 2] as 𝔹^(n div 2); 
+    ys := 0:uint[n div 2] as 𝔹^(n div 2);
+    qs := xs~ys;
+    m := floor(n/2) coerce !ℕ;
+    cont := control_schedule(n);
+    p := n sub 1;
+    for j in [0..p){
+        flagged := 0:!𝔹;
+        while !flagged{
+            measure(qs);
+            xs := 0:uint[n div 2] as 𝔹^(n div 2); 
+            ys := 0:uint[n div 2] as 𝔹^(n div 2);
+            for k in [0..n div 2){
+                xs[k] := A[α,2*k](xs[k]);
+                ys[k] := A[α,2*k](ys[k]);
+            }
+            qs := xs~ys;
+            anc := 0:uint[m] as 𝔹^m;
+            for k in [0..m){
+                if qs[cont[j][k][0]]&&qs[cont[j][k][1]]{
+                    anc[k] := B[α,cont[j][k][0]+cont[j][k][1]+1](anc[k]);
+                }
+            }
+            r := measure(anc) as !uint[m];
+            if r=0{flagged = 1:!𝔹;}
+        }
+    }
+    (xs:𝔹^(n div 2))~(ys:𝔹^(n div 2)) := qs;
+    return (xs,ys);
 }
 
 def main(){
-    return gaussian_state(6,0.2);
+    return twod_gaussian_state(2,0.2);
 }
