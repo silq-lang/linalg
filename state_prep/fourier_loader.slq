@@ -202,5 +202,5 @@ def test_period(x:!ℝ){return 3+2*cos(2*π*x)-sin(4*π*x);}
 def test_nperiod(x:!ℝ){return tanh(x);}
 
 def main(){
-    return fourier_loader[5,3](test_nperiod,1e-4);
+    return fourier_loader[6,5](test_nperiod,1e-4);
 }
