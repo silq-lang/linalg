@@ -1,6 +1,6 @@
 import primitives.uniform_superposition;
-import block_encodings.block_subroutines;
 import block_encodings.symtwobytwo;
+import block_encodings.block_subroutines;
 import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
 
@@ -16,7 +16,7 @@ def compute_Q[d:!ℕ](g:(!ℂ^(d+1))^(d+1))qfree{
 }
 
 def Tf[k:!ℕ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
-    repeat k{(anc,qs) := qubitize[n:!ℕ,m:!ℕ](anc,qs,f);}
+    repeat k{(anc,qs) := qubitize[n,m](anc,qs,f);}
     return (anc,qs);
 }
 
@@ -32,6 +32,7 @@ def uni_GQET[d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → m
     N := num_samples(l,1e-8);
     if !poly_cond[1000][l](p){
         β := bound[N][l](p);
+        print(β);
         pq:=vector(l+1,0);
         for j in [0..l){pq[j] = p[j]/β;}
     }else{pq:=p;}
@@ -53,13 +54,13 @@ def prod_term[k:!ℕ][d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹
 def biv_GQET[d:!ℕ](p:(!ℂ^(d+1))^(d+1))[n:!ℕ,m:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹^(m+m1+m2+1),qs:𝔹^n,const f:𝔹^m1 × 𝔹^n → mfree 𝔹^m1 × 𝔹^n,const g:𝔹^m2 × 𝔹^n → mfree 𝔹^m2 × 𝔹^n)mfree:𝔹^(m+m1+m2+1)×𝔹^n{
     Q := compute_Q(p);
     (flag:𝔹^m)~(anc:𝔹^(m1+m2+1)) := ancilla;
-    flag := uniform_superposition[d+1][m](flag);
-    for k in [0..d){
+    flag := uniform_superposition[d+1](flag);
+    for k in [0..d+1){
         if k == (flag as uint[m]){
             (anc,qs) := prod_term[k][d](Q[k])[n,m1,m2](anc,qs,f,g);
         }
     }
-    uniform_superposition[d+1][m](flag) := flag;
+    uniform_superposition[d+1](flag) := flag;
     return (flag~anc,qs);
 }
 
@@ -67,11 +68,10 @@ def main(){
     p := [[0, 0, 0],[0, 0, 1],[0, 1, 0]]:(!ℂ^3)^3; //x^1 * y^2 + x^2 * y^1
     alpha1 := (1/2):!ℝ;
     alpha2 := (1/sqrt(2)):!ℝ;
-    def twosym1(anc:𝔹^2,xs:𝔹^1){
-        return twosym_block(anc,xs,alpha1,alpha2);
-    }
-    def twosym2(anc:𝔹^2,xs:𝔹^1){
-        return twosym_block(anc,xs,alpha1,-alpha2);
-    }
-    return biv_GQET[2](p)[1,2,2,2](0:uint[7] as 𝔹^7,0:uint[1] as 𝔹^1,twosym1,twosym2);
-}
+    def twosym1(anc:𝔹^3,xs:𝔹^1){
+        return twosym_herm(anc,xs,alpha1,alpha2);
+    }   // commuting matrices
+    def twosym2(anc:𝔹^3,xs:𝔹^1){
+        return twosym_herm(anc,xs,alpha1,-alpha2);
+    } 
+    return biv_GQET[2](p)[1,2,3,3](0:uint[9] as 𝔹^9,0:uint[1] as 𝔹^1,twosym1,twosym2); //should return minus identity
