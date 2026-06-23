@@ -1,0 +1,132 @@
+def data_lookup[M:!ℕ](const f:!ℕ → lifted !𝔹^M)[m:!ℕ,n:!ℕ](const control:𝔹^m,k:!ℕ,l:!ℕ,qs:𝔹^n) qfree{
+    for i in [0..2^m){
+        if i == (control as uint[m]){
+            r := f(k*i+l);
+            for j in [0..M){if r[j]{qs[j] := X(qs[j]);}}
+        }
+    }
+    return qs;
+}
+
+def cont_swap[k:!ℕ,m:!ℕ,n:!ℕ](const control:𝔹^m,qs:(𝔹^n)^k) qfree{
+    for i in [0..2^m){
+        if i == (control as uint[m]){(qs[0],qs[i]) := (qs[i],qs[0]);}
+    }
+    return qs;
+}
+
+def qroam_comp[M:!ℕ](const f:!ℕ → lifted !𝔹^M)[m:!ℕ](address:𝔹^m,k:!ℕ) qfree{
+    r := vector(k,vector(M,0:𝔹));
+    ml := floor(log₂(k)) coerce !ℕ;
+    (l:𝔹^ml)~(h:𝔹^(m sub ml coerce !ℕ)) := address;
+    for j in [0..k){r[j] := data_lookup(f)(h,k,j,r[j]);}
+    r := cont_swap[k,ml,M](l,r);
+    return (l~h,r);
+}
+
+def bitwise_dotprod(x:!ℕ,y:!ℕ) lifted{
+    def hamming_weight(x:!ℕ) qfree{
+        count := 0;
+        while x!=0{
+            x &= x - 1;  
+            count += 1;
+        }
+        return count;
+    }
+    return hamming_weight(x&y)%2;
+}
+
+def negate_set[M:!ℕ](const f: !ℕ !→ lifted !𝔹^M)[k:!ℕ](m:!ℕ^k, d:!ℕ) lifted{
+    def perm(l:!ℕ, s:!ℕ)lifted{
+        if s = 0 {return l;}
+        if s = l {return 0;}
+        return s;
+    }
+    S := [];
+    for j in [0..d) {
+        sum := 0:!𝔹;
+        h := j div k;
+        l := (j - h*k) coerce !ℕ;
+        for s in [0..k) {
+            idx := h*k + perm(l, s);
+            assert(m[s]<d);
+            sum ⊕= bitwise_dotprod(m[s],f(idx) as !uint[M] as !ℕ);
+        }
+        if sum=1{S ~= [j];}
+    }
+    return S;
+}
+
+def fixup_table[S:!ℕ[]](j:!ℕ) lifted:!𝔹^2{
+    t1 := 0:!𝔹; t2 := 0:!𝔹;
+    for k in [0..S.length){
+        if S[k]=2*j{t1 = 1:!𝔹;}
+        if S[k]=2*j+1{t2 = 1:!𝔹;}
+    }
+    return (t1,t2);
+}
+
+def binary2unary[n:!ℕ](const qs:𝔹^n) lifted{
+    xs := 1:uint[2^n] as 𝔹^(2^n);
+    for j in [0..n){
+        m := 2^j;
+        for k in [0..m){
+            if qs[j]{
+                (xs[k],xs[k+m]) := (xs[k+m],xs[k]);
+            }
+        }
+    }
+    return xs;
+}
+
+def unary2binary[n:!ℕ](const qs:𝔹^n,xs:𝔹^(2^n)){
+    for j in [0..n){
+        xs := xs coerce 𝔹^(2^(n sub j));
+        m := 2^(n sub j sub 1);
+        (xs:𝔹^(2^(n sub j sub 1)))~(mxs:𝔹^(2^(n sub j) sub 2^(n sub j sub 1))) := xs;
+        for k in [0..m){
+            xs[m sub k sub 1] := CNOT(mxs[m sub k sub 1],xs[m sub k sub 1]);
+        }
+        for k in [0..m){mxs[m sub k sub 1] := H(mxs[m sub k sub 1]);}
+        r := measure(mxs) as !𝔹[];
+        for k in [0..m){
+            if r[m sub k sub 1]&&qs[j]{xs[m sub k sub 1] := Z(xs[m sub k sub 1]);}
+        }
+    }
+    forget(xs=(1:𝔹,));
+}
+
+def qroam_uncomp[M:!ℕ](const f: !ℕ !→ lifted !𝔹^M)[m:!ℕ,k:!ℕ](address:𝔹^m,qs:(𝔹^M)^k,d:!ℕ){
+    for i in [0..k){for j in [0..M){qs[i][j] := H(qs[i][j]);}}
+    r := measure(qs) as (!uint[M])^k as !ℕ^k;
+    S := negate_set[M](f)[k](r,d);
+    ml := floor(log₂(k)) coerce !ℕ;
+    (l:𝔹^ml)~(h:𝔹^(m sub ml coerce !ℕ)) := address;
+    xs := binary2unary[ml](l);
+    for i in [0..k){xs[i] := H(xs[i]);}
+    for j in [0..k div 2){(xs[2*j],xs[2*j+1]) := data_lookup(fixup_table[S])(h,k div 2,j,(xs[2*j],xs[2*j+1]));}
+    for i in [0..k){xs[i] := H(xs[i]);}
+    unary2binary(l,xs);
+    return l~h;
+}
+
+def qroam_meas[M:!ℕ](const f:!ℕ → lifted !𝔹^M)[m:!ℕ](address:𝔹^m,k:!ℕ,d:!ℕ){ //shows the process midway for illustration
+    (address,qs) := qroam_comp[M](f)[m](address,k);
+    for i in [0..k){for j in [0..M){qs[i][j] := H(qs[i][j]);}}
+    r := measure(qs) as (!uint[M])^k as !ℕ^k; print(r);
+    return address;
+}
+
+def table(p:!ℕ) lifted:!𝔹^2{
+    assert(p<8);
+    pb := p as !uint[3];
+    return (pb[0] ⊕ pb[2],pb[1]);
+}
+
+def main(){
+    control := 0:uint[3] as 𝔹^3;
+    for j in [0..3){control[j] := H(control[j]);}
+    (address,qs) := qroam_comp[2](table)[3](control,2);
+    return qroam_uncomp[2](table)[3,2](address,qs,8);
+    //return qroam_meas[2](table)[3](control,2,8)
+}
