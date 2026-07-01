@@ -41,11 +41,10 @@ def eigenstate_filtering[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
         (flag:𝔹^1)~(ancilla:𝔹^m) := ancilla;
         θ := 2*atan(sqrt(α/cabs(λf)));
         flag[0] := rotY(θ,flag[0]);
-        if flag[0]{
-            phase(-carg(λf));
-            (ancilla,xs) := f(ancilla,xs);
-        }
+        flag[0] := rotZ(-carg(-λf),flag[0]);
+        if flag[0]{(ancilla,xs) := f(ancilla,xs);}
         flag[0] := rotY(-θ,flag[0]);
+        phase(carg(-λf)/2);
         return (flag~ancilla,xs);
     }
     p := eigen_filt(k,Δ/(2*α));
