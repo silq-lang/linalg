@@ -1,0 +1,25 @@
+import QRISP.gqet_mod;
+import QRISP.pauli_lcu;
+
+//k applications of the qubitized operator block-encode T_k(A) 
+
+def Tf[k:!ℕ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+    repeat (k div 2){
+        anc := π_phase(anc);
+        //if anc != vector(m,0){phase(π);}
+        (anc,qs) := f(anc,qs);
+        anc := π_phase(anc);
+        //if anc != vector(m,0){phase(π);}
+        (anc,qs) := reverse(f)(anc,qs);
+    }
+    if (k%2=1){
+        anc := π_phase(anc);
+        //if anc != vector(m,0){phase(π);}
+        (anc,qs) := f(anc,qs);
+    }
+    return (anc,qs);
+}
+
+def main(){
+    return Tf[2][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2,TFIM[-sqrt(0.25),sqrt(0.5)][2,2]);
+}
