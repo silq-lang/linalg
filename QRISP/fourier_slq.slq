@@ -1,0 +1,248 @@
+import primitives.fft;
+import QRISP.phase_opt;
+
+def fourier_coeff[N:!ℕ](const f:!ℝ→!ℝ){
+    assert(N > 0);
+    xs := vector(N, 0);
+    for j in 0..N {
+        x := j / N;
+        xs[j] = f(x);
+    }
+    ys := fft(xs);
+    cs := vector(N, 0);
+    for k in 0..N {
+        cs[k] = ys[k] / N;
+    }
+    return cs;
+}
+
+def norm[N:!ℕ](v:!ℂ^N)qfree:!ℝ{
+    sum := 0;
+    for i in [0..N) {
+        sum += cabs(v[i])^2;
+    }
+    return sqrt(sum);
+}
+
+def normalize[N:!ℕ](v:!ℂ^N)lifted:!ℂ^N{
+    p := norm(v);
+    t := vector(N,0:!ℂ);
+    for i in [0..N){
+        t[i] = v[i]/p;
+    }
+	return t;
+}
+
+def angles_y[N:!ℕ](ψ:!ℂ^N,ϵ:!ℝ) {
+    n := log₂(N) coerce !ℕ;
+    α := [];
+    for depth in [0..n) {
+        j := (n - depth - 1) coerce !ℕ;
+        two_j := (2^j) coerce !ℕ;
+        two_j1 := (2^(j+1)) coerce !ℕ;
+        m := (2^depth) coerce !ℕ;
+        α_j := [];
+        for r in [0..m) {
+            base := 0;
+            for b in [0..depth) {
+                p := (2^b) coerce !ℕ;
+                q := (2^(b+1)) coerce !ℕ;
+                bit := 0;
+                if (r % q) >= p {
+                    bit = 1;
+                }
+                weight := (2^(n-b-1)) coerce !ℕ;
+                base = base + bit * weight;
+            }
+            num_sq := 0.0;
+            den_sq := 0.0;
+            for l in [0..two_j) {
+                idx_left  := (base + l) coerce !ℕ;
+                idx_right := (base + two_j + l) coerce !ℕ;
+                den_sq = den_sq + cabs(ψ[idx_left])^2;
+                den_sq = den_sq + cabs(ψ[idx_right])^2;
+                num_sq = num_sq + cabs(ψ[idx_right])^2;
+            }
+
+            if den_sq < ϵ {angle := 0.0;} 
+            else {
+                ratio := sqrt(num_sq / den_sq);
+                if ratio > 1.0 {
+                    ratio = 1.0;
+                }
+                angle := 2.0 * asin(ratio);
+            }
+            α_j ~= [angle];
+        }
+        α ~= [α_j];
+    }
+    return α;
+}
+
+def angles_z[N:!ℕ](ψ:!ℂ^N,ϵ:!ℝ) {
+    n := log₂(N) coerce !ℕ;
+    ω := vector(N,0.0);
+    for r in [0..N) {
+        if cabs(ψ[r]) < ϵ {
+            ω[r] = 0.0;
+        } else {
+            ω[r] = carg(ψ[r]);
+        }
+    }
+    α := [];
+    for depth in [0..n) {
+        j := (n - depth - 1) coerce !ℕ;
+        two_j := (2^j) coerce !ℕ;
+        m := (2^depth) coerce !ℕ;
+        α_j := [];
+        for r in [0..m) {
+            base := 0;
+            for b in [0..depth) {
+                p := (2^b) coerce !ℕ;
+                q := (2^(b+1)) coerce !ℕ;
+                bit := 0;
+                if (r % q) >= p {
+                    bit = 1;
+                }
+                weight := (2^(n-b-1)) coerce !ℕ;
+                base = base + bit * weight;
+            }
+            s := 0.0;
+            for l in [0..two_j) {
+                idx_left  := (base + l) coerce !ℕ;
+                idx_right := (base + two_j + l) coerce !ℕ;
+
+                s = s + ω[idx_right] - ω[idx_left];
+            }
+            angle := s / two_j;
+            α_j ~= [angle];
+        }
+        α ~= [α_j];
+    }
+    return α;
+}
+
+def 𝜙[N:!ℕ](ψ:!ℂ^N,ϵ:!ℝ){
+    s := 0.0;
+    for r in [0..N) {
+        if cabs(ψ[r]) >= ϵ {
+            s = s + carg(ψ[r]);
+        }
+    }
+    return s / N;
+}
+
+def gray_scale(j:!ℕ){return j⊕(j div 2);}
+
+def gray_permute[N:!ℕ](t:!ℝ^N){
+    out := vector(N,0:!ℝ);
+    for i in [0..N){out[i] = t[gray_scale(i)];}
+    return out;
+}
+
+def diff_bit(j:!ℕ, N:!ℕ){
+    assert((N & (N - 1 coerce !ℕ)) == 0); assert(j < N);
+    x := j + 1; if x == N {x = N div 2;}
+    bit := 0:!ℕ;
+    while (x & 1) == 0 {x = x div 2; bit += 1;}
+    return bit;
+}
+
+def fwht[N:!ℕ](t:!ℝ^N){
+    assert((N & (N-1 coerce !ℕ)) == 0);
+    out := vector(N,0:!ℝ); h := 1:!ℕ;
+    while h < N {
+        for i in [0..2*h..N) {
+            for j in [i..i+h) {
+                if h == 1 {x := t[j]; y := t[j+h];}
+                else {x := out[j]; y := out[j+h];}
+                out[j] = (x + y)/2; out[j+h] = (x - y)/2;
+            }
+        }
+        h *= 2;
+    }
+    return out;
+}
+
+def uni_control[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j:!ℕ) mfree{
+    assert(j < 2^n);
+    if axis=0{data := rotY(θ,data);}    
+    if axis=1{data := rotZ(θ,data);}
+    if control[diff_bit(j,2^n)]{data := X(data);}
+    return data;
+}
+
+def uni_simpli[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j1:!ℕ,j2:!ℕ) mfree{
+    assert(j1 < 2^n); assert(j2 <= 2^n);
+    if axis=0{data := rotY(θ,data);}    
+    if axis=1{data := rotZ(θ,data);}
+    index := vector(n,0:!ℕ);
+    for j in [j1..j2){index[diff_bit(j,2^n)] += 1;}
+    for i in [0..n){if (index[i]%2 == 1){if control[i]{data := X(data);}}}
+    return data;
+}
+
+def Oa[axis:!𝔹][n:!ℕ,N:!ℕ](const control:𝔹^n,data:𝔹,angles:!ℝ^N) mfree{
+    angles := gray_permute(fwht(angles));
+    for j in [0..2^n sub 1){
+        if angles[j] == 0 {
+            if j == 0 {
+                nul := 0; while ((nul < 2^n) && (angles[nul] == 0)){nul += 1;}
+                data := uni_simpli[axis][n](control,data,angles[0],0,nul);
+            }
+        }
+        else {
+            if angles[j+1] != 0 {data := uni_control[axis][n](control,data,angles[j],j);}
+            else {
+                nul := j+1;while ((nul < 2^n) && (angles[nul] == 0)){nul += 1;}
+                data := uni_simpli[axis][n](control,data,angles[j],j,nul);
+            }
+        }
+    }
+    j := 2^n sub 1; if angles[j] != 0 {data := uni_control[axis][n](control,data,angles[j],j);}
+    return data;
+}
+
+def Uc[m:!ℕ](const f:!ℝ→!ℝ,ϵ:!ℝ) {
+    qs := 0:uint[m] as 𝔹^m;
+    ψ := normalize(fourier_coeff[2^m](f));
+    qs[0] := rotZ(-𝜙(ψ,ϵ), qs[0]);
+    α_y := angles_y(ψ,ϵ); α_z := angles_z(ψ,ϵ);
+    qs[0] := rotY(α_y[0][0], qs[0]);
+    for j in [1..m) {
+        temp := dup(qs[0..j]);
+        qs[j] := Oa[0][j,2^j](temp,qs[j],α_y[j] coerce !ℝ^(2^j));
+        forget(temp = qs[0..j]);
+    }
+    qs[0] := rotZ(α_z[0][0], qs[0]);
+    for j in [1..m) {
+        temp := dup(qs[0..j]);
+        qs[j] := Oa[1][j,2^j](temp,qs[j],α_z[j] coerce !ℝ^(2^j));
+        forget(temp = qs[0..j]);
+    }
+    return qs;
+}
+
+def QFT[n:!ℕ](ψ: 𝔹^n): 𝔹^n{
+	for k in [0..n){
+		ψ[k] := H(ψ[k]);
+		for l in [k+1..n){
+            temp := dup(ψ[l]);
+            ((temp,),ψ[k]) := cont_phase((temp,),ψ[k],2·π·2^(k-l-1));
+            forget(temp=ψ[l]);
+		}
+	}
+	return ψ;
+}
+
+def fourier_loader[n:!ℕ,m:!ℕ](const f:!ℝ→!ℝ,ϵ:!ℝ) {
+    qs := Uc[m](f,ϵ);
+    xs := vector(n sub m,qs[0])~qs;
+    return QFT(xs);
+}
+
+def test_period(x:!ℝ){return 3+2*cos(2*π*x)-sin(4*π*x);}
+
+def main(){
+    return fourier_loader[6,5](test_period,1e-4);
+}

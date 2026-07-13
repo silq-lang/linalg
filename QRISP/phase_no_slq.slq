@@ -1,0 +1,7 @@
+def main(){
+    qs := 0:uint[4] as 𝔹^4;
+    t := 1:𝔹;
+    for j in [0..4){qs[j] := H(qs[j]);}
+    if qs=vector(4,1){if t{phase(π/2);}}
+    return qs~(t,);
+}

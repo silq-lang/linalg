@@ -1,0 +1,15 @@
+import QRISP.pauli_lcu;
+
+def Heisenberg_LCU[J:!ℝ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n) mfree{
+    assert(n>1);
+    coef := vector(3*(n sub 1) coerce !ℕ,J/4);
+    ind := [];
+    for k in [0..n sub 1){
+        ind ~= [(0:!ℕ,3*2^k as !ℕ),(3*2^k as !ℕ,0:!ℕ),(3*2^k as !ℕ,3*2^k as !ℕ)]
+    }
+    return pauli_LCU[m,n,3*(n sub 1)](anc,qs,ind coerce (!ℕ^2)^(3*(n sub 1)),coef);
+}
+
+def main(){
+    return Heisenberg_LCU[sqrt(0.25)][2,2](0:uint[2] as 𝔹^2,1:uint[2] as 𝔹^2);
+}

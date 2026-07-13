@@ -1,0 +1,12 @@
+import QRISP.pauli_lcu;
+
+def TFIM[J:!ℝ,h:!ℝ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n) mfree:𝔹^m×𝔹^n{
+    assert(n>1);
+	coef := vector(n sub 1,J)~vector(n,h);
+	(ind_z, ind_x) := ([(0:!ℕ,3*2^k) for k in [0..n sub 1)], [(2^k,0:!ℕ) for k in [0..n)]);
+    return pauli_LCU[m,n,n sub 1 + n coerce !ℕ](anc,qs,ind_z~ind_x,coef);
+}
+
+def main(){
+    return TFIM[-sqrt(0.25),sqrt(0.5)][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2);
+}

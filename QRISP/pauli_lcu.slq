@@ -1,0 +1,63 @@
+def pad0[m:!ℕ][n:!ℕ](xs:!ℝ^n):!ℝ^m⇒xs~vector(m sub n,0:!ℝ);
+def phase_list[m:!ℕ](t:!ℝ^m) ⇒ [carg(t[i]) for i in [0..m)];
+
+def norm[N:!ℕ](v:!ℝ^N)qfree:!ℝ{
+    sum := 0;
+    for i in [0..N) {
+        sum += v[i]^2;
+    }
+    return sqrt(sum);
+}
+
+def normalize[N:!ℕ](v:!ℝ^N)lifted:!ℝ^N{
+    p := norm(v);
+	return [v[i] / p for i in [0..N)];
+}
+
+def prepare[n:!ℕ,N:!ℕ](qs:𝔹^n, const coef_:!ℝ^N, const ph:!ℝ^N) mfree : 𝔹^n {
+    assert(N = 2^n);
+    if norm(coef_) ≠ 0 {
+		coef := normalize(coef_);
+		if n == 1 {
+			qs[0] := rotY(2*acos(coef[0]), qs[0]);
+			if qs[0]=0 {phase(ph[0]);}
+			else {phase(ph[1]);}
+		}else{
+			mid := N div 2;
+			(coef0:_^mid)~coef1 := coef;
+			(ph0:_^mid)~ph1 := ph;
+			p0 := norm(coef0);
+			qs[n sub 1] := rotY(2 * acos(p0), qs[n sub 1]);
+			qs_lower~(qs_upper,) := qs;
+			if qs_upper == 0 {
+				qs_lower := prepare(qs_lower, coef0, ph0);
+			} else {
+				qs_lower := prepare(qs_lower, coef1, ph1);
+			}
+			qs := qs_lower~(qs_upper,);
+		}
+	}
+    return qs;
+}
+
+def select[l:!ℕ,n:!ℕ,L:!ℕ](const control:𝔹^l,qs:𝔹^n, index:(!ℕ^2)^L) mfree:𝔹^n{
+    for i in [0..L){
+        if i == (control as uint[l]){
+            for j in [0..n){
+                if (index[i][0] as !uint[n])[j]{qs[j]:=X(qs[j]);}
+                if (index[i][1] as !uint[n])[j]{qs[j]:=Z(qs[j]);}
+                if (index[i][0] as !uint[n])[j]&(index[i][1] as !uint[n])[j]{phase(π/2);}
+            }
+        }
+    }
+    return qs;
+}
+
+def pauli_LCU[m:!ℕ,n:!ℕ,N:!ℕ](anc:𝔹^m,qs:𝔹^n,index:(!ℕ^2)^N,coef:!ℝ^N) mfree:𝔹^m×𝔹^n{
+    assert(m==floor(log₂(N-1))+1); 
+    phase := phase_list(coef);
+    anc := prepare[m,2^m](anc,pad0[2^m](coef),pad0[2^m](phase));
+    qs := select[m,n,N](anc,qs,index);
+	prepare[m,2^m](anc,pad0[2^m](coef),vector(2^m,0)) := anc;
+    return (anc,qs);
+}

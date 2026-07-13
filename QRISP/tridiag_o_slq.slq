@@ -1,0 +1,33 @@
+import block_encodings.sparse_block;
+import primitives.multicontrol;
+import arithmetic.shift;
+
+def rotc[alpha:!ℝ](x:𝔹) mfree{return rotY(alpha,x);}
+
+def Oa[alpha:!ℝ,beta:!ℝ,gamma:!ℝ][n:!ℕ](anc:𝔹, const l:𝔹^2, const qs:𝔹^n) mfree{
+    theta0 := 2*acos(alpha-1);
+    theta1 := 2*acos(beta);
+    theta2 := 2*acos(gamma);
+    anc := mc(rotc[theta0])((!l[0],!l[1]),anc);
+    anc := mc(rotc[theta1])((l[0],!l[1]),anc);
+    anc := mc(rotc[theta2])((!l[0],l[1]),anc);
+    return anc;
+}
+
+def Oc[n:!ℕ](const l:𝔹^2, qs:𝔹^n) mfree{
+    qs := ([n:!N]⇒mc(lower_shift[n])[1])((l[0],),qs);
+    qs := ([n:!N]⇒mc(upper_shift[n])[1])((l[1],),qs);
+    return qs;
+}
+
+def cyclic_block[n:!ℕ](ancilla:𝔹^3,qs:𝔹^n, const alpha:!ℝ, const beta:!ℝ, const gamma:!ℝ){
+    return sparse_block[3,n](ancilla,qs,Oc[n],Oa[alpha,beta,gamma][n]);
+}
+
+def main(){
+    qs := 0:uint[3] as 𝔹^3;
+    def cyclic_amp[n:!ℕ](anc:𝔹^3,xs:𝔹^n){
+        return cyclic_block(anc,xs,0.5,-0.25,-0.25);
+    }
+    return cyclic_amp(0:uint[3] as 𝔹^3,qs);
+}

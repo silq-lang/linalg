@@ -1,0 +1,91 @@
+import arithmetic.AND_adder;
+
+def T(x:𝔹) mfree{
+    phase(π/8);
+    x := rotZ(π/4,x);
+    return x;
+}
+
+def S(x:𝔹) mfree{
+    phase(π/4);
+    x := rotZ(π/2,x);
+    return x;
+}
+
+def AND(const a:𝔹, const b:𝔹, prod:𝔹) mfree{
+    x := dup(a);
+    y := dup(b);
+    prod := T(H(prod));
+    prod := CNOT(x,prod);
+    prod := CNOT(y,prod);
+    x := CNOT(prod,x);
+    y := CNOT(prod,y);
+    T(x) := x;
+    T(y) := y;
+    prod := T(prod);
+    x := CNOT(prod,x);
+    y := CNOT(prod,y);
+    prod := S(H(prod));
+    forget(x=a);
+    forget(y=b);
+    return prod;
+}
+
+def AND_uncomp(a:𝔹,b:𝔹, prod:𝔹){
+    prod := H(prod);
+    p := measure(prod);
+    if p && a{
+        b := Z(b);
+    }
+    return (a,b);
+}
+
+def mod_one[n:!ℕ](qs:𝔹^n){
+    x := 0:uint[n sub 2] as 𝔹^(n sub 2);
+    x[0] := AND(qs[0],qs[1],x[0]);
+    for j in [0..n sub 3){
+        x[j+1] := AND(x[j],qs[j+2],x[j+1]);
+    }
+    qs[n sub 1] := CNOT(x[n sub 3],qs[n sub 1]);
+    for j in [0..n sub 3){
+        (x:𝔹^(n sub j sub 3))~(m:𝔹^1) := x coerce 𝔹^(n sub j sub 2); (m,) := m;
+        (x[n sub j sub 4],qs[n sub j sub 2]) := AND_uncomp(x[n sub j sub 4],qs[n sub j sub 2],m);
+        qs[n sub j sub 2] := CNOT(x[n sub j sub 4],qs[n sub j sub 2]);
+    }
+    (x,) := x;
+    (qs[0],qs[1]) := AND_uncomp(qs[0],qs[1],x);
+    qs[1] := CNOT(qs[0],qs[1]); qs[0] := X(qs[0]);
+    return qs;
+}
+
+def cont_phase[n:!ℕ](qs:𝔹^n,t:𝔹,δ:!ℝ):𝔹^n×𝔹{
+    if n=1{if qs[0]{phase(δ);}}
+    else{
+        xs := qs~(t,);
+        xs := mod_one[n+1](xs);
+        //xs := adder(1:uint[n+1] as 𝔹^(n+1),xs); 
+        for j in [0..n){
+            if xs[n sub j]{phase(-δ/(2^(j+1)));}
+        }
+        for j in [0..n+1){xs[j] := X(xs[j]);}
+        xs := mod_one[n+1](xs);
+        //xs := adder(1:uint[n+1] as 𝔹^(n+1),xs); 
+        for j in [0..n+1){xs[j] := X(xs[j]);}
+        for j in [0..n){
+            if xs[n sub j]{phase(δ/(2^(j+1)));}
+        }
+        if xs[0]{phase(δ/(2^n));}
+        (qs:𝔹^n)~(t:𝔹^1) := xs;
+        (t,) := t;
+    }
+    return (qs,t);
+}
+
+def main(){
+    qs := 0:uint[4] as 𝔹^4;
+    t := 1:𝔹;
+    for j in [0..4){qs[j] := H(qs[j]);}
+    return cont_phase(qs,t,π/2); 
+    //if qs=vector(4,1){if t{phase(π/2);}}
+    //return qs~(t,);
+}
