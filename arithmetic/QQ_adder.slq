@@ -10,26 +10,19 @@ def S(x:𝔹) mfree{
     return x;
 }
 
-def cnot(const x:𝔹, y:𝔹) mfree{
-    if x{
-        y := X(y);
-    }
-    return y;
-}
-
 def AND(const a:𝔹, const b:𝔹) mfree{
     x := dup(a);
     y := dup(b);
     prod := T(H(0));
-    prod := cnot(x,prod);
-    prod := cnot(y,prod);
-    x := cnot(prod,x);
-    y := cnot(prod,y);
+    prod := CNOT(x,prod);
+    prod := CNOT(y,prod);
+    x := CNOT(prod,x);
+    y := CNOT(prod,y);
     T(x) := x;
     T(y) := y;
     prod := T(prod);
-    x := cnot(prod,x);
-    y := cnot(prod,y);
+    x := CNOT(prod,x);
+    y := CNOT(prod,y);
     prod := S(H(prod));
     forget(x=a);
     forget(y=b);
@@ -46,35 +39,25 @@ def AND_uncomp(a:𝔹, b:𝔹, prod:𝔹){
 }
 
 def add_unit(c:𝔹,i:𝔹,t:𝔹) mfree{
-    i := cnot(c,i);
-    t := cnot(c,t);
+    i := CNOT(c,i);
+    t := CNOT(c,t);
     prod := AND(i,t);
-    prod := cnot(c,prod);
+    prod := CNOT(c,prod);
     return (c,i,t,prod);
 }
 
 def add_unit_uncomp(c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
-    prod := cnot(c,prod);
+    prod := CNOT(c,prod);
     (i,t) := AND_uncomp(i,t,prod);
-    i := cnot(c,i);
-    t := cnot(i,t);
+    i := CNOT(c,i);
     return(c,i,t);
 }
 
-def c_add_unit_uncomp(const cont:𝔹,c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
-    control := dup(cont);
-    prod := cnot(c,prod);
-    (i,t) := AND_uncomp(i,t,prod);
-    prod := AND(control,i);
-    t := cnot(prod,t);
-    (control,i) := AND_uncomp(control,i,prod);
-    i := cnot(c,i);
-    t := cnot(c,t);
-    forget(control=cont);
-    return (c,i,t);
-}
-
 def adder[n:!ℕ](const l:𝔹^n,t:𝔹^n){
+    if n=1{
+        t[0] := CNOT(l[0],t[0]);
+        return t;
+    }
     i := dup(l);
     c := 0:uint[n sub 1] as 𝔹^(n sub 1);
     prod := AND(i[0],t[0]);
@@ -85,8 +68,8 @@ def adder[n:!ℕ](const l:𝔹^n,t:𝔹^n){
         (c[k],prod) := (prod,c[k]);
         forget(prod=0);
     }
-    t[n sub 1] := cnot(c[n sub 2],t[n sub 1]);
-    t[n sub 1] := cnot(i[n sub 1],t[n sub 1]);
+    t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
+    t[n sub 1] := CNOT(i[n sub 1],t[n sub 1]);
     for k in [1..n sub 1){
         anc := 0:𝔹;
         (anc,c[n sub k sub 1]) := (c[n sub k sub 1],anc);
@@ -95,10 +78,23 @@ def adder[n:!ℕ](const l:𝔹^n,t:𝔹^n){
     anc := 0:𝔹;
     (c[0],anc) := (anc,c[0]);
     (i[0],t[0]) := AND_uncomp(i[0],t[0],anc);
-    t[0] := cnot(i[0],t[0]);
+    t[0] := CNOT(i[0],t[0]);
     forget(c=0:uint[n sub 1]);
     forget(i=l);
     return t;
+}
+
+def c_add_unit_uncomp(const cont:𝔹,c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
+    control := dup(cont);
+    prod := CNOT(c,prod);
+    (i,t) := AND_uncomp(i,t,prod);
+    prod := AND(control,i);
+    t := CNOT(prod,t);
+    (control,i) := AND_uncomp(control,i,prod);
+    i := CNOT(c,i);
+    t := CNOT(c,t);
+    forget(control=cont);
+    return (c,i,t);
 }
 
 def c_adder[n:!ℕ](const control:𝔹, const l:𝔹^n,t:𝔹^n){
@@ -113,8 +109,8 @@ def c_adder[n:!ℕ](const control:𝔹, const l:𝔹^n,t:𝔹^n){
         forget(prod=0);
     }
     if control{
-        t[n sub 1] := cnot(c[n sub 2],t[n sub 1]);
-        t[n sub 1] := cnot(i[n sub 1],t[n sub 1]);
+        t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
+        t[n sub 1] := CNOT(i[n sub 1],t[n sub 1]);
     }
     for k in [1..n sub 1){
         anc := 0:𝔹;
@@ -125,7 +121,7 @@ def c_adder[n:!ℕ](const control:𝔹, const l:𝔹^n,t:𝔹^n){
     (c[0],anc) := (anc,c[0]);
     (i[0],t[0]) := AND_uncomp(i[0],t[0],anc);
     if control{
-        t[0] := cnot(i[0],t[0]);
+        t[0] := CNOT(i[0],t[0]);
     }
     forget(c=0:uint[n sub 1]);
     forget(i=l);
