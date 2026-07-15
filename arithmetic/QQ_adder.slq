@@ -50,6 +50,7 @@ def add_unit_uncomp(c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
     prod := CNOT(c,prod);
     (i,t) := AND_uncomp(i,t,prod);
     i := CNOT(c,i);
+    t := CNOT(i,t);
     return(c,i,t);
 }
 
