@@ -10,10 +10,10 @@ def S(x:𝔹) mfree{
     return x;
 }
 
-def AND(const a:𝔹, const b:𝔹) mfree{
+def AND(const a:𝔹, const b:𝔹, prod:𝔹) mfree{
     x := dup(a);
     y := dup(b);
-    prod := T(H(0));
+    prod := T(H(prod));
     prod := CNOT(x,prod);
     prod := CNOT(y,prod);
     x := CNOT(prod,x);
@@ -29,6 +29,8 @@ def AND(const a:𝔹, const b:𝔹) mfree{
     return prod;
 }
 
+
+
 def AND_uncomp(a:𝔹, b:𝔹, prod:𝔹){
     prod := H(prod);
     p := measure(prod);
@@ -38,104 +40,189 @@ def AND_uncomp(a:𝔹, b:𝔹, prod:𝔹){
     return (a,b);
 }
 
-def add_unit(c:𝔹,i:𝔹,t:𝔹) mfree{
+def add_unit(const c:𝔹,i:𝔹,t:𝔹) mfree{
     i := CNOT(c,i);
     t := CNOT(c,t);
-    prod := AND(i,t);
+    prod := AND(i,t,0);
     prod := CNOT(c,prod);
-    return (c,i,t,prod);
+    return (i,t,prod);
 }
 
-def add_unit_uncomp(c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
+def add_unit_uncomp(const c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
     prod := CNOT(c,prod);
     (i,t) := AND_uncomp(i,t,prod);
     i := CNOT(c,i);
     t := CNOT(i,t);
-    return(c,i,t);
+    return(i,t);
 }
 
-def adder[n:!ℕ](const l:𝔹^n,t:𝔹^n){
+def adder_nocarry[n:!ℕ](const cin:𝔹,i:𝔹^n,t:𝔹^n){
     if n=1{
-        t[0] := CNOT(l[0],t[0]);
-        return t;
+        t[0] := CNOT(i[0],t[0]);
+        t[0] := CNOT(cin,t[0]);
+        return (i,t);
     }
-    i := dup(l);
     c := 0:uint[n sub 1] as 𝔹^(n sub 1);
-    prod := AND(i[0],t[0]);
+    (i[0],t[0],prod) := add_unit(cin,i[0],t[0]);
     (c[0],prod) := (prod,c[0]);
     forget(prod=0);
     for k in [1..n sub 1){
-        (c[k-1],i[k],t[k],prod) := add_unit(c[k-1],i[k],t[k]);
-        (c[k],prod) := (prod,c[k]);
-        forget(prod=0);
+        (i[k],t[k],prod) := add_unit(c[k-1],i[k],t[k]);
+        (c[k],prod) := (prod,c[k]); forget(prod=0);
     }
     t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
     t[n sub 1] := CNOT(i[n sub 1],t[n sub 1]);
     for k in [1..n sub 1){
         anc := 0:𝔹;
         (anc,c[n sub k sub 1]) := (c[n sub k sub 1],anc);
-        (c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1]) := add_unit_uncomp(c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1],anc);
+        (i[n sub k sub 1],t[n sub k sub 1]) := add_unit_uncomp(c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1],anc);
     }
-    anc := 0:𝔹;
-    (c[0],anc) := (anc,c[0]);
-    (i[0],t[0]) := AND_uncomp(i[0],t[0],anc);
-    t[0] := CNOT(i[0],t[0]);
+    anc := 0:𝔹; (c[0],anc) := (anc,c[0]);
+    (i[0],t[0]) := add_unit_uncomp(cin,i[0],t[0],anc);
     forget(c=0:uint[n sub 1]);
-    forget(i=l);
-    return t;
+    return (i,t);
 }
 
-def c_add_unit_uncomp(const cont:𝔹,c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
+def adder_carry[n:!ℕ](const cin:𝔹, i:𝔹^n, t:𝔹^(n+1)){
+    if n=1{
+        i[0] := CNOT(cin,i[0]); t[0] := CNOT(cin,t[0]);
+        t[1] := AND(i[0],t[0],t[1]); t[1] := CNOT(cin,t[1]);
+        i[0] := CNOT(cin,i[0]); t[0] := CNOT(i[0],t[0]);
+        return (i,t);
+    }else{
+        c := 0:uint[n sub 1] as 𝔹^(n sub 1);
+        (i[0],t[0],prod) := add_unit(cin,i[0],t[0]);
+        (c[0],prod) := (prod,c[0]); forget(prod=0);
+        for k in [1..n sub 1){
+            (i[k],t[k],prod) := add_unit(c[k sub 1],i[k],t[k]);
+            (c[k],prod) := (prod,c[k]); forget(prod=0);
+        }
+        i[n sub 1] := CNOT(c[n sub 2],i[n sub 1]); t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
+        t[n] := AND(i[n sub 1],t[n sub 1],t[n]); t[n] := CNOT(c[n sub 2],t[n]);
+        i[n sub 1] := CNOT(c[n sub 2],i[n sub 1]); t[n sub 1] := CNOT(i[n sub 1],t[n sub 1]);
+        for k in [1..n sub 1){
+            anc := 0:𝔹; (anc,c[n sub k sub 1]) := (c[n sub k sub 1],anc);
+            (i[n sub k sub 1],t[n sub k sub 1]) := add_unit_uncomp(c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1],anc);
+        }
+        anc := 0:𝔹; (anc,c[0]) := (c[0],anc);
+        (i[0],t[0]) := add_unit_uncomp(cin,i[0],t[0],anc);
+        forget(c=0:uint[n sub 1]);
+        return (i,t);
+    }
+}
+
+def subst[n:!ℕ](const cin:𝔹,i:𝔹^n,t:𝔹^n){
+    for j in [0..n){i[j] := X(i[j]);}
+    (i,t) := adder_nocarry(X(dup(cin)),i,t);
+    for j in [0..n){i[j] := X(i[j]);}
+    return (i,t);
+}
+
+def c_add_unit_uncomp(const cont:𝔹,const c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
     control := dup(cont);
     prod := CNOT(c,prod);
     (i,t) := AND_uncomp(i,t,prod);
-    prod := AND(control,i);
+    prod := AND(control,i,0);
     t := CNOT(prod,t);
     (control,i) := AND_uncomp(control,i,prod);
     i := CNOT(c,i);
     t := CNOT(c,t);
     forget(control=cont);
-    return (c,i,t);
+    return (i,t);
 }
 
-def c_adder[n:!ℕ](const control:𝔹, const l:𝔹^n,t:𝔹^n){
-    i := dup(l);
+def c_adder_nocarry[n:!ℕ](const control:𝔹,i:𝔹^n,t:𝔹^n){
     c := 0:uint[n sub 1] as 𝔹^(n sub 1);
-    prod := AND(i[0],t[0]);
-    (c[0],prod) := (prod,c[0]);
-    forget(prod=0);
+    prod := AND(i[0],t[0],0);
+    (c[0],prod) := (prod,c[0]);forget(prod=0);
     for k in [1..n sub 1){
-        (c[k-1],i[k],t[k],prod) := add_unit(c[k-1],i[k],t[k]);
-        (c[k],prod) := (prod,c[k]);
-        forget(prod=0);
+        (i[k],t[k],prod) := add_unit(c[k-1],i[k],t[k]);
+        (c[k],prod) := (prod,c[k]); forget(prod=0);
     }
     if control{
         t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
         t[n sub 1] := CNOT(i[n sub 1],t[n sub 1]);
     }
     for k in [1..n sub 1){
-        anc := 0:𝔹;
-        (anc,c[n sub k sub 1]) := (c[n sub k sub 1],anc);
-        (c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1]) := c_add_unit_uncomp(control,c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1],anc);
+        anc := 0:𝔹; (anc,c[n sub k sub 1]) := (c[n sub k sub 1],anc);
+        (i[n sub k sub 1],t[n sub k sub 1]) := c_add_unit_uncomp(control,c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1],anc);
     }
-    anc := 0:𝔹;
-    (c[0],anc) := (anc,c[0]);
+    anc := 0:𝔹; (c[0],anc) := (anc,c[0]);
     (i[0],t[0]) := AND_uncomp(i[0],t[0],anc);
-    if control{
-        t[0] := CNOT(i[0],t[0]);
-    }
+    if control{t[0] := CNOT(i[0],t[0]);}
     forget(c=0:uint[n sub 1]);
-    forget(i=l);
-    return t;
+    return (i,t);
+}
+
+def c_adder_carry[n:!ℕ](const control:𝔹,i:𝔹^n,t:𝔹^(n+1)){
+    if n=1{
+        prod := AND(i[0],t[0],0);
+        t[1] := AND(control,prod,t[1]);
+        (i[0],t[0]) := AND_uncomp(i[0],t[0],prod);
+        if control{t[0] := CNOT(i[0],t[0]);}
+        return (i,t);
+    }else{
+        c := 0:uint[n sub 1] as 𝔹^(n sub 1); prod := AND(i[0],t[0],0);
+        (c[0],prod) := (prod,c[0]); forget(prod=0);
+        for k in [1..n sub 1){
+            (i[k],t[k],prod) := add_unit(c[k sub 1],i[k],t[k]);
+            (c[k],prod) := (prod,c[k]); forget(prod=0);
+        }
+        i[n sub 1] := CNOT(c[n sub 2],i[n sub 1]); t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
+        prod := AND(i[n sub 1],t[n sub 1],0); prod := CNOT(c[n sub 2],prod);
+        t[n] := AND(control,prod,t[n]); prod := CNOT(c[n sub 2],prod);
+        (i[n sub 1],t[n sub 1]) := AND_uncomp(i[n sub 1],t[n sub 1],prod);
+        i[n sub 1] := CNOT(c[n sub 2],i[n sub 1]);
+        t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
+        if control{
+            t[n sub 1] := CNOT(c[n sub 2],t[n sub 1]);
+            t[n sub 1] := CNOT(i[n sub 1],t[n sub 1]);
+        }
+        for k in [1..n sub 1){
+            anc := 0:𝔹; (anc,c[n sub k sub 1]) := (c[n sub k sub 1],anc);
+            (i[n sub k sub 1],t[n sub k sub 1]) := c_add_unit_uncomp(control,c[n sub k sub 2],i[n sub k sub 1],t[n sub k sub 1],anc);
+        }
+        anc := 0:𝔹; (c[0],anc) := (anc,c[0]);
+        (i[0],t[0]) := AND_uncomp(i[0],t[0],anc);
+        if control{t[0] := CNOT(i[0],t[0]);}
+        forget(c=0:uint[n sub 1]);
+        return (i,t);
+    }
+}
+
+def c_add_sub_nocarry[n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n){
+    cin := 0:𝔹;
+    if !ctrl{
+        cin := X(cin);
+        for j in [0..n){a[j] := X(a[j]);}
+    }
+    (a,b) := adder_nocarry(cin,a,b);
+    if !ctrl{
+        cin := X(cin);
+        for j in [0..n){a[j] := X(a[j]);}
+    }
+    forget(cin=0);
+    return (a,b);
+}
+
+def c_add_sub_carry[n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^(n+1)){
+    cin := 0:𝔹;
+    if !ctrl{
+        cin := X(cin);
+        for j in [0..n){a[j] := X(a[j]);}
+    }
+    (a,b) := adder_carry(cin,a,b);
+    if !ctrl{
+        cin := X(cin);
+        for j in [0..n){a[j] := X(a[j]);}
+    }
+    forget(cin=0);
+    return (a,b);
 }
 
 def main(){
-    control := 0:𝔹;
-    x := 7:uint[5] as 𝔹^5;
-    y := 6:uint[5] as 𝔹^5;
-    return c_adder(control,x,y) as uint[5];
-    // For substraction, use two's complement representation
-    // x := 8:int[4] as 𝔹^4;
-    // y := -5:int[4] as 𝔹^4;
-    // return adder(x,y) as int[4];
+    control := 1:𝔹;
+    x := 2:uint[3] as 𝔹^3;
+    y := 3:uint[4] as 𝔹^4;
+    return c_add_sub_carry[3](control,x,y) coerce uint[3]×uint[4];
 }
