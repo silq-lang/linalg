@@ -74,18 +74,6 @@ def mult_modp[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
     return (x,y,garbage,underflow,z);
 }
 
-//def sub_window_product[n:!ℕ,w:!ℕ](const xw:𝔹^w,y:𝔹^n,r:𝔹^(n+w)){
- //   for j in [0..w){
-//        (r1:𝔹^(n+1))~(r2:𝔹^(w sub 1)) := r coerce 𝔹^((n+1)+(w sub 1));
-//        (y,r1) := c_sub_carry[n](xw[j],y,r1); r := r1~r2;
-//        (r1:𝔹^1)~(r2:𝔹^((n+w) sub 1)) := r coerce 𝔹^(1+((n+w) sub 1));
-//        r := r1~r2;
-//    }
-//    r := r coerce 𝔹^(n+w);
-//    (r1:𝔹^n)~(r2:𝔹^w) := r;
-//    return (y,r1~r2);
-//}
-
 def shift_left[N:!ℕ](a:𝔹^N){
     (body:𝔹^(N sub 1))~(zero:𝔹^1) := a coerce 𝔹^((N sub 1)+1);
     return zero~body coerce 𝔹^N;
