@@ -29,8 +29,6 @@ def AND(const a:𝔹, const b:𝔹, prod:𝔹) mfree{
     return prod;
 }
 
-
-
 def AND_uncomp(a:𝔹, b:𝔹, prod:𝔹){
     prod := H(prod);
     p := measure(prod);
@@ -218,6 +216,20 @@ def c_add_sub_carry[n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^(n+1)){
     }
     forget(cin=0);
     return (a,b);
+}
+
+def c_sub_nocarry[n:!ℕ](const control:𝔹,i:𝔹^n,t:𝔹^n){
+    for j in [0..n){t[j] := CNOT(control,t[j]);}
+    (i,t) := c_adder_nocarry[n](control,i,t);
+    for j in [0..n){t[j] := CNOT(control,t[j]);}
+    return (i,t);
+}
+
+def c_sub_carry[n:!ℕ](const control:𝔹,i:𝔹^n,t:𝔹^(n+1)){
+    for j in [0..n+1){t[j] := CNOT(control,t[j]);}
+    (i,t) := c_adder_carry[n](control,i,t);
+    for j in [0..n+1){t[j] := CNOT(control,t[j]);}
+    return (i,t);
 }
 
 def main(){
