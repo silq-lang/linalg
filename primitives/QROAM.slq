@@ -49,7 +49,7 @@ def negate_set[M:!ℕ](const f: !ℕ !→ lifted !𝔹^M)[k:!ℕ](m:!ℕ^k, d:!�
         l := (j - h*k) coerce !ℕ;
         for s in [0..k) {
             idx := h*k + perm(l, s);
-            assert(m[s]<d);
+            assert(idx<d);
             sum ⊕= bitwise_dotprod(m[s],f(idx) as !uint[M] as !ℕ);
         }
         if sum=1{S ~= [j];}
