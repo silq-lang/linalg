@@ -1,0 +1,153 @@
+import arithmetic.QQ_adder;
+import primitives.QROAM;
+import primitives.operators;
+
+def mult_mod2[n:!ℕ](x:𝔹^n,y:𝔹^n){
+    m := 0:uint[n+1] as 𝔹^(n+1);
+    (y,m) := c_add_sub_carry(x[0],y,m);
+    for j in [1..n){
+        (y:𝔹^(n + 1 sub j))~(exty:𝔹^(j sub 1)) := y;
+        (extm:𝔹^j)~(m:𝔹^(n sub j + 1)) := m;
+        m := m coerce 𝔹^(n + 1 sub j);
+        (y,m) := c_add_sub_nocarry[n + 1 sub j](x[j],y,m);
+        y := y~exty; m := extm~m;
+    }
+    ((x[0],),(m[n],)) := adder_nocarry(1,(x[0],),(m[n],));
+    ((y[0],),(m[n],)) := adder_nocarry(0,(y[0],),(m[n],));
+    (y~(0,),m) := subst(0,y~(0,),m); (0,)~(m:𝔹^n) := m;
+    return (x,y,m);
+}
+
+def modmult_addsub_block[n:!ℕ,w:!ℕ](xw:𝔹^w,y:𝔹^n,z:𝔹^n){
+    r := (0,)~z~(0:uint[w] as 𝔹^w);
+    for j in [0..w){
+        (r1:𝔹^(n+1))~(r2:𝔹^w) := r; 
+        (y,r1) := c_add_sub_carry[n](xw[j],y,r1);
+        r := r1~r2 coerce 𝔹^(1+(n+w)); 
+        (r1:𝔹^1)~(r2:𝔹^(n+w)) := r; r := r2~r1;
+    }
+    (r1:𝔹^(n+1))~(r2:𝔹^w) := r;
+    (r1:𝔹^n)~(r2:𝔹^(w+1)) := r2~r1 coerce 𝔹^(n+(w+1));
+    (xw,r2) := adder_nocarry[w+1](1,xw~(0,),r2);
+    (xw:𝔹^w)~(0,) := xw; r := r1~r2;
+    yc := 0:uint[n+w+1] as 𝔹^(n+w+1);
+    for k in [0..n){yc[k] := CNOT(y[k],yc[k]);} 
+    with yc[n+w] := X(yc[n+w]){(yc,r) := subst[n+w+1](0,yc,r);}
+    for k in [0..n){yc[k] := CNOT(y[k],yc[k]); yc[w+k] := CNOT(y[k],yc[w+k]);}
+    (yc,r) := adder_nocarry[n+w+1](0,yc,r);
+    for k in [0..n){yc[w+k] := CNOT(y[k],yc[w+k]);}
+    forget(yc=0:uint[n+w+1]);
+    (0,)~(result:𝔹^(n+w)) := r;
+    return (xw,y,result);
+}
+
+def modmult_addsub[n:!ℕ,w:!ℕ](const p:!ℕ,const pinv:!ℕ,xw:𝔹^w,y:𝔹^n,z:𝔹^n){
+    def lookup(c:!ℕ) lifted:!𝔹^(n+w){
+        m := 2^w; q := (m-((c*pinv)%m))%m;
+        return q*p as !uint[n+w] as !𝔹^(n+w);
+    }
+    (xw,y,result) := modmult_addsub_block[n,w](xw,y,z);
+    garb := 0:uint[w] as 𝔹^w;
+    for j in [0..w){garb[j] := CNOT(result[j],garb[j]);}
+    (garb,table_words) := qroam_comp[n+w](lookup)[w](garb,w);
+    (table_words[0],result) := adder_nocarry[n+w](0,table_words[0],result);
+    garb := qroam_uncomp[n+w](lookup)[w,w](garb,table_words,2^w);
+    (0:uint[w] as 𝔹^w)~(z_next:𝔹^n) := result coerce 𝔹^(w+n);
+    return (xw,y,garb,z_next);
+}
+
+def mult_modp[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
+    pinv := qint_modinv_u[w]((p % 2^w) as !uint[w]) as !ℕ;
+    windows := n div w; z := 0:uint[n] as 𝔹^n; garbage := dup(z);
+    for step in [0..windows){
+        (xw:𝔹^w)~(xr:𝔹^(n sub w)) := x;
+        (xw,y,garbw,z) := modmult_addsub[n,w](p,pinv,xw,y,z);
+        (0:uint[w] as 𝔹^w)~(garbage:𝔹^(n sub w)) := garbage;
+        garbage := garbage~garbw; x := xr~xw;
+    }
+    pb := p as uint[n] as 𝔹^n;
+    (pb,z) := subst[n+1](0,pb~(0,),z~(0,));
+    (z:𝔹^n)~(underflow:𝔹^1) := z;
+    (pb:𝔹^n)~(0,) := pb;
+    (pb,z) := c_adder_nocarry[n](underflow[0],pb,z);
+    forget(pb=p as uint[n]);
+    return (x,y,garbage,underflow,z);
+}
+
+//def sub_window_product[n:!ℕ,w:!ℕ](const xw:𝔹^w,y:𝔹^n,r:𝔹^(n+w)){
+ //   for j in [0..w){
+//        (r1:𝔹^(n+1))~(r2:𝔹^(w sub 1)) := r coerce 𝔹^((n+1)+(w sub 1));
+//        (y,r1) := c_sub_carry[n](xw[j],y,r1); r := r1~r2;
+//        (r1:𝔹^1)~(r2:𝔹^((n+w) sub 1)) := r coerce 𝔹^(1+((n+w) sub 1));
+//        r := r1~r2;
+//    }
+//    r := r coerce 𝔹^(n+w);
+//    (r1:𝔹^n)~(r2:𝔹^w) := r;
+//    return (y,r1~r2);
+//}
+
+def shift_left[N:!ℕ](a:𝔹^N){
+    (body:𝔹^(N sub 1))~(zero:𝔹^1) := a coerce 𝔹^((N sub 1)+1);
+    return zero~body coerce 𝔹^N;
+}
+
+def sub_window_product[n:!ℕ,w:!ℕ](const xw:𝔹^w,y:𝔹^n,r:𝔹^(n+w)){
+    y := y~(0:uint[w] as 𝔹^w);
+    for j in [0..w){
+        (y,r) := c_sub_nocarry[n+w](xw[j],y,r);
+        y := shift_left[n+w](y);
+    }
+    (0:uint[w] as 𝔹^w)~(y:𝔹^n) := y coerce 𝔹^(w+n);
+    return (y,r);
+}
+
+def undo_modmult_addsub[n:!ℕ,w:!ℕ](const p:!ℕ,const pinv:!ℕ,xw:𝔹^w,y:𝔹^n,garbw:𝔹^w,z:𝔹^n){
+    def lookup(c:!ℕ) lifted:!𝔹^(n+w){
+        m := 2^w; q := (m-((c*pinv)%m))%m;
+        return q*p as !uint[n+w] as !𝔹^(n+w);
+    }
+    corrected := (0:uint[w] as 𝔹^w)~z coerce 𝔹^(n+w);
+    (garbw,table_words) := qroam_comp[n+w](lookup)[w](garbw,1);
+    (table_words[0],corrected) := subst[n+w](0,table_words[0],corrected);
+    garbw := qroam_uncomp[n+w](lookup)[w,1](garbw,table_words,2^w);
+    (corrected_low:𝔹^w)~(corrected_high:𝔹^n) := corrected coerce 𝔹^(w+n);
+    for j in [0..w){garbw[j] := CNOT(corrected_low[j],garbw[j]);}
+    corrected := corrected_low~corrected_high coerce 𝔹^(n+w);
+    (y,corrected) := sub_window_product[n,w](xw,y,corrected);
+    (zold:𝔹^n)~(0:uint[2*w] as 𝔹^(2*w)) := corrected~garbw coerce 𝔹^(n+(2*w));
+    return (xw,y,zold);
+}
+
+def mult_modp_clean[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
+    assert(n%w == 0);
+    pinv := qint_modinv_u[w]((p%2^w) as !uint[w]) as !ℕ;
+    windows := n div w;
+    (x,y,garbage,underflow,z) := mult_modp[n,w](p,x,y);
+    result := 0:uint[n] as 𝔹^n;
+    for j in [0..n){result[j] := CNOT(z[j],result[j]);}
+    pb := p as uint[n] as 𝔹^n;
+    (pb,z) := c_sub_nocarry[n](underflow[0],pb,z);
+    (pb~(0,),zext) := adder_nocarry[n+1](0,pb~(0,),z~underflow);
+    (z:𝔹^n)~(0,) := zext;
+    pbits := p as !uint[n];
+    for j in [0..n){if pbits[j]{pb[j] := X(pb[j]);}}
+    forget(pb=0:uint[n] as 𝔹^n);
+    for step in [0..windows){
+        (xr:𝔹^(n sub w))~(xw:𝔹^w) := x;
+        (garb_rest:𝔹^(n sub w))~(garbw:𝔹^w) := garbage;
+        (xw,y,z) := undo_modmult_addsub[n,w](p,pinv,xw,y,garbw,z);
+        garbage := (0:uint[w] as 𝔹^w)~garb_rest; x := xw~xr;
+    }
+    forget(garbage~z=0:uint[2*n] as 𝔹^(2*n));
+    return (x,y,result);
+}
+
+def main(){
+    //control := H(0:𝔹);
+    //x := 4:uint[5] as 𝔹^5;
+    //y := 3:uint[5] as 𝔹^5;
+    //return mult_mod2(x,y) as uint[5]×uint[5]×uint[5];
+    x := 9:uint[4] as 𝔹^4;
+    y := 7:uint[4] as 𝔹^4;
+    return mult_modp_clean[4,2](13,x,y) as uint[4]×uint[4]×uint[4];
+}
