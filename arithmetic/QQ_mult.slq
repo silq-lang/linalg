@@ -58,8 +58,8 @@ def modmult_addsub[n:!ℕ,w:!ℕ](const p:!ℕ,const pinv:!ℕ,xw:𝔹^w,y:𝔹^
 
 def mult_modp[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
     pinv := qint_modinv_u[w]((p % 2^w) as !uint[w]) as !ℕ;
-    windows := n div w; z := 0:uint[n] as 𝔹^n; garbage := dup(z);
-    for step in [0..windows){
+    z := 0:uint[n] as 𝔹^n; garbage := dup(z);
+    for step in [0..n div w){
         (xw:𝔹^w)~(xr:𝔹^(n sub w)) := x;
         (xw,y,garbw,z) := modmult_addsub[n,w](p,pinv,xw,y,z);
         (0:uint[w] as 𝔹^w)~(garbage:𝔹^(n sub w)) := garbage;
@@ -94,22 +94,21 @@ def undo_modmult_addsub[n:!ℕ,w:!ℕ](const p:!ℕ,const pinv:!ℕ,xw:𝔹^w,y:
         m := 2^w; q := (m-((c*pinv)%m))%m;
         return q*p as !uint[n+w] as !𝔹^(n+w);
     }
-    corrected := (0:uint[w] as 𝔹^w)~z coerce 𝔹^(n+w);
-    (garbw,table_words) := qroam_comp[n+w](lookup)[w](garbw,1);
+    corrected :=((0:uint[w] as 𝔹^w)~z) coerce 𝔹^(n+w);
+    (garbw,table_words) := qroam_comp[n+w](lookup)[w](garbw,2);
     (table_words[0],corrected) := subst[n+w](0,table_words[0],corrected);
-    garbw := qroam_uncomp[n+w](lookup)[w,1](garbw,table_words,2^w);
+    garbw := qroam_uncomp[n+w](lookup)[w,2](garbw,table_words,2^w);
     (corrected_low:𝔹^w)~(corrected_high:𝔹^n) := corrected coerce 𝔹^(w+n);
     for j in [0..w){garbw[j] := CNOT(corrected_low[j],garbw[j]);}
-    corrected := corrected_low~corrected_high coerce 𝔹^(n+w);
+    corrected := (corrected_low~corrected_high) coerce 𝔹^(n+w);
     (y,corrected) := sub_window_product[n,w](xw,y,corrected);
-    (zold:𝔹^n)~(0:uint[2*w] as 𝔹^(2*w)) := corrected~garbw coerce 𝔹^(n+(2*w));
+    (zold:𝔹^n)~(0:uint[2*w] as 𝔹^(2*w)) := (corrected~garbw) coerce 𝔹^(n+(2*w));
     return (xw,y,zold);
 }
 
 def mult_modp_clean[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
     assert(n%w == 0);
     pinv := qint_modinv_u[w]((p%2^w) as !uint[w]) as !ℕ;
-    windows := n div w;
     (x,y,garbage,underflow,z) := mult_modp[n,w](p,x,y);
     result := 0:uint[n] as 𝔹^n;
     for j in [0..n){result[j] := CNOT(z[j],result[j]);}
@@ -120,7 +119,7 @@ def mult_modp_clean[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
     pbits := p as !uint[n];
     for j in [0..n){if pbits[j]{pb[j] := X(pb[j]);}}
     forget(pb=0:uint[n] as 𝔹^n);
-    for step in [0..windows){
+    for step in [0..n div w){
         (xr:𝔹^(n sub w))~(xw:𝔹^w) := x;
         (garb_rest:𝔹^(n sub w))~(garbw:𝔹^w) := garbage;
         (xw,y,z) := undo_modmult_addsub[n,w](p,pinv,xw,y,garbw,z);
