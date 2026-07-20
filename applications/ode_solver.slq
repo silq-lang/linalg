@@ -1,38 +1,45 @@
+import arithmetic.shift;
 import GQSVT.func_approx;
 import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
-import GQSVT.hamiltonian_simulation;
 import block_encodings.symtwobytwo;
 
-def non_homogeneous_term[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+1),qs:𝔹^n,t:!ℝ,α:!ℝ,ϵ:!ℝ) mfree{
-    e := 2.71828182845904523536;
-    ϵ /= 4;
-    d := ceil(0.5*(e*α*abs(t)/2+(log(4/5/ϵ))/log(e+2*log(4/5/ϵ)/e/abs(t)/α))) coerce !ℕ;
-    p := expm1ox(d,α*t);
-    for j in [0..2*d){p[j] = (1i/α)*p[j]/1.75;}
-    q := complement[2*d sub 1 coerce !ℕ](p,1e-8);
-    assert(is_complement[num_samples(2*d sub 1 coerce !ℕ,1e-8)][2*d sub 1 coerce !ℕ](p,q,1e-8));
-	angles:=gqsp_compute_angles[2*d sub 1 coerce !ℕ](p,q);
-    θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    (anc,qs) := gqet[0][2*d sub 1 coerce !ℕ](θs,φs,λ)(f)(anc,qs);
-    phase(α*t);
-    return (anc,qs);
+e := 2.71828182845904523536;
+
+def QET[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(d+m+1),qs:𝔹^n)mfree:𝔹^(d+m+1)×𝔹^n{
+    def regularized_f(ancilla:𝔹^(d+m),xs:𝔹^n) mfree:𝔹^(d+m)×𝔹^n{
+        (anc_d:𝔹^d)~(anc_m:𝔹^m) := ancilla;
+        anc_d := lower_shift(anc_d); (anc_m,xs) := f(anc_m,xs);
+        if anc_m=vector(m,0){anc_d := upper_shift(anc_d);}
+        return (anc_d~anc_m,xs);
+    }
+    return gqsp[k][d](θs,φs,λ)(regularized_f)(anc,qs);
 }
 
-def ODE_solver[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g_x0:𝔹^n → mfree 𝔹^n,const g_b:𝔹^n → mfree 𝔹^n,anc:𝔹^(m+1+m+1+1),qs:𝔹^n,t:!ℝ,α:!ℝ,ϵ:!ℝ) mfree{
-    (anc_x0:𝔹^(m+1))~(anc_b:𝔹^(m+1))~(flag:𝔹^1) := anc;
-    flag[0] := H(flag[0]);
-    if !flag[0]{qs := g_x0(qs);}
-    if flag[0]{qs := g_b(qs);}
-    if !flag[0]{(anc_x0,qs) := time_evolution[n,m](f,anc_x0,qs,t,α,ϵ);}
-    if flag[0]{(anc_b,qs) := non_homogeneous_term[n,m](f,anc_b,qs,t,α,ϵ);}
-    flag[0] := H(flag[0]);
-    return (anc_x0~anc_b~flag,qs);
+def degree(t:!ℝ,α:!ℝ,ϵ:!ℝ) lifted:!ℕ{return ceil(0.5*(e*α*abs(t)/2+(log(4/5/ϵ))/log(e+2*log(4/5/ϵ)/e/abs(t)/α))) coerce !ℕ;}
+
+def factorial(n:!ℕ){result := 1:!ℕ; for j in [1..n+1){result *= j;} return result;}
+
+def exp(n:!ℕ,α:!ℝ,t:!ℝ) ⇒ [((-1i*t*α)^k) / factorial(k) for k in [0..n+1)];
+
+def exp_inv(n:!ℕ, α:!ℝ, t:!ℝ) ⇒ [t * ((-1i * α * t)^k) / factorial(k + 1) for k in [0..n+1)];
+
+def ode_solver[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const U0:𝔹^n → mfree 𝔹^n,const Ub:𝔹^n → mfree 𝔹^n)(t:!ℝ,α:!ℝ,ϵ:!ℝ) mfree{
+    d := 2*degree(t,α,ϵ); C := 1.1*e^(t*α); qs := 0:uint[n] as 𝔹^n;
+    p1 := exp(d,α,t); p2 := exp_inv(d,α,t); for j in [0..d+1){p1[j] /= C; p2[j] /= C;}
+    q1 := complement[d](p1,1e-8); assert(is_complement[num_samples(d,1e-8)][d](p1,q1,1e-8));
+    q2 := complement[d](p2,1e-8); assert(is_complement[num_samples(d,1e-8)][d](p2,q2,1e-8));
+	(θ1,φ1,λ1):=gqsp_compute_angles[d](p1,q1); (θ2,φ2,λ2):=gqsp_compute_angles[d](p2,q2);
+    anc := 0:uint[d+m+1] as 𝔹^(d+m+1); flag := H(0);
+    if !flag{qs := U0(qs);}else{qs := Ub(qs);}
+    if !flag{(anc,qs) := QET[0](θ1,φ1,λ1)(f)(anc,qs);}else{(anc,qs) := QET[0](θ2,φ2,λ2)(f)(anc,qs);}
+    flag := H(flag); anc := anc coerce 𝔹^(1+m+2*ceil(0.5*(e*α*abs(t)/2+(log(4/5/ϵ))/log(e+2*log(4/5/ϵ)/e/abs(t)/α))) coerce !ℕ);
+    return ((flag,)~anc,qs);
 }
 
 def main(){
-    def twosym(anc:𝔹^3,xs:𝔹^1) mfree{
-        return twosym_herm(anc,xs,1/4,-1);
+    def twosym(anc:𝔹^2,xs:𝔹^1) mfree{
+        return twosym_block(anc,xs,1/4,-1);
     }
     def g_x0(xs:𝔹^1) mfree{
         xs[0] := X(xs[0]);
@@ -42,7 +49,5 @@ def main(){
         xs[0] := H(xs[0]);
         return xs;
     }
-    qs := 0:uint[1] as 𝔹^1;
-    (anc,qs) := ODE_solver[1,3](twosym,g_x0,g_b,0:uint[9] as 𝔹^9,qs,π/16,2,4e-4);
-    return (anc,qs);
+    return ode_solver[1,2](twosym,g_x0,g_b)(π/16,2,1e-5);
 }
