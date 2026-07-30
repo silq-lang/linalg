@@ -1,0 +1,40 @@
+import arithmetic.QQ_adder;
+
+def cp[ϕ:!ℝ](x:𝔹) mfree:𝔹{phase(ϕ/2);x := rotZ(ϕ,x);return x;}
+
+def mod_one[n:!ℕ](qs:𝔹^n){
+    x := 0:uint[n sub 2] as 𝔹^(n sub 2);
+    x[0] := AND(qs[0],qs[1],x[0]);
+    for j in [0..n sub 3){x[j+1] := AND(x[j],qs[j+2],x[j+1]);}
+    qs[n sub 1] := CNOT(x[n sub 3],qs[n sub 1]);
+    for j in [0..n sub 3){
+        (x:𝔹^(n sub j sub 3))~(m:𝔹^1) := x coerce 𝔹^(n sub j sub 2); (m,) := m;
+        (x[n sub j sub 4],qs[n sub j sub 2]) := AND_uncomp(x[n sub j sub 4],qs[n sub j sub 2],m);
+        qs[n sub j sub 2] := CNOT(x[n sub j sub 4],qs[n sub j sub 2]);
+    }
+    (x,) := x; (qs[0],qs[1]) := AND_uncomp(qs[0],qs[1],x);
+    qs[1] := CNOT(qs[0],qs[1]); qs[0] := X(qs[0]);
+    return qs;
+}
+
+def mcp[n:!ℕ](xs:𝔹^(n+1),δ:!ℝ):𝔹^(n+1){
+    if n=0{xs[0] := cp[δ](xs[0]); return xs;}
+    else{
+        xs := mod_one[n+1](xs);
+        for j in [0..n){xs[n sub j] := cp[-δ/(2^(j+1))](xs[n sub j]);}
+        for j in [0..n+1){xs[j] := X(xs[j]);}
+        xs := mod_one[n+1](xs);
+        for j in [0..n+1){xs[j] := X(xs[j]);}
+        for j in [0..n){xs[n sub j] := cp[δ/(2^(j+1))](xs[n sub j]);}
+        xs[0] := cp[δ/(2^n)](xs[0]);
+        return xs;
+    }
+}
+
+def main(){
+    qs := 0:uint[4] as 𝔹^4;
+    for j in [0..4){qs[j] := H(qs[j]);}
+    return mcp[3](qs,π/2); 
+    //if qs=vector(4,1){phase(π/2);}
+    return qs;
+}

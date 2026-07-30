@@ -1,0 +1,171 @@
+def T(x:𝔹) mfree:𝔹{phase(π/8); x := rotZ(π/4,x); return x;}
+def sqrtT(x:𝔹) mfree:𝔹{phase(π/16); x := rotZ(π/8,x);return x;}
+
+def toffoli(const x:𝔹, const y:𝔹,z:𝔹){
+    if x&y{z := X(z);}
+    return z;
+}
+
+def ccx_relative(const a:𝔹, const b:𝔹, t:𝔹) mfree:𝔹{
+    with{t := T(H(t)); t := CNOT(a,t); T(t) := t;}do{t := CNOT(b,t);}
+    return t;
+}
+
+def c3x_relative(const a:𝔹,const b:𝔹,const c:𝔹,t:𝔹) mfree:𝔹{
+    with{t := T(H(t)); t := CNOT(c,t); t := H(reverse(T)(t));}do{
+        t := CNOT(a,t); with t := T(t) do{
+            with t := CNOT(b,t) do{with T(t) := t{t := CNOT(a,t);}}
+        }
+    }
+    return t;
+}
+
+def c3x_exact(a:𝔹,b:𝔹,c:𝔹,t:𝔹) mfree:𝔹×𝔹×𝔹×𝔹{
+    t := H(t); a := sqrtT(a); b := sqrtT(b); c := sqrtT(c); t := sqrtT(t);
+    b := CNOT(a,b); sqrtT(b) := b; b := CNOT(a,b);
+    c := CNOT(b,c); sqrtT(c) := c; c := CNOT(a,c); c := sqrtT(c); c := CNOT(b,c);
+    sqrtT(c) := c; c := CNOT(a,c);
+    t := CNOT(c,t); sqrtT(t) := t; t := CNOT(b,t); t := sqrtT(t); t := CNOT(c,t);
+    sqrtT(t) := t; t:=CNOT(a,t); t:=sqrtT(t); t:=CNOT(c,t); sqrtT(t) := t; t := CNOT(b,t);
+    t := sqrtT(t); t := CNOT(c,t); sqrtT(t) := t; t := CNOT(a,t); t := H(t);
+    return (a,b,c,t);
+}
+
+def dirty_and[n:!ℕ](ctrl:𝔹^n, t:!ℕ, x:!ℕ, y:!ℕ, flip:!𝔹, inverse:!𝔹) mfree:𝔹^n{
+    a := dup(ctrl[x]); b := dup(ctrl[y]);
+    if inverse{
+        ctrl[t] := ccx_relative(a,b,ctrl[t]);
+        if flip{ctrl[t] := X(ctrl[t]);}
+    }else{
+        if flip{ctrl[t] := X(ctrl[t]);}
+        ctrl[t] := ccx_relative(a,b,ctrl[t]);
+    }
+    forget(a=dup(ctrl[x]));forget(b=dup(ctrl[y]));
+    return ctrl;
+}
+
+def tree(const targets:!ℕ[],leaves:!ℕ[],t0:!ℕ,l0:!ℕ,leaf_count:!ℕ,ts:!ℕ[],xs:!ℕ[],ys:!ℕ[],pos:!ℕ):!ℕ[]×!ℕ[]×!ℕ[]×!ℕ{
+    if leaf_count<=1{return (ts,xs,ys,pos);}
+    left_count:=(leaf_count+1) div 2;right_count:=leaf_count sub left_count;
+    left_root:=leaves[l0];right_t0:=t0+left_count;right_l0:=l0+left_count;right_root:=leaves[right_l0];
+    if left_count>1{left_root=targets[t0+1];}
+    if right_count>1{right_root=targets[right_t0];}
+    (ts,xs,ys,pos):=tree(targets,leaves,t0+1,l0,left_count,ts,xs,ys,pos);
+    (ts,xs,ys,pos):=tree(targets,leaves,right_t0,right_l0,right_count,ts,xs,ys,pos);
+    ts[pos]=targets[t0]-1;xs[pos]=left_root-1;ys[pos]=right_root-1;pos+=1;
+    return (ts coerce !ℕ[],xs coerce !ℕ[],ys coerce !ℕ[],pos);
+}
+
+def schedule2[n:!ℕ]:!ℕ[]×!ℕ[]×!ℕ[]×!ℕ[]{
+    l:=floor(log₂(n)) coerce !ℕ;count:=n sub l sub 2;
+    ts := array(count,0:!ℕ); xs := dup(ts); ys := dup(ts);
+    marked := array(n+1,false);marked[1]=true;marked[2]=true;
+    remain := count; start := 1; block := 2; next := 0;
+    while remain>0{
+        full := remain>block; r := remain; target_start := start + block - r;
+        if full{r=block;target_start=start;}
+        targets := array(r coerce !ℕ,0:!ℕ); leaves := array(r+1 coerce !ℕ,0:!ℕ);
+        for j in [0..r){targets[j]=target_start+j;}
+        if full{for j in [0..r+1){leaves[j]=start+block+j;}
+        }else{
+            q := n; for j in [0..r+1){
+                while marked[q]{q sub= 1;}
+                leaves[r sub j]=q;q sub= 1;
+            }
+        }
+        (ts,xs,ys,next) := tree(targets coerce !ℕ[],leaves,0,0,r+1 coerce !ℕ,ts,xs,ys,next);
+        marked[targets[0]]=false;
+        for j in [1..r){marked[targets[j]]=true;}
+        for j in [0..r+1){marked[leaves[j]]=true;}
+        if full{remain-=block;start+=1;block*=2;}else{remain=0;}
+    }
+    indices:=array(l,0:!ℕ);k:=0;
+    for q in [1..n+1){if !marked[q]{indices[k]=q-1;k+=1;}}
+    return (ts,xs,ys,indices coerce !ℕ[]);
+}
+
+def apply2[n:!ℕ](ctrl:𝔹^n,ts:!ℕ[],xs:!ℕ[],ys:!ℕ[],count:!ℕ,inverse:!𝔹)mfree:𝔹^n{
+    for i in [0..count){
+        j := i; if inverse{j=count sub i sub 1;}
+        ctrl := dirty_and[n](ctrl,ts[j],xs[j],ys[j],true,inverse);
+    }
+    return ctrl;
+}
+
+def schedule3(l:!ℕ):!ℕ[]×!ℕ[]×!ℕ[]×!ℕ×!ℕ{
+    ts := array(l sub 2,0:!ℕ); xs := dup(ts); ys := dup(ts);
+    if l<=2{return (ts,xs,ys,1,2);}
+    next := 0;
+    for k in [0..l div 2){
+        x := 2*k+1; y := x+1; t := x sub 1; if k=0{t=0;}
+        ts[next]=t;xs[next]=x;ys[next]=y; next += 1;
+    }
+    count := l sub 2 sub (l div 2); r := l;
+    if l%2==0{r=2*((l div 2) sub 1);}
+    for k in [0..count){
+        x := 2*(count sub k);ts[next]=x sub 1;xs[next]=x;ys[next]=r;r=x sub 1; next += 1;
+    }
+    return (ts coerce !ℕ[],xs,ys coerce !ℕ[],0,r coerce !ℕ);
+}
+
+def aggregate[n:!ℕ](indices:!ℕ[],i:!ℕ):!ℕ{
+    if i==0{return n sub 1;}
+    return indices[i-1];
+}
+
+def apply3[n:!ℕ](ctrl:𝔹^n, indices:!ℕ[], ts:!ℕ[], xs:!ℕ[], ys:!ℕ[], count:!ℕ, inverse:!𝔹) mfree:𝔹^n{
+    if count>0{if !inverse{ctrl[n-1]:=X(ctrl[n-1]);}}
+    for i in [0..count){
+        j := i; if inverse{j=count sub i sub 1;}
+        t := aggregate[n](indices,ts[j]);
+        x := aggregate[n](indices,xs[j]);
+        y := aggregate[n](indices,ys[j]);
+        ctrl := dirty_and[n](ctrl,t,x,y,ts[j]!=0,inverse);
+    } 
+    if count>0{if inverse{ctrl[n-1] := X(ctrl[n-1]);}}
+    return ctrl;
+}
+
+def mcx[n:!ℕ](ctrl:𝔹^n,target:𝔹)mfree:𝔹^n×𝔹{
+    if n=0{target := X(target); return (ctrl,target);}
+    if n=1{temp := dup(ctrl[0]);target := CNOT(dup(ctrl[0]),target);forget(temp=ctrl[0]);return (ctrl,target);}
+    if n=2{
+        temp1 := dup(ctrl[0]); temp2 := dup(ctrl[1]); 
+        target := toffoli(temp1,temp2,target);
+        forget(temp1=ctrl[0]); forget(temp2=ctrl[1]); 
+        return (ctrl,target);
+    }
+    if n=3{
+        (a:𝔹^1)~(b:𝔹^1)~(c:𝔹^1) := ctrl coerce 𝔹^3;
+        (a,) := a; (b,) := b; (c,) := c;
+        (ctrl:𝔹^n)~(target:𝔹^1) := c3x_exact(a,b,c,target) coerce 𝔹^(n+1);
+        (target,) := target;
+        return (ctrl,target);
+    }
+    else{
+        l := floor(log₂(n)) coerce !ℕ; 
+        count2 := n sub l sub 2; count3 := l sub 2;
+        anc := c3x_relative(ctrl[0],ctrl[1],ctrl[n-1],0:𝔹);
+        (t2,x2,y2,indices) := schedule2[n];
+        ctrl := apply2[n](ctrl,t2,x2,y2,count2,false);
+        (t3,x3,y3,a,b) := schedule3(l);
+        ctrl := apply3[n](ctrl,indices,t3,x3,y3,count3,false);
+        ai := aggregate[n](indices,a); bi := aggregate[n](indices,b);
+        temp1 := dup(ctrl[ai]); temp2 := dup(ctrl[bi]);
+        (anc,temp1,temp2,target) := c3x_exact(anc,temp1,temp2,target);
+        forget(temp1=ctrl[ai]); forget(temp2=ctrl[bi]);
+        ctrl := apply3[n](ctrl,indices,t3,x3,y3,count3,true);
+        ctrl := apply2[n](ctrl,t2,x2,y2,count2,true);
+        anc := reverse(c3x_relative)(ctrl[0],ctrl[1],ctrl[n-1],anc);forget(anc=0);
+        return (ctrl,target);
+    }
+}
+
+def main(){
+    ctrl:=0:uint[12] as 𝔹^12;
+    for j in [0..12){ctrl[j]:=H(ctrl[j]);}
+    target:=0:𝔹;
+    return mcx(ctrl,target) as uint[12]×𝔹;
+    //if ctrl=vector(12,1){target := X(target);}
+    //return (ctrl,target);
+}

@@ -1,0 +1,72 @@
+import opt.mcrot;
+
+def cp[ϕ:!ℝ](x:𝔹) mfree:𝔹{phase(ϕ/2);x := rotZ(ϕ,x);return x;}
+
+def column_rx[n:!ℕ,m:!ℕ](ctrl:𝔹^n,target:𝔹^m) mfree{
+    θs := [π/(2^j) for j in [0..m)];
+    (ctrl,target) := multi_mcrot[n div 2][n,m](ctrl,target,θs,vector(m,0:!ℕ));
+    return (ctrl,target);
+}
+
+def inv_column_rx[n:!ℕ,m:!ℕ](ctrl:𝔹^n,target:𝔹^m) mfree{
+    θs := [-π/(2^j) for j in [0..m)];
+    (ctrl,target) := multi_mcrot[n div 2][n,m](ctrl,target,θs,vector(m,0:!ℕ));
+    return (ctrl,target);
+}
+
+def outer_column_rx[n:!ℕ,m:!ℕ](ctrl:𝔹^n,target:𝔹^m) mfree{
+    θs := [π/(2^(j+1)) for j in [0..m)];
+    (ctrl,target) := multi_mcrot[1][n,m](ctrl,target,θs,vector(m,0:!ℕ));
+    return (ctrl,target);
+}
+
+def inv_outer_column_rx[n:!ℕ,m:!ℕ](ctrl:𝔹^n,target:𝔹^m) mfree{
+    θs := [-π/(2^(j+1)) for j in [0..m)];
+    (ctrl,target) := multi_mcrot[1][n,m](ctrl,target,θs,vector(m,0:!ℕ));
+    return (ctrl,target);
+}
+
+def mcp[n:!ℕ](qs:𝔹^(n+1),ϕ:!ℝ,ϵ:!ℝ) mfree{
+    assert(n>=5);
+    θ := abs(ϕ); δ := acos(1-(ϵ^2)/2);
+    if θ<=δ{nb := 2;}
+    else{nb := (1+ceil(log(θ/δ)/log(2))) coerce !ℕ;}
+    (e:𝔹^(n sub nb + 1))~(b:𝔹^(nb sub 1))~(t:𝔹^1) :=qs coerce 𝔹^((((n sub nb)+1)+(nb sub 1))+1);
+    (t,) := t; if b[nb sub 2]{t := cp[ϕ/2](t);}
+    for j in [1..nb sub 1){
+        (ext:𝔹^(nb sub 2 sub j))~(ctrl:𝔹^1)~(target:𝔹^j) := b coerce 𝔹^((((nb sub 2) sub j)+1)+j);
+        (ctrl,target) := outer_column_rx(ctrl,target);
+        if ctrl[0]{t := cp[ϕ/(2^(j+1))](t);}
+        b := ext~ctrl~target;
+    }
+    (e,b) := column_rx(e,b coerce 𝔹^(nb sub 1));
+    for j in [0..nb sub 2){
+        (ext:𝔹^j)~(ctrl:𝔹^1)~(target:𝔹^(nb sub j sub 2)) := b coerce 𝔹^((j+1)+((nb sub j) sub 2));
+        (ctrl,target) := inv_outer_column_rx(ctrl,target);
+        if ctrl[0]{t := cp[-ϕ/(2^(nb sub 1 sub j))](t);}
+        b := ext~ctrl~target;
+    }
+    if b[nb sub 2]{t := cp[-ϕ/2](t);}
+    for j in [1..nb sub 1){
+        (ext:𝔹^(nb sub 2 sub j))~(ctrl:𝔹^1)~(target:𝔹^j) := b coerce 𝔹^((((nb sub 2) sub j)+1)+j);
+        (ctrl,target) := outer_column_rx(ctrl,target);
+        b := ext~ctrl~target;
+    }
+    (e,b) := inv_column_rx(e,b coerce 𝔹^(nb sub 1));
+    for j in [0..nb sub 2){
+        (ext:𝔹^j)~(ctrl:𝔹^1)~(target:𝔹^(nb sub j sub 2)) := b coerce 𝔹^((j+1)+((nb sub j) sub 2));
+        (ctrl,target) := inv_outer_column_rx(ctrl,target);
+        b := ext~ctrl~target;
+    }
+    qs := (e coerce 𝔹^(n sub nb+1))~(b coerce 𝔹^(nb sub 1))~(t,);
+    return qs coerce 𝔹^(n+1);
+}
+
+
+def main(){
+    qs := 0:uint[6] as 𝔹^6;
+    for j in [0..6){qs[j] := H(qs[j]);}
+    qs := mcp[5](qs,π/2,1e-1); 
+    //if qs=vector(6,1){phase(π/2);}
+    return qs;
+}

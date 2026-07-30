@@ -1,0 +1,32 @@
+import opt.mcx;
+
+def cascade[m:!ℕ](target:𝔹^m) qfree:𝔹^m{
+    if m > 1 {
+        k1  := (m + 1) div 2; k2 := m div 2;
+        (xs:𝔹^k1) ~ (ys:𝔹^k2) := target coerce 𝔹^(k1+k2);
+        xs := cascade[k1](xs);
+        for i in [0..k2){
+            temp := dup(xs[i]);
+            ys[i] := CNOT(temp,ys[i]);
+            forget(temp=xs[i]);
+        }
+        target := xs~ys;
+    }
+    return target coerce 𝔹^m;
+}
+
+def multi_mcx[n:!ℕ,m:!ℕ](ctrl:𝔹^n,target:𝔹^m) mfree:𝔹^n × 𝔹^m{
+    target := reverse(cascade)[m](target);
+    (ctrl,target[0]) := mcx(ctrl,target[0]);
+    target := cascade[m](target);
+    return (ctrl,target);
+}
+
+def main(){
+    ctrl:=0:uint[5] as 𝔹^5;
+    for j in [0..5){ctrl[j]:=H(ctrl[j]);}
+    target:=0:uint[5] as 𝔹^5;
+    (ctrl,target) := multi_mcx(ctrl,target);
+    //for j in [0..5){(ctrl,target[j]) := mcx(ctrl,target[j]);}
+    return (ctrl,target) as uint[5]×𝔹^5;
+}

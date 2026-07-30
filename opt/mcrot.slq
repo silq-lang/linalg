@@ -1,0 +1,55 @@
+import opt.mcx;
+import opt.multi_mcx;
+
+def rot[θ:!ℝ,axis:!ℕ](x:𝔹) mfree:𝔹{
+    if axis=0{x := rotX(θ,x);}
+    if axis=1{x := rotZ(θ,x);}
+    if axis=2{x := rotY(θ,x);}
+    return x;
+}
+
+def mcrot[θ:!ℝ][n:!ℕ](ctrl:𝔹^n,target:𝔹,axis:!ℕ)mfree:𝔹^n×𝔹{
+    if axis=0{
+        target := H(target); target := rotZ(θ/2,target);
+        (ctrl,target) := mcx(ctrl,target); target := rotZ(-θ/2,target);
+        (ctrl,target) := mcx(ctrl,target); target := H(target);
+    }else{
+        target := rot[θ/2,axis](target); (ctrl,target) := mcx(ctrl,target);
+        target := rot[-θ/2,axis](target); (ctrl,target) := mcx(ctrl,target);
+    }
+    return (ctrl,target);
+}
+
+def multi_mcrot[k:!ℕ][n:!ℕ,m:!ℕ](ctrl:𝔹^n,target:𝔹^m,θs:!ℝ^m,axis:!ℕ^m)mfree:𝔹^n×𝔹^m{
+    for j in [0..m){if axis[j]=0{target[j] := H(target[j]);}}
+    (ctrl1:𝔹^(n sub k))~(ctrl2:𝔹^k) := ctrl;
+    repeat 2{
+        (ctrl1,target) := multi_mcx(ctrl1,target);
+        for j in [0..m){
+            if axis[j]=0{target[j] := rotZ(-θs[j]/4,target[j]);}
+            else{target[j] := rot[-θs[j]/4,axis[j]](target[j]);}
+        }
+        (ctrl2,target) := multi_mcx(ctrl2,target);
+        for j in [0..m){
+            if axis[j]=0{target[j] := rotZ(θs[j]/4,target[j]);}
+            else{target[j] := rot[θs[j]/4,axis[j]](target[j]);}
+        }
+    }
+    for j in [0..m){if axis[j]=0{target[j] := H(target[j]);}}
+    return (ctrl1~ctrl2,target);
+}
+
+def main(){
+    ctrl:=0:uint[5] as 𝔹^5;
+    for j in [0..5){ctrl[j]:=H(ctrl[j]);}
+    //target:=0:𝔹;
+    //(ctrl,target) := mcrot[π/2](ctrl,target);
+    //if ctrl=vector(5,1){target := rotY(π/2,target);}
+    //return (ctrl,target) as uint[5]×𝔹;
+    target:=0:uint[5] as 𝔹^5;
+    θs := [π/2,π/4,π/2,π/4,π]:!ℝ^5;
+    axis := [2,2,2,2,2]:!ℕ^5;
+    (ctrl,target) := multi_mcrot[3](ctrl,target,θs,axis);
+    //if ctrl=vector(5,1){for j in [0..5){target[j] := rotY(θs[j],target[j]);}}
+    return (ctrl,target);
+}

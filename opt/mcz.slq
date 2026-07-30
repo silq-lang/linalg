@@ -1,0 +1,24 @@
+import opt.mcx;
+
+def mcz[n:!ℕ](qs:𝔹^n) mfree:𝔹^n{
+    qs[n sub 1] := H(qs[n sub 1]);
+    (temp:𝔹^(n sub 1))~(x:𝔹^1) := qs;
+    (x,) := x; (temp,x) := mcx(temp,x);
+    qs := temp~(x,);
+    qs[n sub 1] := H(qs[n sub 1]);
+    return qs;
+}
+
+def omcz[n:!ℕ](qs:𝔹^n) mfree:𝔹^n{
+    with{for j in [0..n){qs[j] := X(qs[j]);}}do{qs := mcz(qs);}
+    return qs;
+}
+
+def main(){
+    qs:=0:uint[12] as 𝔹^12;
+    for j in [0..12){qs[j]:=H(qs[j]);}
+    qs := omcz(qs) as uint[12];
+    //if qs=vector(12,1){phase(π);}
+    //if qs=vector(12,0){phase(π);}
+    return qs;
+}
