@@ -4,27 +4,23 @@ import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
 
 def proj_not[n:!ℕ](k:!ℕ,const control:𝔹^n,target:𝔹^1) qfree{
-    proj := k as uint[n] as 𝔹^n;
-    if control=proj{target[0] := X(target[0]);} 
-    forget(proj=k as uint[n] as 𝔹^n);
+    if control=(k as uint[n] as 𝔹^n){target[0] := X(target[0]);} 
     return target;
 }
 
 def G[n:!ℕ,m:!ℕ](anc:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
     (flag:𝔹^1)~(anc:𝔹^m) := anc;
     (anc,qs) := f(anc,qs);
-    qs := reverse(b)(qs);
-    flag := proj_not(0:!ℕ,qs,flag);
-    qs := b(qs);
+    with {b(qs):=qs}do{flag := proj_not(0:!ℕ,qs,flag);}
     return (flag~anc,qs);
 }
 
 def f_aug[n:!ℕ,m:!ℕ](t:!ℝ,anc:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
     (flag:𝔹^1)~(anc:𝔹^m) := anc;
-    flag := proj_not(2^n-1 coerce !ℕ,qs,flag);
+    flag := proj_not(2^n sub 1,qs,flag);
     if !flag[0]{(anc,qs) := f(anc,qs);}
     if flag[0]{anc[0] := rotY(-2*acos(1/t),anc[0]);}
-    flag := proj_not(2^n-1 coerce !ℕ,qs,flag);
+    flag := proj_not(2^n sub 1,qs,flag);
     return (flag~anc,qs);
 }
 
@@ -32,49 +28,30 @@ def b_aug[n:!ℕ](const b:𝔹^n → mfree 𝔹^n,flag:𝔹^1,qs:𝔹^n) mfree{
     flag[0] := H(flag[0]);
     if !flag[0]{qs := b(qs);}
     if flag[0]{for j in [0..n){qs[j] := X(qs[j]);}}
-    flag := proj_not(2^n-1 coerce !ℕ,qs,flag);
+    flag := proj_not(2^n sub 1,qs,flag);
     return (flag,qs);
 }
 
 def G_aug[n:!ℕ,m:!ℕ](t:!ℝ,anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n) mfree{
-    def bt(ancilla:𝔹^1,xs:𝔹^n) mfree{
-        //return b_aug(b,ancilla,xs);
-        ancilla[0] := H(ancilla[0]);
-        //if !ancilla[0]{xs := b(xs);}
-        if ancilla[0]{for j in [0..n){xs[j] := X(xs[j]);}}
-        ancilla := proj_not(2^n-1 coerce !ℕ,xs,ancilla);
-        return (ancilla,xs);
-    }
     (flag:𝔹^1)~(anc:𝔹^(m+1)) := anc;
     (anc,qs) := f_aug(t,anc,qs,f);
     (anc:𝔹^m)~(ext:𝔹^1) := anc;
-    (ext,qs) := reverse(bt)(ext,qs);
-    if !ext[0]{flag := proj_not(0:!ℕ,qs,flag);}
-    (ext,qs) := bt(ext,qs);
+    with {b_aug(b,ext,qs) := (ext,qs)}do{if !ext[0]{flag := proj_not(0:!ℕ,qs,flag);}}
     return (flag~anc~ext,qs);
 }
 
 def kernel_aug[n:!ℕ,m:!ℕ,d:!ℕ](t:!ℝ,angles:!ℝ^(d+1)×!ℝ^(d+1)×!ℝ,anc:𝔹^(m+5),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n) mfree{
-    def Gt(ancilla:𝔹^(m+2),qs:𝔹^n){
-        return G_aug(t,ancilla,qs,f,b);
-    }
+    def Gt(ancilla:𝔹^(m+2),qs:𝔹^n){return G_aug(t,ancilla,qs,f,b);}
     (flag:𝔹^1)~(anc:𝔹^(m+4)) := anc;
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    anc[1] := X(anc[1]);
-    (anc,qs) := gqsvt[0][d](θs,φs,λ)(Gt)(anc,qs);
-    anc[1] := X(anc[1]);
-    if anc=vector(m+4,0:𝔹){
-        flag := proj_not(2^n-1 coerce !ℕ,qs,flag);
-    }
+    with {anc[1] := X(anc[1])}do{(anc,qs) := gqsvt[0][d](θs,φs,λ)(Gt)(anc,qs);}
+    if anc=vector(m+4,0:𝔹){flag := proj_not(2^n sub 1,qs,flag);}
     return (flag~anc,qs);
 }
 
 def uniform(a:!ℝ,b:!ℝ):!ℝ{
-	r:=0;
-	precision:=64;
-	for i in (precision..-1..1]{
-		r += measure(H(0))*2^-i;
-	}
+	r:=0; precision:=64;
+	for i in (precision..-1..1]{r += measure(H(0))*2^-i;}
 	return a + (b-a)*r;
 }
 
@@ -82,28 +59,22 @@ def norm_estimate[n:!ℕ,m:!ℕ,d:!ℕ](L:!ℝ,R:!ℝ,angles:!ℝ^(d+1)×!ℝ^(d
     τ := uniform(log(L)-1/2,log(R)-1/2);
     if τ<log(L){τ=log(L);}
     if τ>log(R){τ=log(R);}
-    t := exp(τ);
-    return kernel_aug[n,m,d](t,angles,anc,qs,f,b);
+    return kernel_aug[n,m,d](exp(τ),angles,anc,qs,f,b);
 }
 
-def qlss_aug[n:!ℕ,m:!ℕ](L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
-    def G_nt(ancilla:𝔹^(m+1),qs:𝔹^n){
-        return G(ancilla,qs,f,b);
-    }
-    k := ceil(κ*log(2/η)/2) coerce !ℕ;
-    Δ := 1/κ;
+def qlss_aug[n:!ℕ,m:!ℕ](L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ, const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
+    def G_nt(ancilla:𝔹^(m+1),xs:𝔹^n){return G(ancilla,xs,f,b);}
+    k := ceil(κ*log(2/η)/2) coerce !ℕ; Δ := 1/κ;
     p_kr := kernel_reflection(k,Δ);
     for j in [0..2*k+1){p_kr[j] = p_kr[j]/1.4;}
     q_kr := complement[2*k](p_kr,1e-8);
     assert(is_complement[num_samples(2*k,1e-8)][2*k](p_kr,q_kr,1e-8));
     angles_kr := gqsp_compute_angles[2*k](p_kr,q_kr);
-    flagged := 0:!𝔹;
-    ancilla := 0:uint[m+5] as 𝔹^(m+5);
-    xs := (2^n sub 1 coerce !ℕ) as uint[n] as 𝔹^n;
-    qs := (2^n sub 1 coerce !ℕ) as uint[n] as 𝔹^n;
+    flagged := 0:!𝔹; qs := 0:uint[n] as 𝔹^n;
     while !flagged{
         measure(qs);
-        qs := dup(xs); anc := dup(ancilla);
+        qs := (2^n sub 1 coerce !ℕ) as uint[n] as 𝔹^n; 
+        anc := 0:uint[m+5] as 𝔹^(m+5);
         (anc,qs) := norm_estimate(L,R,angles_kr,anc,qs,f,b);
         r := measure(anc) as !uint[m+5];
         if r=0{flagged = 1:!𝔹;}
@@ -116,8 +87,7 @@ def qlss_aug[n:!ℕ,m:!ℕ](L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ,const f:𝔹^m
     for j in [0..2*l+1){p_kp[j] = p_kp[j]/1.1;}
     q_kp := complement[2*l](p_kp,1e-8);
     assert(is_complement[num_samples(2*l,1e-8)][2*l](p_kp,q_kp,1e-8));
-    angles_kp := gqsp_compute_angles[2*l](p_kp,q_kp);
-    θs:=angles_kp[0];φs:=angles_kp[1];λ:=angles_kp[2];
+    (θs,φs,λ) := gqsp_compute_angles[2*l](p_kp,q_kp);
     (anc,qs) := gqsvt[0][2*l](θs,φs,λ)(G_nt)(anc,qs);
     anc[1] := X(anc[1]);
     return (anc,qs);
@@ -125,8 +95,8 @@ def qlss_aug[n:!ℕ,m:!ℕ](L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ,const f:𝔹^m
 
 def main(){
     v := [1,-1/3,1,0,0,0,0] : !ℝ^7;
-    qs := 3:uint[2] as 𝔹^2;
     def b(xs:𝔹^2) mfree{
+        xs[0] := X(xs[0]);
         return xs;
     }
     def tridiag_amp(anc:𝔹^3,xs:𝔹^2) mfree{
