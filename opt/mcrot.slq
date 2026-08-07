@@ -43,7 +43,7 @@ def main(){
     ctrl:=0:uint[5] as 𝔹^5;
     for j in [0..5){ctrl[j]:=H(ctrl[j]);}
     //target:=0:𝔹;
-    //(ctrl,target) := mcrot[π/2](ctrl,target);
+    //(ctrl,target) := mcrot[π/2](ctrl,target,2);
     //if ctrl=vector(5,1){target := rotY(π/2,target);}
     //return (ctrl,target) as uint[5]×𝔹;
     target:=0:uint[5] as 𝔹^5;
