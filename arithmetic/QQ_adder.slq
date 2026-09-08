@@ -1,3 +1,5 @@
+import arithmetic.CQ_adder;
+
 def T(x:𝔹) mfree{
     phase(π/8);
     x := rotZ(π/4,x);
@@ -109,9 +111,16 @@ def adder_carry[n:!ℕ](const cin:𝔹, i:𝔹^n, t:𝔹^(n+1)){
     }
 }
 
-def subst[n:!ℕ](const cin:𝔹,i:𝔹^n,t:𝔹^n){
+def subst_nocarry[n:!ℕ](const cin:𝔹,i:𝔹^n,t:𝔹^n){
     for j in [0..n){i[j] := X(i[j]);}
     (i,t) := adder_nocarry(X(dup(cin)),i,t);
+    for j in [0..n){i[j] := X(i[j]);}
+    return (i,t);
+}
+
+def subst_carry[n:!ℕ](const cin:𝔹,i:𝔹^n,t:𝔹^(n+1)){
+    for j in [0..n){i[j] := X(i[j]);}
+    (i,t) := adder_carry(X(dup(cin)),i,t);
     for j in [0..n){i[j] := X(i[j]);}
     return (i,t);
 }
@@ -130,6 +139,7 @@ def c_add_unit_uncomp(const cont:𝔹,const c:𝔹,i:𝔹,t:𝔹,prod:𝔹){
 }
 
 def c_adder_nocarry[n:!ℕ](const control:𝔹,i:𝔹^n,t:𝔹^n){
+    if n=1{if control{t[0] := CNOT(i[0],t[0]);}return (i,t);}
     c := 0:uint[n sub 1] as 𝔹^(n sub 1);
     prod := AND(i[0],t[0],0);
     (c[0],prod) := (prod,c[0]);forget(prod=0);
@@ -230,6 +240,46 @@ def c_sub_carry[n:!ℕ](const control:𝔹,i:𝔹^n,t:𝔹^(n+1)){
     (i,t) := c_adder_carry[n](control,i,t);
     for j in [0..n+1){t[j] := CNOT(control,t[j]);}
     return (i,t);
+}
+
+def c_QQ_add_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n));
+    (x,y) := c_adder_nocarry[n+1](ctrl,x~(0,),y~(0,)); y := QC_sub[n+1](0:𝔹,y,p);
+    temp := dup(y[n]);
+    y := c_QC_adder[n+1](temp,0:𝔹,y,p); (x,y) := c_sub_nocarry[n+1](ctrl,x,y);
+    forget(temp=X(dup(y[n])));
+    ((x:𝔹^n)~(0,),(y:𝔹^n)~(0,)) := c_adder_nocarry[n+1](ctrl,x,y);
+    return (x,y);
+}
+
+def QQ_add_modp[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n));
+    (x,y) := adder_nocarry[n+1](0:𝔹,x~(0,),y~(0,)); y := QC_sub[n+1](0:𝔹,y,p);
+    temp := dup(y[n]);
+    y := c_QC_adder[n+1](temp,0:𝔹,y,p); (x,y) := subst_nocarry[n+1](0:𝔹,x,y);
+    forget(temp=X(dup(y[n])));
+    ((x:𝔹^n)~(0,),(y:𝔹^n)~(0,)) := adder_nocarry[n+1](0:𝔹,x,y);
+    return (x,y);
+}
+
+def c_QQ_sub_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n));
+    (x,y) := c_sub_nocarry[n+1](ctrl,x~(0,),y~(0,));
+    temp := X(dup(y[n]));
+    (x,y) := c_adder_nocarry[n+1](ctrl,x,y); y := c_QC_sub[n+1](temp,0:𝔹,y,p);
+    forget(temp=dup(y[n]));
+    y := QC_adder[n+1](0:𝔹,y,p); ((x:𝔹^n)~(0,),(y:𝔹^n)~(0,)) := c_sub_nocarry[n+1](ctrl,x,y);
+    return (x,y);
+}
+
+def QQ_sub_modp[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n));
+    (x,y) := subst_nocarry[n+1](0:𝔹,x~(0,),y~(0,));
+    temp := X(dup(y[n]));
+    (x,y) := adder_nocarry[n+1](0:𝔹,x,y); y := c_QC_sub[n+1](temp,0:𝔹,y,p);
+    forget(temp=dup(y[n]));
+    y := QC_adder[n+1](0:𝔹,y,p); ((x:𝔹^n)~(0,),(y:𝔹^n)~(0,)) := subst_nocarry[n+1](0:𝔹,x,y);
+    return (x,y);
 }
 
 def main(){
