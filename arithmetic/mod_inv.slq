@@ -1,0 +1,301 @@
+import arithmetic.QQ_adder;
+import arithmetic.CQ_adder;
+
+def cyclic_lshift[k:!ℕ][n:!ℕ](v:𝔹^n){s := k%n;(a:𝔹^s)~(b:𝔹^(n sub s)) := v;return b~a;}
+def cyclic_rshift[k:!ℕ][n:!ℕ](v:𝔹^n){s := k%n;(a:𝔹^(n sub s))~(b:𝔹^s) := v;return b~a;}
+
+def maj(a:𝔹,b:𝔹,c:𝔹){b := CNOT(a,b);c := CNOT(a,c);if c{a := CNOT(b,a);}return (a,b,c);}
+def uma(a:𝔹,b:𝔹,c:𝔹){if c{a := CNOT(b,a);}c := CNOT(a,c);b := CNOT(c,b);return (a,b,c);}
+
+def AND_compute(const a:𝔹,const b:𝔹)mfree{return AND(a,b,0:𝔹);}
+def AND_uncompute(const a:𝔹,const b:𝔹,prod:𝔹){prod := H(prod);p := measure(prod);if p&a&b{phase(π);}}
+
+def reverse_bits[n:!ℕ](x:𝔹^n){for j in [0..n div 2){(x[j],x[n sub j sub 1]) := (x[n sub j sub 1],x[j]);} return x;}
+def toggle_zero[n:!ℕ](const x:𝔹^n,z:𝔹){if x=vector(n,0){z ⊕= 1;}return z;}
+def XOR_const[n:!ℕ](x:𝔹^n,a:!ℕ){x := x coerce uint[n]; x ⊕= a; return x coerce 𝔹^n;}
+def xor_initial_length[n:!ℕ,l:!ℕ](const x:𝔹^n,out:𝔹^(l+1)){
+    found := 0:!𝔹;for L in [1..n+1){if !found{if (x as uint[n])<(2^L){out := XOR_const[l+1](out,L); found ⊕= 1;}}}
+    forget(found=1);return out;
+}
+
+def split_interval[n:!ℕ](I:!ℕ^n)lifted{
+    diff := (min(I) coerce !ℕ) ⊕ (max(I) coerce !ℕ); bit_pos := floor(log₂(diff)); I0 := []; I1 := [];
+    for j in [0..n){bit := floor(I[j]/(2^bit_pos))%2;if bit=0{I0 ~= [I[j]];}else{I1 ~= [I[j]];}}
+    return ((I0,I1),bit_pos);
+}
+
+def unary_iteration[n:!ℕ,m:!ℕ,k:!ℕ](I:!ℕ^n,const c:𝔹,const L:𝔹^m,qs:𝔹^k,const U:(𝔹^k → mfree 𝔹^k)[]){
+    if n=1{if c{qs := U[I[0]](qs);}return qs;}
+    ((I0,I1):!ℕ[]^2,b coerce !ℕ) := split_interval(I);
+    h := AND_compute(c,!L[b]);
+    qs := unary_iteration[I0.length,m,k](I0 coerce !ℕ^(I0.length),h,L,qs,U); h := CNOT(c,h);
+    qs := unary_iteration[I1.length,m,k](I1 coerce !ℕ^(I1.length),h,L,qs,U); h := CNOT(c,h);
+    AND_uncompute(c,!L[b],h);
+    return qs;
+}
+
+def loc_cswap[k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,lt:𝔹^(l+1),lq:𝔹^(l+1),sign:𝔹,u:𝔹^n){
+    (lt,lq) := adder_nocarry[l+1](0:𝔹,lt,lq);
+    U := [λ(qs:𝔹^(n+1))mfree{(qs[n],qs[j]) := (qs[j],qs[n]);return qs;} for j in [0..n+1)];
+    I := [j for j in [k..K+1)] coerce !ℕ^(K sub k+1); m := floor(log₂(K))+1 coerce !ℕ;
+    (lql:𝔹^m)~(lqh:𝔹^(l+1 sub m)) := lq;
+    (u:𝔹^n)~(sign:𝔹^1) := unary_iteration[K sub k+1,m,n+1](I,ctrl,lql,u~(sign,),U);
+    (sign,) := sign; lq := lql~lqh;
+    (lt,lq) := subst_nocarry[l+1](0:𝔹,lt,lq);
+    return (lt,lq,sign,u);
+}
+
+def loc_carith_iter[d:!ℕ,add:!ℕ][n:!ℕ,m:!ℕ,k:!ℕ](I:!ℕ^n,const cL:𝔹,const cR:𝔹,const L:𝔹^m,const R:𝔹^m,s:𝔹,carry:𝔹,u:𝔹^k,v:𝔹^k){
+    if n=1{
+        j := I[0];
+        if d=1{
+            s := CNOT(cR,s);
+            if s{
+                if add=1{(carry,u[j sub 1],v[j sub 1]) := maj(carry,u[j sub 1],v[j sub 1]);}
+                else{(carry,u[j sub 1],v[j sub 1]) := reverse(uma)(carry,u[j sub 1],v[j sub 1]);}
+            }
+            s := CNOT(cL,s);
+        }else{
+            s := CNOT(cL,s);
+            if s{
+                if add=1{(carry,u[j sub 1],v[j sub 1]) := uma(carry,u[j sub 1],v[j sub 1]);}
+                else{(carry,u[j sub 1],v[j sub 1]) := reverse(maj)(carry,u[j sub 1],v[j sub 1]);}
+            }
+            s := CNOT(cR,s);
+        }
+        return (s,carry,u,v);
+    }
+    ((I0,I1):!ℕ[]^2,b coerce !ℕ) := split_interval(I);
+    if d=1{
+        hL := AND_compute(cL,L[b]); hR := AND_compute(cR,R[b]);
+        (s,carry,u,v) := loc_carith_iter[d,add][I1.length,m,k](I1 coerce !ℕ^(I1.length),hL,hR,L,R,s,carry,u,v);
+        hL := CNOT(cL,hL); hR := CNOT(cR,hR);
+        (s,carry,u,v) := loc_carith_iter[d,add][I0.length,m,k](I0 coerce !ℕ^(I0.length),hL,hR,L,R,s,carry,u,v);
+        AND_uncompute(cL,!L[b],hL); AND_uncompute(cR,!R[b],hR);
+    }else{
+        hL := AND_compute(cL,!L[b]); hR := AND_compute(cR,!R[b]);
+        (s,carry,u,v) := loc_carith_iter[d,add][I0.length,m,k](I0 coerce !ℕ^(I0.length),hL,hR,L,R,s,carry,u,v);
+        hL := CNOT(cL,hL); hR := CNOT(cR,hR);
+        (s,carry,u,v) := loc_carith_iter[d,add][I1.length,m,k](I1 coerce !ℕ^(I1.length),hL,hR,L,R,s,carry,u,v);
+        AND_uncompute(cL,L[b],hL); AND_uncompute(cR,R[b],hR);
+    }
+    return (s,carry,u,v);
+}
+
+def loc_arith[add:!ℕ,update:!ℕ][k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,lt:𝔹^(l+1),lq:𝔹^(l+1),ls:𝔹^(l+1),sign:𝔹,u:𝔹^n,v:𝔹^n){
+    (lt,lq) := adder_nocarry[l+1](0:𝔹,lt,lq);lq := QC_adder[l+1](0:𝔹,lq,2);
+    ls := QC_sub[l+1](0:𝔹,ls,n+1);for j in [0..l+1){ls[j] := X(ls[j]);}
+    m := floor(log₂(K))+1 coerce !ℕ; (Ll:𝔹^m)~(Lh:𝔹^(l+1 sub m)) := lq; (Rl:𝔹^m)~(Rh:𝔹^(l+1 sub m)) := ls;
+    I := [j for j in [k..K+1)] coerce !ℕ^(K sub k+1);
+    (s,carry,u,v) := loc_carith_iter[1,add][K sub k+1,m,n](I,ctrl,ctrl,Ll,Rl,0:𝔹,0:𝔹,u,v);
+    if update=1{sign := CNOT(carry,sign);}
+    (s,carry,u,v) := loc_carith_iter[0,add][K sub k+1,m,n](I,ctrl,ctrl,Ll,Rl,s,carry,u,v);
+    lq := Ll~Lh; ls := Rl~Rh;
+    for j in [0..l+1){ls[j] := X(ls[j]);}ls := QC_adder[l+1](0:𝔹,ls,n+1);
+    lq := QC_sub[l+1](0:𝔹,lq,2);(lt,lq) := subst_nocarry[l+1](0:𝔹,lt,lq);
+    forget(s=0); forget(carry=0);
+    return (lt,lq,ls,sign,u,v);
+}
+
+def loc_tarith[add:!ℕ,update:!ℕ][b:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,const boundary:𝔹^(l+1),sign:𝔹,u:𝔹^n,v:𝔹^n){
+    if b=K+1{return (sign,u,v);}
+    active := AND_compute(ctrl,(boundary as uint[l+1])=b);
+    (ua:𝔹^b)~(ur:𝔹^(n sub b)) := u;(va:𝔹^b)~(vr:𝔹^(n sub b)) := v;
+    if update=1{
+        if add=1{(uext,vext) := c_adder_nocarry[b+1](active,ua~(0:𝔹,),va~(sign,));}else{(uext,vext) := c_sub_nocarry[b+1](active,ua~(0:𝔹,),va~(sign,));}
+        (ua:𝔹^b)~vector(1,0) := uext;(va:𝔹^b)~(sarr:𝔹^1) := vext;(sign,) := sarr;
+    }else{if add=1{(ua,va) := c_adder_nocarry[b](active,ua,va);}else{(ua,va) := c_sub_nocarry[b](active,ua,va);}}
+    u := ua~ur;v := va~vr;AND_uncompute(ctrl,(boundary as uint[l+1])=b,active);
+    return loc_tarith[add,update][b+1,K][n,l](ctrl,boundary,sign,u,v);
+}
+
+def canonicalize_work2[n:!ℕ,l:!ℕ](const ls:𝔹^(l+3),work2:𝔹^(n+3)){
+    for j in [0..l+3){d := ((2^j)%(n+3)) coerce !ℕ; if d>0{if ls[j]{work2 := cyclic_rshift[d][n+3](work2);}}}
+    return work2;
+}
+
+def len_z_scan[q:!ℕ,m:!ℕ,w:!ℕ,d:!ℕ,side:!ℕ,k:!ℕ,K:!ℕ](I:!ℕ^q,const e:𝔹,const L:𝔹^m,bacc:𝔹,const x:𝔹^w,g:𝔹^w){
+    if q=1{
+        j := I[0];
+        if side=0{if d=1{bacc := CNOT(e,bacc); if j=K{return (bacc,g);}}
+        }else{if d=0{bacc := CNOT(e,bacc);if j=k{return (bacc,g);}}}
+        a := AND_compute(bacc,x[j sub 1]);
+        if side=0{
+            if j=K{g[j sub 1] := CNOT(!a,g[j sub 1]);}
+            else{if !a{temp := dup(g[j]);g[j sub 1] := CNOT(temp,g[j sub 1]);forget(temp=g[j]);}}
+        }else{
+            if j=k{g[j sub 1] := CNOT(!a,g[j sub 1]);}
+            else{if !a{temp := dup(g[j sub 2]);g[j sub 1] := CNOT(temp,g[j sub 1]);forget(temp=g[j sub 2]);}}
+        }
+        AND_uncompute(bacc,x[j sub 1],a);
+        if side=0{if d=0{bacc := CNOT(e,bacc);}
+        }else{if d=1{bacc := CNOT(e,bacc);}}
+        return (bacc,g);
+    }
+    ((I0,I1):!ℕ[]^2,p coerce !ℕ) := split_interval(I);
+    h := AND_compute(e,!L[p]);
+    if d=0{
+        (bacc,g) := len_z_scan[I0.length,m,w,d,side,k,K](I0 coerce !ℕ^(I0.length),h,L,bacc,x,g); h := CNOT(e,h);
+        (bacc,g) := len_z_scan[I1.length,m,w,d,side,k,K](I1 coerce !ℕ^(I1.length),h,L,bacc,x,g); h := CNOT(e,h);
+    }else{
+        h := CNOT(e,h); (bacc,g) := len_z_scan[I1.length,m,w,d,side,k,K](I1 coerce !ℕ^(I1.length),h,L,bacc,x,g);
+        h := CNOT(e,h); (bacc,g) := len_z_scan[I0.length,m,w,d,side,k,K](I0 coerce !ℕ^(I0.length),h,L,bacc,x,g);
+    }
+    AND_uncompute(e,!L[p],h);
+    return (bacc,g);
+}
+
+def xor_detected_length[side:!ℕ,k:!ℕ,K:!ℕ][q:!ℕ,m:!ℕ,w:!ℕ,l:!ℕ](I:!ℕ^q,const ctrl:𝔹,const L:𝔹^m,const x:𝔹^w,out:𝔹^(l+1),g:𝔹^w){
+    if side=0{out := XOR_const[l+1](out,K);}else{out := XOR_const[l+1](out,(w+1) sub k);}
+    repeat 2{
+        if side=0{
+            for j in [k+1..K+1){if g[j sub 1]{out := XOR_const[l+1](out,j ⊕ (j sub 1));}}
+            if g[k sub 1]{out := XOR_const[l+1](out,k);}
+        }else{
+            for j in [k..K){if g[j sub 1]{out := XOR_const[l+1](out,((w+1) sub j) ⊕ (w sub j));}}
+            if g[K sub 1]{out := XOR_const[l+1](out,(w+1) sub K);}
+        }
+        bacc := dup(ctrl);
+        if side=0{(bacc,g) := len_z_scan[q,m,w,0,side,k,K](I,ctrl,L,bacc,x,g); (bacc,g) := len_z_scan[q,m,w,1,side,k,K](I,ctrl,L,bacc,x,g);
+        }else{(bacc,g) := len_z_scan[q,m,w,1,side,k,K](I,ctrl,L,bacc,x,g); (bacc,g) := len_z_scan[q,m,w,0,side,k,K](I,ctrl,L,bacc,x,g);}
+        forget(bacc=ctrl);
+    }
+    return (out,g);
+}
+
+def loc_length_update_one[side:!ℕ,k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,out:𝔹^(l+1),boundary:𝔹^(l+1),u:𝔹^n,v:𝔹^n){
+    if side=0{for j in [0..l+1){boundary[j] := X(boundary[j]);}boundary := QC_adder[l+1](0:𝔹,boundary,n+1);}else{boundary := QC_adder[l+1](0:𝔹,boundary,2);}
+    m := floor(log₂(K))+1 coerce !ℕ;(Bl:𝔹^m)~(Bh:𝔹^(l+1 sub m)) := boundary;
+    I := [j for j in [k..K+1)] coerce !ℕ^(K sub k+1);
+    (out,u) := xor_detected_length[side,k,K][K sub k+1,m,n,l](I,ctrl,Bl,v,out,u);
+    (out,v) := xor_detected_length[side,k,K][K sub k+1,m,n,l](I,ctrl,Bl,u,out,v);
+    boundary := Bl~Bh;if side=0{boundary := QC_sub[l+1](0:𝔹,boundary,n+1);for j in [0..l+1){boundary[j] := X(boundary[j]);}}else{boundary := QC_sub[l+1](0:𝔹,boundary,2);}
+    return (out,boundary,u,v);
+}
+
+def prepare_t_boundary[undo:!ℕ][n:!ℕ,l:!ℕ](const phase2:𝔹,lt:𝔹^(l+1),lrp:𝔹^(l+1),ls:𝔹^(l+1)){
+    if undo=0{lt := QC_adder[l+1](0:𝔹,lt,1);for j in [0..l+1){lrp[j] := X(lrp[j]);}lrp := QC_adder[l+1](0:𝔹,lrp,n+4);(ls,lrp) := subst_nocarry[l+1](0:𝔹,ls,lrp);if phase2{(lt,lrp) := (lrp,lt);}
+    }else{if phase2{(lt,lrp) := (lrp,lt);}(ls,lrp) := adder_nocarry[l+1](0:𝔹,ls,lrp);lrp := QC_sub[l+1](0:𝔹,lrp,n+4);for j in [0..l+1){lrp[j] := X(lrp[j]);}lt := QC_sub[l+1](0:𝔹,lt,1);}
+    return (lt,lrp,ls);
+}
+
+def step_EEA[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,work1:𝔹^(n+3),work2:𝔹^(n+3),ls:𝔹^(l+3),lq:𝔹^(l+1),lt:𝔹^(l+1),lrp:𝔹^(l+1),iter:𝔹){
+    λ := (2+sqrt(3))^(1/3); c := 1/log₂(λ); η := ((4*sqrt(3)-3)/13)*(λ^2); δ := -log₂(η)/log₂(λ);
+    k1 := max(ceil((T-n-1-4*δ)/(4*c-1)),1)+2 coerce !ℕ; K1 := n+3;
+    k2 := max(ceil((T-3*(n+1)-4*δ)/(4*c-3)),1)+1 coerce !ℕ; K2 := min(floor(T/2)+2,n+2) coerce !ℕ;
+    K3 := min(floor(T/4)+2,n+1) coerce !ℕ;
+    k4 := max(ceil((T-4*(n+1)-4*δ)/(4*c-4)),1) coerce !ℕ; K4 := min(floor(T/4+3),n+3) coerce !ℕ;
+    k5 := max(ceil((T-4*δ)/(4*c)),1) coerce !ℕ; K5 := n+3;
+    if !phase1{work2 := cyclic_lshift[1][n+3](work2);}
+    ls := c_QC_adder[l+3](!phase1,0:𝔹,ls,1);
+    if !phase1&phase2{work2 := cyclic_rshift[2][n+3](work2);} 
+    ls := c_QC_sub[l+3](!phase1&phase2,0:𝔹,ls,2);(lslow:𝔹^(l+1))~(lshigh:𝔹^2) := ls;
+    zr_live := toggle_zero(lrp,0:𝔹); rctrl := AND_compute(!phase1,!zr_live);
+    (lt,lq,lslow,sign,work1,work2) := loc_arith[0,1][k1,K1][n+3,l](rctrl,lt,lq,lslow,sign,work1,work2);
+    sign := CNOT(rctrl&phase2,sign); radd_tmp := AND_compute(phase2,sign); radd_ctrl := AND_compute(rctrl,!radd_tmp);
+    (lt,lq,lslow,sign,work1,work2) := loc_arith[1,0][k1,K1][n+3,l](radd_ctrl,lt,lq,lslow,sign,work1,work2);
+    AND_uncompute(rctrl,!radd_tmp,radd_ctrl); AND_uncompute(phase2,sign,radd_tmp); AND_uncompute(!phase1,!zr_live,rctrl);
+    0 := toggle_zero(lrp,zr_live); ls := lslow~lshigh;
+    lq := c_QC_adder[l+1](!phase1&phase2,0:𝔹,lq,1);
+    (lt,lq,sign,work1) := loc_cswap[k2,K2][n+3,l](phase1!=phase2,lt,lq,sign,work1);
+    lq := c_QC_sub[l+1](phase1&!phase2,0:𝔹,lq,1);
+    (lslow:𝔹^(l+1))~(lshigh:𝔹^2) := ls; tsub_tmp := AND_compute(!phase2,sign); tsub_ctrl := AND_compute(phase1,!tsub_tmp);
+    (lt,lrp,lslow) := prepare_t_boundary[0][n,l](phase2,lt,lrp,lslow);
+    (sign,work1,work2) := loc_tarith[0,0][1,K3][n+3,l](tsub_ctrl,lt,sign,work1,work2);
+    AND_uncompute(phase1,!tsub_tmp,tsub_ctrl); AND_uncompute(!phase2,sign,tsub_tmp); sign := CNOT(phase1,sign);
+    (sign,work1,work2) := loc_tarith[1,1][1,K3][n+3,l](phase1,lt,sign,work1,work2);
+    (lt,lrp,lslow) := prepare_t_boundary[1][n,l](phase2,lt,lrp,lslow);ls := lslow~lshigh;
+    if phase1{work2 := cyclic_lshift[1][n+3](work2);}
+    ls := c_QC_adder[l+3](phase1,0:𝔹,ls,1);
+    if phase1&phase2{work2 := cyclic_rshift[2][n+3](work2);}
+    ls := c_QC_sub[l+3](phase1&phase2,0:𝔹,ls,2);
+    zq := toggle_zero(lq,0:𝔹); zr := toggle_zero(lrp,0:𝔹); pctrl := AND_compute(zq,!zr);
+    if pctrl{phase2 := CNOT(sign,phase2); phase2 := CNOT(phase1,phase2); sign := CNOT(phase2,sign);}
+    AND_uncompute(zq,!zr,pctrl); 0 := toggle_zero(lrp,zr); 
+    zs := toggle_zero(ls,0:𝔹); phase1 := CNOT(zs,phase1); phase2 := CNOT(zs,phase2);
+    if T%4=0{
+        endctrl := AND_compute(zq,zs);
+        if endctrl{(work1,work2) := (work2,work1);}
+        (lt,lrp,work1,work2) := loc_length_update_one[0,k4,K4][n+3,l](endctrl,lt,lrp,work1,work2);
+        (lrp,lt,work1,work2) := loc_length_update_one[1,k5,K5][n+3,l](endctrl,lrp,lt,work1,work2);
+        iter := CNOT(endctrl,iter); AND_uncompute(zq,zs,endctrl);
+    }
+    0 := toggle_zero(ls,zs); 0 := toggle_zero(lq,zq);
+    return (phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter);
+}
+
+def step_EEA_inverse[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,work1:𝔹^(n+3),work2:𝔹^(n+3),ls:𝔹^(l+3),lq:𝔹^(l+1),lt:𝔹^(l+1),lrp:𝔹^(l+1),iter:𝔹){
+    λ := (2+sqrt(3))^(1/3); c := 1/log₂(λ); η := ((4*sqrt(3)-3)/13)*(λ^2); δ := -log₂(η)/log₂(λ);
+    k1 := max(ceil((T-n-1-4*δ)/(4*c-1)),1)+2 coerce !ℕ; K1 := n+3;
+    k2 := max(ceil((T-3*(n+1)-4*δ)/(4*c-3)),1)+1 coerce !ℕ; K2 := min(floor(T/2)+2,n+2) coerce !ℕ;
+    K3 := min(floor(T/4)+2,n+1) coerce !ℕ;
+    k4 := max(ceil((T-4*(n+1)-4*δ)/(4*c-4)),1) coerce !ℕ; K4 := min(floor(T/4+3),n+3) coerce !ℕ;
+    k5 := max(ceil((T-4*δ)/(4*c)),1) coerce !ℕ; K5 := n+3;
+    zq := toggle_zero(lq,0:𝔹); zs := toggle_zero(ls,0:𝔹);
+    if T%4=0{
+        endctrl := AND_compute(zq,zs);
+        iter := CNOT(endctrl,iter);
+        (lrp,lt,work1,work2) := loc_length_update_one[1,k5,K5][n+3,l](endctrl,lrp,lt,work1,work2);
+        (lt,lrp,work1,work2) := loc_length_update_one[0,k4,K4][n+3,l](endctrl,lt,lrp,work1,work2);
+        if endctrl{(work1,work2) := (work2,work1);}
+        AND_uncompute(zq,zs,endctrl);
+    }
+    phase2 := CNOT(zs,phase2); phase1 := CNOT(zs,phase1); 0 := toggle_zero(ls,zs);
+    zr := toggle_zero(lrp,0:𝔹); pctrl := AND_compute(zq,!zr);
+    if pctrl{sign := CNOT(phase2,sign); phase2 := CNOT(phase1,phase2); phase2 := CNOT(sign,phase2);}
+    AND_uncompute(zq,!zr,pctrl); 0 := toggle_zero(lrp,zr); 0 := toggle_zero(lq,zq);
+    if phase1&phase2{work2 := cyclic_lshift[2][n+3](work2);}
+    ls := c_QC_adder[l+3](phase1&phase2,0:𝔹,ls,2);
+    if phase1{work2 := cyclic_rshift[1][n+3](work2);}
+    ls := c_QC_sub[l+3](phase1,0:𝔹,ls,1);
+    (lslow:𝔹^(l+1))~(lshigh:𝔹^2) := ls;(lt,lrp,lslow) := prepare_t_boundary[0][n,l](phase2,lt,lrp,lslow);
+    (sign,work1,work2) := loc_tarith[0,1][1,K3][n+3,l](phase1,lt,sign,work1,work2);
+    sign := CNOT(phase1,sign); tsub_tmp := AND_compute(!phase2,sign); tsub_ctrl := AND_compute(phase1,!tsub_tmp);
+    (sign,work1,work2) := loc_tarith[1,0][1,K3][n+3,l](tsub_ctrl,lt,sign,work1,work2);
+    AND_uncompute(phase1,!tsub_tmp,tsub_ctrl); AND_uncompute(!phase2,sign,tsub_tmp);
+    (lt,lrp,lslow) := prepare_t_boundary[1][n,l](phase2,lt,lrp,lslow);ls := lslow~lshigh;
+    lq := c_QC_adder[l+1](phase1&!phase2,0:𝔹,lq,1);
+    (lt,lq,sign,work1) := loc_cswap[k2,K2][n+3,l](phase1!=phase2,lt,lq,sign,work1);
+    lq := c_QC_sub[l+1](!phase1&phase2,0:𝔹,lq,1);
+    (lslow:𝔹^(l+1))~(lshigh:𝔹^2) := ls; zr_live := toggle_zero(lrp,0:𝔹);
+    rctrl := AND_compute(!phase1,!zr_live); radd_tmp := AND_compute(phase2,sign); radd_ctrl := AND_compute(rctrl,!radd_tmp);
+    (lt,lq,lslow,sign,work1,work2) := loc_arith[0,0][k1,K1][n+3,l](radd_ctrl,lt,lq,lslow,sign,work1,work2);
+    AND_uncompute(rctrl,!radd_tmp,radd_ctrl); AND_uncompute(phase2,sign,radd_tmp); sign := CNOT(rctrl&phase2,sign);
+    (lt,lq,lslow,sign,work1,work2) := loc_arith[1,1][k1,K1][n+3,l](rctrl,lt,lq,lslow,sign,work1,work2);
+    AND_uncompute(!phase1,!zr_live,rctrl); 0 := toggle_zero(lrp,zr_live); ls := lslow~lshigh;
+    if !phase1&phase2{work2 := cyclic_lshift[2][n+3](work2);}ls := c_QC_adder[l+3](!phase1&phase2,0:𝔹,ls,2);
+    if !phase1{work2 := cyclic_rshift[1][n+3](work2);}
+    ls := c_QC_sub[l+3](!phase1,0:𝔹,ls,1);
+    return (phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter);
+}
+
+def eea_forward[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n){
+    assert(p>2); assert(p%2=1); assert(p>=(2^(n sub 1))); assert(p<(2^n)); assert(n+3<(2^(l+1)));
+    λ := (2+sqrt(3))^(1/3); N := 4*ceil(n/log₂(λ)) coerce !ℕ;
+    iter := 0:𝔹; if (x as uint[n])>(p div 2){iter := X(iter);}
+    for j in [0..n){x[j] := CNOT(iter,x[j]);}x := c_QC_adder[n](iter,0:𝔹,x,p+1);
+    lrp := xor_initial_length[n,l](x,0:uint[l+1] as 𝔹^(l+1)); xbe := reverse_bits[n](x);
+    work2 := vector(3,0)~xbe; a := reverse_bits[n](XOR_const[n](a,p)); work1 := (1:uint[3] as 𝔹^3)~a;
+    lt := 1:uint[l+1] as 𝔹^(l+1); lq := 0:uint[l+1] as 𝔹^(l+1); ls := 0:uint[l+3] as 𝔹^(l+3); phase1 := 0:𝔹; phase2 := 0:𝔹; sign := 0:𝔹;
+    for T in [1..N+1){(phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter) := step_EEA[T][n,l](phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter);}
+    work2 := canonicalize_work2[n,l](ls,work2);work1 := XOR_const[n+3](work1,p+2^(n+2));vector(3,0)~(aout:𝔹^n) := work1;(x:𝔹^n)~(0:uint[3] as 𝔹^3) := work2;
+    for j in [0..n){x[j] := CNOT(!iter,x[j]);}x := c_QC_adder[n](!iter,0:𝔹,x,p+1);
+    return (x,aout,(phase1,phase2,sign,ls,lq,lt,lrp,iter));
+}
+def eea_inverse[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n,state:𝔹×𝔹×𝔹×𝔹^(l+3)×𝔹^(l+1)×𝔹^(l+1)×𝔹^(l+1)×𝔹){
+    assert(p>2);assert(p%2=1);assert(p>=(2^(n sub 1)));assert(p<(2^n));assert(n+3<(2^(l+1)));
+    (phase1,phase2,sign,ls,lq,lt,lrp,iter) := state;
+    λ := (2+sqrt(3))^(1/3);N := 4*ceil(n/log₂(λ)) coerce !ℕ;
+    x := c_QC_sub[n](!iter,0:𝔹,x,p+1);for j in [0..n){x[j] := CNOT(!iter,x[j]);}work2 := x~(0:uint[3] as 𝔹^3);work2 := reverse(canonicalize_work2[n,l])(ls,work2);a := XOR_const[n](a,p);work1 := a~(4:uint[3] as 𝔹^3);
+    for T in [N..-1..0){(phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter) := step_EEA_inverse[T][n,l](phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter);}
+    vector(3,0)~(xr:𝔹^n) := work2;x := reverse_bits[n](xr);vector(l+1,0) := xor_initial_length[n,l](x,lrp);x := c_QC_sub[n](iter,0:𝔹,x,p+1);
+    for j in [0..n){x[j] := CNOT(iter,x[j]);}if (x as uint[n])>(p div 2){iter := X(iter);}work1[0] := X(work1[0]);
+    for j in [0..n){if floor(p/(2^(n sub j sub 1)))%2=1{work1[3+j] := X(work1[3+j]);}}vector(3,0)~(a:𝔹^n) := work1;vector(l+1,0) := XOR_const[l+1](lt,1);
+    forget(phase1=0);forget(phase2=0);forget(sign=0);forget(iter=0);forget(ls=vector(l+3,0));forget(lq=vector(l+1,0));return (x,a);
+}
+def mod_inv[p:!ℕ][n:!ℕ](x:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;a := 0:uint[n] as 𝔹^n;
+    (x,a,state) := eea_forward[p][n,l](x,a);out := dup(x);(x,a) := eea_inverse[p][n,l](x,a,state);forget(a=0:uint[n] as 𝔹^n);return (x,out);
+}
+
+def main(){return mod_inv[37](13:uint[6] as 𝔹^6) as uint[6]×uint[6];}
