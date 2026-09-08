@@ -1,0 +1,26 @@
+import arithmetic.CQ_adder;
+import arithmetic.QQ_adder;
+import arithmetic.QQ_mult;
+
+def c_neg_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n));
+    ext := 0:𝔹; if ctrl{if (x as uint[n])!=0{ext := X(ext);}}
+    for j in [0..n){x[j] := CNOT(ext,x[j]);}
+    x := c_QC_adder[n](ext,0:𝔹,x,p+1);
+    if ctrl{if (x as uint[n])!=0{ext := X(ext);}}
+    forget(ext=0);
+    return x;
+}
+
+def square_minus_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
+    (y,ext) := square_modp_into[p](y,0:uint[n] as 𝔹^n);
+    (ext,x) := c_QQ_sub_modp[p](ctrl,ext,x);
+    (y,0:uint[n] as 𝔹^n) := square_modp_into[p](y,ext);
+    return (x,y);
+}
+
+def main(){
+    ctrl := H(0:𝔹);x := 5:uint[4] as 𝔹^4;
+    x := c_neg_modp[13](ctrl,x);
+    return (ctrl,x as uint[4]);
+}
