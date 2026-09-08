@@ -141,7 +141,13 @@ def QC_adder[n:!ℕ](const cin:𝔹,target:𝔹^n,d:!ℕ){
     target2 := target2~target3;
     target1 := target1 coerce 𝔹^(floor((n-1)/2) coerce !ℕ);
     target2 := target2 coerce 𝔹^(n - (floor((n-1)/2)) coerce !ℕ);
-    return target1~target2;
+    return (target1~target2) coerce 𝔹^n;
+}
+
+def QC_sub[n:!ℕ](const cin:𝔹,target:𝔹^n,d:!ℕ){
+    with {for j in [0..n){target[j] := X(target[j]);}}
+    do{target := QC_adder[n](cin,target,d);}
+    return target;
 }
 
 def c_venter_adder[n:!ℕ](const cont:𝔹,const cin:𝔹,target:𝔹^n,d:!ℕ){
@@ -153,9 +159,11 @@ def c_venter_adder[n:!ℕ](const cont:𝔹,const cin:𝔹,target:𝔹^n,d:!ℕ){
     }
     if n=2{
         for j in [0..2){if d[j]{target[j] := CNOT(cont,target[j]);}}
-        target[1] := ZZ_contr(cont,cin,target[0],target[1]);
+        if d[0]{
+            target[1] := ZZ_contr(cont,cin,target[0],target[1]);
+            target[1] := CNOT(cont,target[1]);
+        }else{target[1] := toffoli(cin,target[0],target[1]);}
         target[0] := CNOT(cin,target[0]);
-        if d[0]{target[1] := CNOT(cont,target[1]);}
         return (M,target);
     }
     for j in [0..n){if d[j]{target[j] := CNOT(cont,target[j]);}}
@@ -270,11 +278,59 @@ def c_QC_adder[n:!ℕ](const cont:𝔹,const cin:𝔹,target:𝔹^n,d:!ℕ){
     target2 := target2~target3;
     target1 := target1 coerce 𝔹^(floor((n-1)/2) coerce !ℕ);
     target2 := target2 coerce 𝔹^(n - (floor((n-1)/2)) coerce !ℕ);
-    return target1~target2;
+    return (target1~target2) coerce 𝔹^n;
+}
+
+def c_QC_sub[n:!ℕ](const cont:𝔹,const cin:𝔹,target:𝔹^n,d:!ℕ){
+    with{for j in [0..n){target[j] := X(target[j]);}}do{
+    target := c_QC_adder[n](cont,cin,target,d);}
+    return target;
+}
+
+def QC_add_modp[p:!ℕ][n:!ℕ](target:𝔹^n,a:!ℕ){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n)); k := a%p;
+    target := QC_adder[n+1](0:𝔹,target~(0,),k); target := QC_sub[n+1](0:𝔹,target,p);
+    temp := dup(target[n]);
+    target := c_QC_adder[n+1](temp,0:𝔹,target,p); target := QC_sub[n+1](0:𝔹,target,k);
+    forget(temp=X(dup(target[n])));
+    (x:𝔹^n)~(0,) := QC_adder[n+1](0:𝔹,target,k);
+    return x;
+}
+
+def c_QC_add_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,target:𝔹^n,a:!ℕ){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n)); k := a%p;
+    target := c_QC_adder[n+1](ctrl,0:𝔹,target~(0,),k); target := QC_sub[n+1](0:𝔹,target,p);
+    temp := dup(target[n]);
+    target := c_QC_adder[n+1](temp,0:𝔹,target,p); target := c_QC_sub[n+1](ctrl,0:𝔹,target,k);
+    forget(temp=X(dup(target[n])));
+    (x:𝔹^n)~(0,) := c_QC_adder[n+1](ctrl,0:𝔹,target,k);
+    return x;
+}
+
+def QC_sub_modp[p:!ℕ][n:!ℕ](target:𝔹^n,a:!ℕ){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n)); k := a%p;
+    target := QC_sub[n+1](0:𝔹,target~(0,),k);
+    temp := X(dup(target[n]));
+    target := QC_adder[n+1](0:𝔹,target,k); target := c_QC_sub[n+1](temp,0:𝔹,target,p);
+    forget(temp=dup(target[n]));
+    target := QC_adder[n+1](0:𝔹,target,p);
+    (x:𝔹^n)~(0,) := QC_sub[n+1](0:𝔹,target,k);
+    return x;
+}
+
+def c_QC_sub_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,target:𝔹^n,a:!ℕ){
+    assert(p>2); assert(p>=(2^(n sub 1))); assert(p<(2^n)); k := a%p;
+    target := c_QC_sub[n+1](ctrl,0:𝔹,target~(0,),k);
+    temp := X(dup(target[n]));
+    target := c_QC_adder[n+1](ctrl,0:𝔹,target,k); target := c_QC_sub[n+1](temp,0:𝔹,target,p);
+    forget(temp=dup(target[n]));
+    target := QC_adder[n+1](0:𝔹,target,p); (x:𝔹^n)~(0,) := c_QC_sub[n+1](ctrl,0:𝔹,target,k);
+    return x;
 }
 
 def main(){
     qs := 0:uint[4] as 𝔹^4;
     qs[0] := H(qs[0]);
-    return c_QC_adder[4](1:𝔹,0:𝔹,qs,5);
+    //return c_QC_adder[4](1:𝔹,0:𝔹,qs,5);
+    return QC_adder[4](0:𝔹,qs,5);
 }
