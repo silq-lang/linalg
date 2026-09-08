@@ -1,0 +1,200 @@
+import arithmetic.CQ_adder;
+import arithmetic.QQ_adder;
+import arithmetic.QQ_mult;
+import arithmetic.miscellaneous;
+import primitives.QROAM;
+
+def EEA_classical(a:!ℕ,m:!ℕ) lifted:!ℕ×!ℕ{
+    r0 := m; r1 := a%m; t0 := 0:!ℕ; t1 := 1:!ℕ;
+    while r1!=0{q := r0 div r1; (r0,r1) = (r1,r0 sub q*r1); (t0,t1) = (t1,(t0+m-(q*t1)%m)%m);}
+    return (r0,t0);
+}
+
+def is_on_curve[p:!ℕ][ca:!ℕ][cb:!ℕ](x:!ℕ,y:!ℕ) lifted:!𝔹{
+    assert(p>2); x1 := x%p; y1 := y%p;
+    return (y1*y1)%p=(x1*x1*x1+ca*x1+cb)%p;
+}
+
+def point_add[p:!ℕ][ca:!ℕ](ai:!𝔹,ax:!ℕ,ay:!ℕ,bi:!𝔹,bx:!ℕ,by:!ℕ) lifted:!𝔹×!ℕ×!ℕ{
+    x1 := ax%p; y1 := ay%p; x2 := bx%p; y2 := by%p;
+    if ai{return (bi,x2,y2);} if bi{return (ai,x1,y1);}
+    numerator := (y2+p-y1)%p; denominator := (x2+p-x1)%p;
+    if x1=x2{if (y1+y2)%p=0{return (1:!𝔹,0,0);} numerator=(3*x1*x1+ca)%p; denominator=(2*y1)%p;}
+    (g,z) := EEA_classical(denominator,p); assert(g=1); l := (numerator*z)%p;
+    x3 := (l*l+p-x1+p-x2)%p; y3 := (l*((x1+p-x3)%p)+p-y1)%p;
+    return (0:!𝔹,x3,y3);
+}
+
+def scalar_mult[p:!ℕ][ca:!ℕ](k:!ℕ,x:!ℕ,y:!ℕ) lifted:!𝔹×!ℕ×!ℕ{
+    ri := 1:!𝔹; rx := 0:!ℕ; ry := 0:!ℕ; bi := 0:!𝔹; bx := x%p; by := y%p; t := k;
+    while t>0{
+        if t%2=1{(ri,rx,ry) = point_add[p][ca](ri,rx,ry,bi,bx,by);}
+        (bi,bx,by) = point_add[p][ca](bi,bx,by,bi,bx,by); t = t div 2;
+    }
+    return (ri,rx,ry);
+}
+
+def window_multiple[p:!ℕ][ca:!ℕ][m:!ℕ](x:!ℕ,y:!ℕ,shift:!ℕ,j:!ℤ) lifted:!𝔹×!ℕ×!ℕ{
+    magnitude := abs(j) coerce !ℕ; if magnitude>2^m{return (1:!𝔹,0,0);}
+    (inf,qx,qy) := scalar_mult[p][ca](magnitude*2^shift,x,y);
+    if j<0{qy=(p-qy)%p;}
+    return (inf,qx,qy);
+}
+
+def window_classical[p:!ℕ][ca:!ℕ][w:!ℕ,n:!ℕ](bx:!ℕ,by:!ℕ,shift:!ℕ,slot:!ℕ,j:!ℕ,output:!𝔹) lifted:!𝔹^(2*n+2)×!𝔹^(2*n+1){
+    assert(slot<4); assert(w>0); assert(j<2^w); 
+    (qi,qx,qy) := window_multiple[p][ca][w sub 1](bx,by,shift,j-2^(w sub 1));
+    valid := !qi; ai := 1:!𝔹; ax := 0:!ℕ; ay := 0:!ℕ;
+    if !qi{
+        if slot=1{(ai,ax,ay)=(0:!𝔹,qx,qy);}
+        if slot=2{(ai,ax,ay)=(0:!𝔹,qx,(p-qy)%p); valid=qy!=0;}
+        if slot=3{(ai,ax,ay)=point_add[p][ca](0:!𝔹,qx,qy,0:!𝔹,qx,qy); ay=(p-ay)%p; if ai{valid=0:!𝔹;} if ax=qx{if ay=qy|(ay+qy)%p=0{valid=0:!𝔹;}}}
+    }
+    if !valid{(ai,ax,ay)=(1:!𝔹,0,0);} else{if output{(ai,ax,ay)=point_add[p][ca](ai,ax,ay,0:!𝔹,qx,qy);}}
+    point := (ai,)~(montgomery_const[p](ax) as !uint[n] as !𝔹^n)~(montgomery_const[p](ay) as !uint[n] as !𝔹^n) coerce !𝔹^(2*n+1);
+    mask := point; dummy := (0:!𝔹,)~(montgomery_const[p]((qx+1)%p) as !uint[n] as !𝔹^n)~(0:!uint[n] as !𝔹^n);
+    for i in [0..2*n+1){mask[i] ⊕= dummy[i];}
+    return ((valid,)~point coerce !𝔹^(2*n+2),mask);
+}
+
+def c_replace_value[n:!ℕ](const ctrl:𝔹,x:𝔹^n,a:!ℕ,b:!ℕ){
+    ab := a as !uint[n] as !𝔹^n; bb := b as !uint[n] as !𝔹^n;
+    for j in [0..n){if ab[j]!=bb[j]{x[j] := CNOT(ctrl,x[j]);}}
+    return x;
+}
+
+def c_lookup_xor[M:!ℕ](const table:!ℕ !→ lifted !𝔹^M)[m:!ℕ](const ctrl:𝔹,const address:𝔹^m,target:𝔹^M){
+    (copy,rows) := qroam_comp[M](table)[m](dup(address),2);
+    for j in [0..M){if ctrl{target[j] := CNOT(rows[0][j],target[j]);}} 
+    copy := qroam_uncomp[M](table)[m,2](copy,rows,2^m);
+    for j in [0..m){copy[j] := CNOT(address[j],copy[j]);} 
+    forget(copy=vector(m,0:𝔹));
+    return target;
+}
+
+def lookup_add_modp[p:!ℕ](const table:!ℕ !→ lifted !ℕ)[m:!ℕ,n:!ℕ](const ctrl:𝔹,const sign:𝔹,const address:𝔹^m,x:𝔹^n,subtract:!𝔹){
+    def lookup(j:!ℕ)lifted:!𝔹^n{return montgomery_const[p](table(j)) as !uint[n] as !𝔹^n;}
+    (copy,rows) := qroam_comp[n](lookup)[m](dup(address),2); rows[0] := c_neg_modp[p](sign,rows[0]); if subtract{(rows[0],x) := c_QQ_sub_modp[p](ctrl,rows[0],x);} else{(rows[0],x) := c_QQ_add_modp[p](ctrl,rows[0],x);}
+    rows[0] := c_neg_modp[p](sign,rows[0]); copy := qroam_uncomp[n](lookup)[m,2](copy,rows,2^m);
+    for j in [0..m){copy[j] := CNOT(address[j],copy[j]);} forget(copy=vector(m,0:𝔹));
+    return x;
+}
+
+def lookup_match_point[n:!ℕ](const table:!ℕ !→ lifted !𝔹^(2*n+2))[m:!ℕ](const address:𝔹^m,const inf:𝔹,const x:𝔹^n,const y:𝔹^n,z:𝔹){
+    (copy,rows) := qroam_comp[2*n+2](table)[m](dup(address),2); (row,rest) := rows; (valid:𝔹,qi:𝔹)~(qx:𝔹^n)~(qy:𝔹^n) := row coerce 𝔹^((n+2)+n);
+    if valid{if inf=qi{if (x as uint[n])=(qx as uint[n]){if (y as uint[n])=(qy as uint[n]){z := X(z);}}}} rows := ((valid,qi)~qx~qy coerce 𝔹^(2*n+2),rest); copy := qroam_uncomp[2*n+2](table)[m,2](copy,rows,2^m);
+    for j in [0..m){copy[j] := CNOT(address[j],copy[j]);} forget(copy=vector(m,0:𝔹));
+    return z;
+}
+
+def window_point_add_generic[p:!ℕ][ca:!ℕ][w:!ℕ,n:!ℕ](const active:𝔹,window:𝔹^w,x:𝔹^n,y:𝔹^n,bx:!ℕ,by:!ℕ,shift:!ℕ){
+    assert(w>0); (address:𝔹^(w sub 1))~(top:𝔹^1) := window; (sign,) := top; neg := X(dup(sign)); 
+    sign := CNOT(!neg,sign); index := address~(sign,); for j in [0..w sub 1){index[j] := CNOT(neg,index[j]);}
+    index := c_QC_adder[w](neg,0:𝔹,index,1);
+    def tx(j:!ℕ) lifted:!ℕ{(i,a,b) := window_multiple[p][ca][w sub 1](bx,by,shift,j); return a;}
+    def ty(j:!ℕ) lifted:!ℕ{(i,a,b) := window_multiple[p][ca][w sub 1](bx,by,shift,j); return b;}
+    def t3x(j:!ℕ) lifted:!ℕ{return (3*tx(j))%p;}
+    x := lookup_add_modp[p](tx)[w,n](1:𝔹,0:𝔹,index,x,1:!𝔹); y := lookup_add_modp[p](ty)[w,n](active,neg,index,y,1:!𝔹); 
+    (x,y) := div_modp_inplace[p](x,y); (x,y) := square_minus_modp[p](active,x,y);
+    x := lookup_add_modp[p](t3x)[w,n](active,0:𝔹,index,x,0:!𝔹); 
+    (x,y) := mult[p](x,y); x := c_neg_modp[p](active,x); 
+    x := lookup_add_modp[p](tx)[w,n](1:𝔹,0:𝔹,index,x,0:!𝔹); y := lookup_add_modp[p](ty)[w,n](active,neg,index,y,1:!𝔹); 
+    index := c_QC_sub[w](neg,0:𝔹,index,1); for j in [0..w sub 1){index[j] := CNOT(neg,index[j]);}
+    (address:𝔹^(w sub 1))~(top:𝔹^1) := index; (sign,) := top; sign := CNOT(!neg,sign); forget(neg=X(dup(sign)));
+    return (address~(sign,),x,y);
+}
+
+def window_point_add[p:!ℕ][ca:!ℕ][w:!ℕ,n:!ℕ](window:𝔹^w,inf:𝔹,x:𝔹^n,y:𝔹^n,bx:!ℕ,by:!ℕ,shift:!ℕ){
+    assert(w>0); flags := vector(4,0:𝔹);
+    for slot in [0..4){def source(j:!ℕ) lifted:!𝔹^(2*n+2){(point,mask) := window_classical[p][ca][w,n](bx,by,shift,slot,j,0:!𝔹); return point;} 
+    flags[slot] := lookup_match_point[n](source)[w](window,inf,x,y,flags[slot]);}
+    def identity_table(j:!ℕ) lifted:!𝔹^1{(qi,qx,qy) := window_multiple[p][ca][w sub 1](bx,by,shift,j-2^(w sub 1)); return (qi,);}
+    (identity,) := c_lookup_xor[1](identity_table)[w](1:𝔹,window,(0:𝔹,)); 
+    guard := 0:𝔹; if identity{if (x as uint[n])=0{guard := X(guard);}} x := c_replace_value[n](guard,x,0,montgomery_const[p](1));
+    for slot in [0..4){
+        def mask(j:!ℕ) lifted:!𝔹^(2*n+1){(point,mask) := window_classical[p][ca][w,n](bx,by,shift,slot,j,0:!𝔹); return mask;}
+        point := c_lookup_xor[2*n+1](mask)[w](flags[slot],window,(inf,)~x~y coerce 𝔹^(2*n+1)); (inf:𝔹,)~(x:𝔹^n)~(y:𝔹^n) := point coerce 𝔹^((n+1)+n);
+    }
+    active := X(dup(identity)); for slot in [0..4){active := CNOT(flags[slot],active);} 
+    (window,x,y) := window_point_add_generic[p][ca](active,window,x,y,bx,by,shift); 
+    for slot in [0..4){active := CNOT(flags[slot],active);} active := CNOT(identity,active); forget(active=1:𝔹);
+    for slot in [0..4){
+        def mask(j:!ℕ) lifted:!𝔹^(2*n+1){(point,mask) := window_classical[p][ca][w,n](bx,by,shift,slot,j,1:!𝔹); return mask;}
+        point := c_lookup_xor[2*n+1](mask)[w](flags[slot],window,(inf,)~x~y coerce 𝔹^(2*n+1)); (inf:𝔹,)~(x:𝔹^n)~(y:𝔹^n) := point coerce 𝔹^((n+1)+n);
+    }
+    x := c_replace_value[n](guard,x,0,montgomery_const[p](1)); 
+    if identity{if (x as uint[n])=0{guard := X(guard);}} forget(guard=0); 
+    (identity,) := c_lookup_xor[1](identity_table)[w](1:𝔹,window,(identity,)); forget(identity=0);
+    for slot in [0..4){def target(j:!ℕ) lifted:!𝔹^(2*n+2){(point,mask) := window_classical[p][ca][w,n](bx,by,shift,slot,j,1:!𝔹); return point;} 
+    flags[slot] := lookup_match_point[n](target)[w](window,inf,x,y,flags[slot]);}
+    forget(flags=vector(4,0:𝔹));
+    return (window,inf,x,y);
+}
+
+def ecc_window_size(n:!ℕ) lifted:!ℕ{w := 2*(floor(log₂(n)) coerce !ℕ);if w<2{w=2;}return w;}
+
+def window_scalar_mult[p:!ℕ][ca:!ℕ][e:!ℕ,n:!ℕ](const exponent:𝔹^e,inf:𝔹,x:𝔹^n,y:𝔹^n,bx:!ℕ,by:!ℕ){
+    w := ecc_window_size(n); count := (e+w-1) div w; offset := 0:!ℕ;
+    for h in [0..count){
+        block := count sub h sub 1; lo := block*w; c := w; if lo+c>e{c=e sub lo;} offset += 2^(lo+c sub 1); 
+        window := 0:uint[c] as 𝔹^c; for j in [0..c){window[j] := CNOT(exponent[lo+j],window[j]);}
+        (window,inf,x,y) := window_point_add[p][ca](window,inf,x,y,bx,by,lo); 
+        for j in [0..c){window[j] := CNOT(exponent[lo+j],window[j]);} forget(window=0:uint[c] as 𝔹^c);
+    }
+    (oi,ox,oy) := scalar_mult[p][ca](offset,bx,by); 
+    if !oi{(correction,inf,x,y) := window_point_add[p][ca](3:uint[2] as 𝔹^2,inf,x,y,ox,oy,0); forget(correction=3:uint[2] as 𝔹^2);}
+    return (inf,x,y);
+}
+
+def window_double_scalar_mult[p:!ℕ][ca:!ℕ][e:!ℕ,n:!ℕ](const k:𝔹^e,const l:𝔹^e,inf:𝔹,x:𝔹^n,y:𝔹^n,px:!ℕ,py:!ℕ,qx:!ℕ,qy:!ℕ){
+    (inf,x,y) := window_scalar_mult[p][ca](k,inf,x,y,px,py);
+    return window_scalar_mult[p][ca](l,inf,x,y,qx,qy);
+}
+
+def semiclassical_qft_window[t:!ℕ,w:!ℕ](qs:𝔹^w,mu:!𝔹^t,k:!ℕ):!𝔹^t{
+    assert(k+w<=t); if w=0{measure(qs); return mu;}
+    else{
+        (rest:𝔹^(w sub 1))~(q:𝔹,) := qs; theta := 0:!ℝ;
+        for j in [0..k){if mu[j]{theta += π/(2^(k-j));}} q := rotZ(theta,q); q := H(q); mu[k] = measure(q);
+        return semiclassical_qft_window[t,w sub 1](rest,mu,k+1);
+    }
+}
+
+def semiclassical_window_scalar[p:!ℕ][ca:!ℕ][e:!ℕ,n:!ℕ](inf:𝔹,x:𝔹^n,y:𝔹^n,bx:!ℕ,by:!ℕ){
+    w := ecc_window_size(n); count := (e+w-1) div w; mu := 0:!uint[e] as !𝔹^e; k := 0:!ℕ;
+    for h in [0..count){
+        block := count sub h sub 1; lo := block*w; c := w; if lo+c>e{c=e sub lo;} window := 0:uint[c] as 𝔹^c; for j in [0..c){window[j] := H(window[j]);} (window,inf,x,y) := window_point_add[p][ca](window,inf,x,y,bx,by,lo);
+        mu = semiclassical_qft_window[e,c](window,mu,k); k += c;
+    }
+    return (inf,x,y,mu);
+}
+
+def ecdlp_sample[p:!ℕ][ca:!ℕ](px:!ℕ,py:!ℕ,qx:!ℕ,qy:!ℕ){
+    n := floor(log₂(p)) coerce !ℕ; n += 1; e := n+1; inf := 1:𝔹; x := 0:uint[n] as 𝔹^n; y := 0:uint[n] as 𝔹^n; (inf,x,y,ku) := semiclassical_window_scalar[p][ca][e,n](inf,x,y,px,py);
+    (inf,x,y,lu) := semiclassical_window_scalar[p][ca][e,n](inf,x,y,qx,qy); measure(inf,x,y);
+    return (ku as !uint[e] as !ℕ,lu as !uint[e] as !ℕ);
+}
+
+def recover_dlog_classical[p:!ℕ][ca:!ℕ][r:!ℕ][e:!ℕ](u:!ℕ,v:!ℕ,px:!ℕ,py:!ℕ,qx:!ℕ,qy:!ℕ) lifted:!𝔹×!ℕ{
+    assert(r>2); a0 := ((2*u*r+2^e) div 2^(e+1))%r; b0 := ((2*v*r+2^e) div 2^(e+1))%r;
+    for i in [0..3){
+        a := (a0+r+i-1)%r; if a!=0{
+            (g,ainv) := EEA_classical(a,r); if g=1{
+                for j in [0..3){b := (b0+r+j-1)%r; d := (b*ainv)%r; (qi,x,y) := scalar_mult[p][ca](d,px,py); if !qi{if x=qx%p{if y=qy%p{return (1:!𝔹,d);}}}}
+            }
+        }
+    }
+    return (0:!𝔹,0);
+}
+
+def ecdlp[p:!ℕ][ca:!ℕ,cb:!ℕ][r:!ℕ](px:!ℕ,py:!ℕ)(qx:!ℕ,qy:!ℕ):!ℕ{
+    assert(p>2); assert((4*ca*ca*ca+27*cb*cb)%p!=0); assert(r>2);
+    assert(is_on_curve[p][ca][cb](px,py)); assert(is_on_curve[p][ca][cb](qx,qy));
+    n := floor(log₂(p)) coerce !ℕ; n += 1; e := n+1;
+    for shot in [0..2*n+2){(u,v) := ecdlp_sample[p][ca](px,py,qx,qy); (found,d) := recover_dlog_classical[p][ca][r][e](u,v,px,py,qx,qy); if found{return d;}}
+    return 0:!ℕ;
+}
+
+def main(){
+    return ecdlp[17][2,2][19](5,1)(13,10);
+}
