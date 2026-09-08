@@ -1,8 +1,9 @@
 import arithmetic.QQ_adder;
+import arithmetic.CQ_adder;
+import arithmetic.mod_inv;
 import primitives.QROAM;
-import primitives.operators;
 
-def mult_mod2[n:!ℕ](x:𝔹^n,y:𝔹^n){
+def mult_2[n:!ℕ](x:𝔹^n,y:𝔹^n){
     m := 0:uint[n+1] as 𝔹^(n+1);
     (y,m) := c_add_sub_carry(x[0],y,m);
     for j in [1..n){
@@ -14,16 +15,16 @@ def mult_mod2[n:!ℕ](x:𝔹^n,y:𝔹^n){
     }
     ((x[0],),(m[n],)) := adder_nocarry(1,(x[0],),(m[n],));
     ((y[0],),(m[n],)) := adder_nocarry(0,(y[0],),(m[n],));
-    (y~(0,),m) := subst(0,y~(0,),m); (0,)~(m:𝔹^n) := m;
+    (y~(0,),m) := subst_nocarry(0,y~(0,),m); (0,)~(m:𝔹^n) := m;
     return (x,y,m);
 }
 
 def modmult_addsub_block[n:!ℕ,w:!ℕ](xw:𝔹^w,y:𝔹^n,z:𝔹^n){
     r := (0,)~z~(0:uint[w] as 𝔹^w);
     for j in [0..w){
-        (r1:𝔹^(n+1))~(r2:𝔹^w) := r; 
+        (r1:𝔹^(n+1))~(r2:𝔹^w) := r;
         (y,r1) := c_add_sub_carry[n](xw[j],y,r1);
-        r := r1~r2 coerce 𝔹^(1+(n+w)); 
+        r := r1~r2 coerce 𝔹^(1+(n+w));
         (r1:𝔹^1)~(r2:𝔹^(n+w)) := r; r := r2~r1;
     }
     (r1:𝔹^(n+1))~(r2:𝔹^w) := r;
@@ -31,8 +32,8 @@ def modmult_addsub_block[n:!ℕ,w:!ℕ](xw:𝔹^w,y:𝔹^n,z:𝔹^n){
     (xw,r2) := adder_nocarry[w+1](1,xw~(0,),r2);
     (xw:𝔹^w)~(0,) := xw; r := r1~r2;
     yc := 0:uint[n+w+1] as 𝔹^(n+w+1);
-    for k in [0..n){yc[k] := CNOT(y[k],yc[k]);} 
-    with yc[n+w] := X(yc[n+w]){(yc,r) := subst[n+w+1](0,yc,r);}
+    for k in [0..n){yc[k] := CNOT(y[k],yc[k]);}
+    with yc[n+w] := X(yc[n+w]){(yc,r) := subst_nocarry[n+w+1](0,yc,r);}
     for k in [0..n){yc[k] := CNOT(y[k],yc[k]); yc[w+k] := CNOT(y[k],yc[w+k]);}
     (yc,r) := adder_nocarry[n+w+1](0,yc,r);
     for k in [0..n){yc[w+k] := CNOT(y[k],yc[w+k]);}
@@ -56,8 +57,15 @@ def modmult_addsub[n:!ℕ,w:!ℕ](const p:!ℕ,const pinv:!ℕ,xw:𝔹^w,y:𝔹^
     return (xw,y,garb,z_next);
 }
 
+def inv_mod2w[w:!ℕ](a:!ℕ) lifted:!ℕ{
+    assert(w>0);assert(a%2=1);m := 2^w;x := 1:!ℕ;
+    for j in [0..ceil(log₂(w))){x = (x*(2+m-(a*x)%m))%m;}
+    return x;
+}
+
 def mult_modp[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
-    pinv := qint_modinv_u[w]((p % 2^w) as !uint[w]) as !ℕ;
+    assert(w>=2);assert(w<=n);assert(n%w=0);assert(2^floor(log₂(w))=w);assert(p>2);assert(p%2=1);assert(4*p<2^n);
+    pinv := inv_mod2w[w](p);
     z := 0:uint[n] as 𝔹^n; garbage := dup(z);
     for step in [0..n div w){
         (xw:𝔹^w)~(xr:𝔹^(n sub w)) := x;
@@ -66,7 +74,7 @@ def mult_modp[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
         garbage := garbage~garbw; x := xr~xw;
     }
     pb := p as uint[n] as 𝔹^n;
-    (pb,z) := subst[n+1](0,pb~(0,),z~(0,));
+    (pb,z) := subst_nocarry[n+1](0,pb~(0,),z~(0,));
     (z:𝔹^n)~(underflow:𝔹^1) := z;
     (pb:𝔹^n)~(0,) := pb;
     (pb,z) := c_adder_nocarry[n](underflow[0],pb,z);
@@ -96,7 +104,7 @@ def undo_modmult_addsub[n:!ℕ,w:!ℕ](const p:!ℕ,const pinv:!ℕ,xw:𝔹^w,y:
     }
     corrected :=((0:uint[w] as 𝔹^w)~z) coerce 𝔹^(n+w);
     (garbw,table_words) := qroam_comp[n+w](lookup)[w](garbw,2);
-    (table_words[0],corrected) := subst[n+w](0,table_words[0],corrected);
+    (table_words[0],corrected) := subst_nocarry[n+w](0,table_words[0],corrected);
     garbw := qroam_uncomp[n+w](lookup)[w,2](garbw,table_words,2^w);
     (corrected_low:𝔹^w)~(corrected_high:𝔹^n) := corrected coerce 𝔹^(w+n);
     for j in [0..w){garbw[j] := CNOT(corrected_low[j],garbw[j]);}
@@ -106,35 +114,120 @@ def undo_modmult_addsub[n:!ℕ,w:!ℕ](const p:!ℕ,const pinv:!ℕ,xw:𝔹^w,y:
     return (xw,y,zold);
 }
 
-def mult_modp_clean[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n){
-    assert(n%w == 0);
-    pinv := qint_modinv_u[w]((p%2^w) as !uint[w]) as !ℕ;
-    (x,y,garbage,underflow,z) := mult_modp[n,w](p,x,y);
-    result := 0:uint[n] as 𝔹^n;
-    for j in [0..n){result[j] := CNOT(z[j],result[j]);}
-    pb := p as uint[n] as 𝔹^n;
-    (pb,z) := c_sub_nocarry[n](underflow[0],pb,z);
-    (pb~(0,),zext) := adder_nocarry[n+1](0,pb~(0,),z~underflow);
-    (z:𝔹^n)~(0,) := zext;
-    pbits := p as !uint[n];
-    for j in [0..n){if pbits[j]{pb[j] := X(pb[j]);}}
-    forget(pb=0:uint[n] as 𝔹^n);
+def unmult_modp[n:!ℕ,w:!ℕ](const p:!ℕ,x:𝔹^n,y:𝔹^n,garbage:𝔹^n,underflow:𝔹^1,z:𝔹^n){
+    pinv := inv_mod2w[w](p);pb := p as uint[n] as 𝔹^n;
+    (pb,z) := c_sub_nocarry[n](underflow[0],pb,z);z := z~underflow;pb := pb~(0,);
+    (pb,z) := adder_nocarry[n+1](0:𝔹,pb,z);(pb:𝔹^n)~(0,) := pb;(z:𝔹^n)~(0,) := z;forget(pb=p as uint[n]);
     for step in [0..n div w){
-        (xr:𝔹^(n sub w))~(xw:𝔹^w) := x;
-        (garb_rest:𝔹^(n sub w))~(garbw:𝔹^w) := garbage;
+        (xr:𝔹^(n sub w))~(xw:𝔹^w) := x;(garbage:𝔹^(n sub w))~(garbw:𝔹^w) := garbage;
         (xw,y,z) := undo_modmult_addsub[n,w](p,pinv,xw,y,garbw,z);
-        garbage := (0:uint[w] as 𝔹^w)~garb_rest; x := xw~xr;
+        x := xw~xr;garbage := (0:uint[w] as 𝔹^w)~garbage;
     }
-    forget(garbage~z=0:uint[2*n] as 𝔹^(2*n));
+    forget(garbage=0:uint[n]);forget(z=0:uint[n]);
+    return (x,y);
+}
+
+def double_modp[p:!ℕ][n:!ℕ](x:𝔹^n){
+    h := (p+1) div 2; f := 0:𝔹;
+    if (x as uint[n])>=h{f := X(f);}
+    (body:𝔹^(n sub 1))~(0,) := c_QC_sub[n](f,0:𝔹,x,h);
+    return (f,)~body;
+}
+
+def half_modp[p:!ℕ][n:!ℕ](x:𝔹^n){
+    (f:𝔹^1)~(body:𝔹^(n sub 1)) := x;
+    x := body~(0,); x := c_QC_adder[n](f[0],0:𝔹,x,(p+1) div 2);
+    if (x as uint[n])>=((p+1) div 2){f[0] := X(f[0]);} (0,) := f;
+    return x;
+}
+
+def mult_window[n:!ℕ]() lifted:!ℕ{
+    if n<8{return 2;}
+    q := floor(log₂(n)) coerce !ℕ;t := q sub (floor(log₂(q)) coerce !ℕ)+2; w := 2:!ℕ;
+    while 2*w<=t{w *= 2;} if t*t>=2*w*w{w *= 2;}
+    return w;
+}
+
+def montgomery_bits[w:!ℕ][n:!ℕ]()lifted:!ℕ{assert(w>=2);assert(2^floor(log₂(w))=w);return ((n+1) div w+1)*w;}
+def montgomery_const[p:!ℕ](a:!ℕ)lifted:!ℕ{n := (floor(log₂(p))+1) coerce !ℕ;return ((a%p)*(2^n%p))%p;}
+
+def mult_modp_into[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n,result:𝔹^n){
+    assert(p>2);assert(p%2=1);assert(p>=(2^(n sub 1)));assert(p<(2^n));
+    w := mult_window[n](); N := montgomery_bits[w][n](); d := N sub n;
+    (x,y,garbage,underflow,z) := mult_modp[N,w](p,x~vector(d,0) coerce 𝔹^N,y~vector(d,0) coerce 𝔹^N);  
+    (z:𝔹^n)~(0:uint[d] as 𝔹^d) := z coerce 𝔹^(n+d); for j in [0..d){z := double_modp[p][n](z);}
+    for j in [0..n){result[j] := CNOT(z[j],result[j]);}
+    for j in [0..d){z := half_modp[p][n](z);} 
+    (x,y) := unmult_modp[N,w](p,x,y,garbage,underflow,z~vector(d,0) coerce 𝔹^N);
+    x := x coerce 𝔹^(n+d); y := y coerce 𝔹^(n+d);
+    (x:𝔹^n)~(0:uint[d] as 𝔹^d) := x; (y:𝔹^n)~(0:uint[d] as 𝔹^d) := y;
     return (x,y,result);
 }
 
+def mult_modp_clean[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){return mult_modp_into[p][n](x,y,0:uint[n] as 𝔹^n);}
+
+def square_modp_into[p:!ℕ][n:!ℕ](x:𝔹^n,result:𝔹^n){
+    y := dup(x);(x,y,result) := mult_modp_into[p][n](x,y,result);
+    for j in [0..n){y[j] := CNOT(x[j],y[j]);}
+    forget(y=0:uint[n]);
+    return (x,result);
+}
+
+def square_modp[p:!ℕ][n:!ℕ](x:𝔹^n){return square_modp_into[p][n](x,0:uint[n] as 𝔹^n);}
+
+def minv_forward[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n){
+    (x,a,state) := eea_forward[p][n,l](x,a);
+    for j in [0..2*n){x := double_modp[p][n](x);}
+    return (x,a,state);
+}
+
+def minv_inverse[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n,state:𝔹×𝔹×𝔹×𝔹^(l+3)×𝔹^(l+1)×𝔹^(l+1)×𝔹^(l+1)×𝔹){
+    for j in [0..2*n){x := half_modp[p][n](x);}
+    return eea_inverse[p][n,l](x,a,state);
+}
+
+def inv_modp[p:!ℕ][n:!ℕ](x:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,a,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    result := dup(x); (x,0:uint[n] as 𝔹^n) := minv_inverse[p][n,l](x,a,state);
+    return (x,result);
+}
+
+def div_modp[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,a,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    (x,y,result) := mult_modp_clean[p][n](x,y);
+    (x,0:uint[n] as 𝔹^n) := minv_inverse[p][n,l](x,a,state);
+    return (x,y,result);
+}
+
+def mult[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,y,a) := mult_modp_clean[p][n](x,y);
+    for j in [0..n){y[j] := H(y[j]);} b := measure(y) as !uint[n];
+    (x,y,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    (x,a,y) := mult_modp_into[p][n](x,a,y); 
+    for j in [0..n){if b[j]{y[j] := Z(y[j]);}}
+    (x,a,y) := mult_modp_into[p][n](x,a,y); 
+    (x,y) := minv_inverse[p][n,l](x,y,state);
+    (y,a) := (a,y); forget(a=0:uint[n] as 𝔹^n);
+    return (x,y);
+}
+
+def div_modp_inplace[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,a,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    (x,y,a) := mult_modp_into[p][n](x,y,a);
+    for j in [0..n){y[j] := H(y[j]);} b := measure(y) as !uint[n];
+    (x,y) := minv_inverse[p][n,l](x,0:uint[n] as 𝔹^n,state);
+    (x,a,y) := mult_modp_into[p][n](x,a,y); 
+    for j in [0..n){if b[j]{y[j] := Z(y[j]);}}
+    (x,a,y) := mult_modp_into[p][n](x,a,y);
+    (y,a) := (a,y); forget(a=0:uint[n] as 𝔹^n);
+    return (x,y);
+}
+
 def main(){
-    //control := H(0:𝔹);
-    //x := 4:uint[5] as 𝔹^5;
-    //y := 3:uint[5] as 𝔹^5;
-    //return mult_mod2(x,y) as uint[5]×uint[5]×uint[5];
-    x := 9:uint[4] as 𝔹^4;
-    y := 7:uint[4] as 𝔹^4;
-    return mult_modp_clean[4,2](13,x,y) as uint[4]×uint[4]×uint[4];
+    x := montgomery_const[13](9) as uint[4] as 𝔹^4;y := montgomery_const[13](7) as uint[4] as 𝔹^4;
+    return div_modp_inplace[13](x,y) as uint[4]×uint[4];
 }
