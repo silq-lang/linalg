@@ -31,6 +31,8 @@ def Oa_sym[alpha:!ℝ,beta:!ℝ][n:!ℕ](anc:𝔹,const l:𝔹^n,const qs:𝔹^n
     return anc;
 }
 
+def Oap_sym[n:!ℕ](const anc:𝔹,const l:𝔹^n,const qs:𝔹^n) mfree{}
+
 def Oc_sym[n:!ℕ](l:𝔹^n,const qs:𝔹^n){
     l := upper_shift(l);
     for i in[0..n){
@@ -48,7 +50,7 @@ def cyclic_block[n:!ℕ](ancilla:𝔹^3,qs:𝔹^n, const alpha:!ℝ, const beta:
 }
 
 def cyclic_sym_block[n:!ℕ](ancilla:𝔹^(n+2),qs:𝔹^n, const alpha:!ℝ, const beta:!ℝ){
-    return herm_sparse_block[2,n](ancilla,qs,Oc_sym[n],Oa_sym[alpha,beta][n]);
+    return herm_sparse_block[2,n](ancilla,qs,Oc_sym[n],Oa_sym[alpha,beta][n],Oap_sym[n]);
 }
 
 def Up(qs:𝔹^3) mfree{

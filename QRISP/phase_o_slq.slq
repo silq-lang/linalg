@@ -1,5 +1,3 @@
-import arithmetic.AND_adder;
-
 def T(x:𝔹) mfree{
     phase(π/8);
     x := rotZ(π/4,x);

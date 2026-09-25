@@ -1,6 +1,8 @@
 import primitives.list_op;
 import GQSVT.threshold;
 import GQSVT.log_unitary;
+import GQSVT.func_approx;
+import GQSVT.matrix_poly;
 
 def max_W[N:!ℕ](W:(!ℝ^N)^N)qfree{
     max_val := W[0][0];
@@ -32,10 +34,13 @@ def ising_unitary[n:!ℕ](qs:𝔹^n, const W:(!ℝ^n)^n) mfree{
 def maxcut[n:!ℕ](W:(!ℝ^n)^n,k:!ℕ,Δ:!ℝ,λf:!ℝ){
     qs := 0:uint[n] as 𝔹^n;
     for j in [0..n){qs[j] := H(qs[j]);}
-    anc := 0:uint[4] as 𝔹^4;
+    anc := 0:uint[5] as 𝔹^5;
     def H_unitary(xs:𝔹^n){return ising_unitary(xs,W);}
     def H_block(ancilla:𝔹^2,xs:𝔹^n){return log_U[4][n](ancilla,xs,H_unitary);}
-    return eigenstate_filtering[n,2](H_block,anc,qs,k,Δ,λf,2/π);
+    // log_U[4] encodes (2*scale/π)*H; filtering expects the factor α in H/α.
+    scale := polynomial_normalization_scale[2*4+1](arcsin_poly(4));
+    α := π/(2*scale);
+    return eigenstate_filtering[n,2](H_block,anc,qs,k,Δ,λf,α);
 }
 
 def main(){

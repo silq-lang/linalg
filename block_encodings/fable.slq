@@ -15,6 +15,7 @@ def diff_bit(j:!ℕ, N:!ℕ){
 }
 
 def fwht[N:!ℕ](t:!ℝ^N){
+    if N == 1{return t;}
     assert((N & (N-1 coerce !ℕ)) == 0);
     out := vector(N,0:!ℝ); h := 1:!ℕ;
     while h < N {

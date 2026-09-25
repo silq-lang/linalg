@@ -1,0 +1,75 @@
+import opt.mcx;
+
+def toffoli(const x:𝔹,const y:𝔹,z:𝔹) qfree{
+    if y{if x{z:=X(z);}}
+    return z;
+}
+
+def QQ_comparator[n:!ℕ](a:𝔹^n,b:𝔹^n,z:𝔹) qfree{
+    with{a[0] := X(a[0]); for j in [1..n){a[j] := X(a[j]); a[j] := CNOT(b[j], a[j]);}}
+    do{
+        z := CNOT(b[n sub 1], z);
+        for j in [1..n sub 1){b[n sub j] := CNOT(b[n sub j sub 1], b[n sub j]);}
+        for j in [0..n sub 1){b[j + 1] := toffoli(b[j],a[j],b[j + 1]);}
+        z := toffoli(b[n sub 1], a[n sub 1], z);
+        for j in [0..n sub 1) {b[n sub j sub 1] := toffoli(b[n sub j sub 2],a[n sub j sub 2],b[n sub j sub 1]);}
+        for j in [1..n sub 1){b[j + 1] := CNOT(b[j],b[j+1]);}
+    }
+    return (a,b,z);
+}
+
+//def mcx[n:!ℕ](const ctrl:𝔹^n,target:𝔹) qfree{
+//    if ctrl=vector(n,1){target := X(target);}
+//    return target;
+//}
+
+def mcx2[n:!ℕ](const xs:𝔹^n,y:𝔹){
+	if n=0{ return X(y); }
+	if xs[0]{ return mcx2(xs[1..n],y); }
+	return y;
+}
+
+def gadget[n:!ℕ](a:𝔹^n,c:!ℕ,z:𝔹) mfree{
+    m := ceil(n/2) coerce !ℕ; r := n sub m; k := n % 2; h := 1 sub k;
+    (a:𝔹^(n sub m))~(b:𝔹^m) := a; (c1:!𝔹^m)~(c2:!𝔹^(n sub m)) := c as !uint[n] as !𝔹^n;
+    //(b,x) := mcx(b,0:𝔹);
+    x := mcx2(b,0:𝔹);
+    repeat 2{
+        for j in [0..m sub 1){b[j+1] := toffoli(a[j],b[j],b[j+1]);}
+        if b[m sub 1]&x{z := X(z);}
+        for j in [0..m sub 1){b[m sub j sub 1] := toffoli(a[m sub j sub 2],b[m sub j sub 2],b[m sub j sub 1]);}
+        for j in [0..m){if c1[j]{b[j] := X(b[j]);}}
+    }
+    //(b,x) := mcx(b,x); 
+    x := mcx2(b,x);
+    forget(x=0);
+    (bg:𝔹^k)~(b:𝔹^(m sub k)) := b;
+    repeat 2{
+        for j in [0..r sub 1){a[j+1] := toffoli(a[j],b[j],a[j+1]);}
+        if a[r sub 1]&b[r sub 1]{z := X(z);}
+        for j in [0..r sub 1){a[r sub j sub 1] := toffoli(a[r sub j sub 2],b[r sub j sub 2],a[r sub j sub 1]);}
+        for j in [0..r){if c2[j]{a[j] := X(a[j]);}}
+    }
+    return (a~bg~b coerce 𝔹^n,z);
+}
+
+def CQ_comparator[n:!ℕ](a:𝔹^n,c:!ℕ,z:𝔹) mfree{
+    c := c as !uint[n] as !𝔹^n;
+    with{a[0] := X(a[0]);for j in [1..n){a[j] := X(a[j]);if c[j]{a[j] := X(a[j]);}}}
+    do{
+        if c[n sub 1]{z := X(z);}
+        for j in [1..n sub 1){if c[n sub j sub 1]{c[n sub j] ⊕= 1;}}
+        (a,z) := gadget(a,c as !uint[n] as !ℕ,z);
+        for j in [1..n sub 1){if c[j]{c[j+1] ⊕= 1;}}
+    }
+    return (a,z);
+}
+
+def main(){
+    qs := 0:uint[5] as 𝔹^5;
+    z := 0:𝔹;
+    for j in [0..5){qs[j] := H(qs[j]);}
+    if (qs as uint[5])<6{z := X(z);}
+    //(qs,z) := CQ_comparator(qs,6,z);
+    return (qs,z);
+} 

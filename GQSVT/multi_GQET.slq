@@ -22,26 +22,29 @@ def Tf[k:!ℕ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → 
 
 def remove_right_zeros[N:!ℕ](v:!ℂ^N)qfree{
     n := N; vr := [];
-    while v[n sub 1] == 0{n -= 1;}
+    while n>1 && v[n sub 1] == 0{n -= 1;}
     for i in [0..n){vr ~= [v[i]];}
     return vr;
 }
 
-def uni_GQET[d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+def uni_GQET_bounded[d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
     p := remove_right_zeros(p); l := p.length-1 coerce !ℕ; p := p coerce !ℂ^(l+1);
-    N := num_samples(l,1e-8);
-    if !poly_cond[1000][l](p){
-        β := bound[N][l](p);
-        print(β);
-        pq:=vector(l+1,0);
-        for j in [0..l){pq[j] = p[j]/β;}
-    }else{pq:=p;}
-    pq := chebyshev_coef[l](pq);
-    q:=complement[l](pq,1e-8);
-	assert(is_complement[num_samples(l,1e-3)][l](pq,q,1e-3));
-	angles:=gqsp_compute_angles[l](pq,q);
+    if l=0{
+        (flag:𝔹^1)~(anc:𝔹^m) := anc;
+        flag[0] := rotY(2*acos(cabs(p[0])),flag[0]);
+        if cabs(p[0])>0{phase(carg(p[0]));}
+        return (flag~anc,qs);
+    }
+    q:=complement[l](p,1e-8);
+    assert(is_complement[num_samples(l,1e-8)][l](p,q,1e-8));
+    angles:=gqsp_compute_angles[l](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
     return gqet[0][l](θs,φs,λ)(f)(anc,qs);
+}
+
+def uni_GQET[d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+    p := normalize_polynomial[d](chebyshev_coef[d](p));
+    return uni_GQET_bounded[d](p)[n,m](f)(anc,qs);
 }
 
 def prod_term[k:!ℕ][d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹^(m1+m2+1),qs:𝔹^n,const f:𝔹^m1 × 𝔹^n → mfree 𝔹^m1 × 𝔹^n,const g:𝔹^m2 × 𝔹^n → mfree 𝔹^m2 × 𝔹^n)mfree:𝔹^(m1+m2+1)×𝔹^n{
@@ -51,13 +54,30 @@ def prod_term[k:!ℕ][d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹
     return (anc1~anc2,qs);
 }
 
+def prod_term_bounded[k:!ℕ][d:!ℕ](p:!ℂ^(d+1))[n:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹^(m1+m2+1),qs:𝔹^n,const f:𝔹^m1 × 𝔹^n → mfree 𝔹^m1 × 𝔹^n,const g:𝔹^m2 × 𝔹^n → mfree 𝔹^m2 × 𝔹^n)mfree:𝔹^(m1+m2+1)×𝔹^n{
+    (anc1:𝔹^m1)~(anc2:𝔹^(m2+1)) := ancilla;
+    (anc1,qs) := Tf[k][n,m1](anc1,qs,f);
+    (anc2,qs) := uni_GQET_bounded[d](p)[n,m2](g)(anc2,qs);
+    return (anc1~anc2,qs);
+}
+
 def biv_GQET[d:!ℕ](p:(!ℂ^(d+1))^(d+1))[n:!ℕ,m:!ℕ,m1:!ℕ,m2:!ℕ](ancilla:𝔹^(m+m1+m2+1),qs:𝔹^n,const f:𝔹^m1 × 𝔹^n → mfree 𝔹^m1 × 𝔹^n,const g:𝔹^m2 × 𝔹^n → mfree 𝔹^m2 × 𝔹^n)mfree:𝔹^(m+m1+m2+1)×𝔹^n{
     Q := compute_Q(p);
+    common_bound := 0:!ℝ;
+    for k in [0..d+1){
+        Q[k] = chebyshev_coef[d](Q[k]);
+        common_bound = max(common_bound,polynomial_normalization_bound[d](Q[k]));
+    }
+    if common_bound>0{
+        for k in [0..d+1){
+            for j in [0..d+1){Q[k][j] *= 0.9/common_bound;}
+        }
+    }
     (flag:𝔹^m)~(anc:𝔹^(m1+m2+1)) := ancilla;
     flag := uniform_superposition[d+1](flag);
     for k in [0..d+1){
         if k == (flag as uint[m]){
-            (anc,qs) := prod_term[k][d](Q[k])[n,m1,m2](anc,qs,f,g);
+            (anc,qs) := prod_term_bounded[k][d](Q[k])[n,m1,m2](anc,qs,f,g);
         }
     }
     uniform_superposition[d+1](flag) := flag;
@@ -75,3 +95,4 @@ def main(){
         return twosym_herm(anc,xs,alpha1,-alpha2);
     } 
     return biv_GQET[2](p)[1,2,3,3](0:uint[9] as 𝔹^9,0:uint[1] as 𝔹^1,twosym1,twosym2); //should return minus identity
+}

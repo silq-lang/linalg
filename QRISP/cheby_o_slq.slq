@@ -1,22 +1,55 @@
-import QRISP.TFIM_slq;
-import QRISP.gqet_mod;
+import opt.mcx;
+import opt.mcz;
+import opt.mcrot;
+
+def TFIM(anc:𝔹^2,qs:𝔹^2)mfree{
+    t:=2*acos(sqrt(3/5));p:=2*acos(sqrt(1/3));
+    (anc0:𝔹^1)~(anc1:𝔹^1) := anc;(qs0:𝔹^1)~(qs1:𝔹^1) := qs;
+
+    anc1[0] := rotY(t,anc1[0]);
+    anc1[0] := X(anc1[0]);
+    ((anc1:𝔹^1),anc0[0]) := mcrot[p](anc1,anc0[0],2);
+    anc1[0] := X(anc1[0]);
+    anc0[0] := Z(anc0[0]); anc1[0] := Z(anc1[0]);
+
+    anc0[0] := X(anc0[0]); anc1[0] := X(anc1[0]);
+    (anc0:𝔹^1)~(anc1:𝔹^1)~(qs0:𝔹^1)~(qs1:𝔹^1) := mcz(anc0~anc1~qs0~qs1);
+    anc0[0] := X(anc0[0]); 
+    ((anc0:𝔹^1)~(anc1:𝔹^1),qs0[0]) := mcx(anc0~anc1,qs0[0]);
+    anc1[0] := X(anc1[0]);
+    anc0[0] := X(anc0[0]);
+    ((anc0:𝔹^1)~(anc1:𝔹^1),qs1[0]) := mcx(anc0~anc1,qs1[0]);
+    anc0[0] := X(anc0[0]);
+
+    anc1[0] := X(anc1[0]);
+    ((anc1:𝔹^1),anc0[0]) := mcrot[-p](anc1,anc0[0],2);
+    anc1[0] := X(anc1[0]);
+    anc1[0] := rotY(-t,anc1[0]);
+
+    anc0[0] := X(anc0[0]);
+    anc0[0] := Z(anc0[0]);
+    anc0[0] := X(anc0[0]);
+
+
+    return (anc0~anc1,qs0~qs1);
+}   
 
 //k applications of the qubitized operator block-encode T_k(A) 
 
 def Tf[k:!ℕ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
     repeat (k div 2){
-        anc := π_phase(anc);
+        anc := omcz(anc);
         (anc,qs) := f(anc,qs);
-        anc := π_phase(anc);
+        anc := omcz(anc);
         (anc,qs) := reverse(f)(anc,qs);
     }
     if (k%2=1){
-        anc := π_phase(anc);
+        anc := omcz(anc);
         (anc,qs) := f(anc,qs);
     }
     return (anc,qs);
 }
 
 def main(){
-    return Tf[2][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2,TFIM[-sqrt(0.25),sqrt(0.5)][2,2]);
+    return Tf[5][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2,TFIM);
 }

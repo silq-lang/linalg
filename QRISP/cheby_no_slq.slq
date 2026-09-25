@@ -17,5 +17,5 @@ def Tf[k:!ℕ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → 
 }
 
 def main(){
-    return Tf[2][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2,TFIM[-sqrt(0.25),sqrt(0.5)][2,2]);
+    return Tf[5][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2,TFIM[-sqrt(0.25),sqrt(0.5)][2,2]);
 }

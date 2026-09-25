@@ -1,4 +1,7 @@
 import QRISP.pauli_lcu;
+import opt.mcx;
+import opt.mcz;
+import opt.mcrot;
 
 def TFIM[J:!ℝ,h:!ℝ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n) mfree:𝔹^m×𝔹^n{
     assert(n>1);
@@ -7,6 +10,126 @@ def TFIM[J:!ℝ,h:!ℝ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n) mfree:𝔹^m×𝔹^
     return pauli_LCU[m,n,n sub 1 + n coerce !ℕ](anc,qs,ind_z~ind_x,coef);
 }
 
+def prep[n:!ℕ](ctrl:𝔹^n,anc:𝔹^2)mfree{
+    t := 2 * acos(sqrt(3/5));
+    p := 2 * acos(sqrt(1/3));
+    (anc1:𝔹^1) ~ (anc2:𝔹^1) := anc;
+    (ctrl,anc1[0]) := mcrot[t](ctrl,anc1[0],2);
+    anc1[0] := X(anc1[0]);
+    ((ctrl:𝔹^n) ~ (anc1:𝔹^1),anc2[0]) := mcrot[p](ctrl~anc1,anc2[0],2);
+    anc1[0] := X(anc1[0]);
+    return (ctrl,anc1 ~ anc2);
+}
+
+def sel[n:!ℕ](ctrl:𝔹^n, anc:𝔹^2, qs:𝔹^2) mfree{
+    (anc1:𝔹^1) ~ (anc2:𝔹^1) := anc;
+    (q0:𝔹^1) ~ (q1:𝔹^1) := qs;
+    for k in [0..n) {ctrl[k] := X(ctrl[k]);}
+    (ctrl:𝔹^n)~(anc1:𝔹^1)~(anc2:𝔹^1) := omcz(ctrl~anc1~anc2);
+    q0[0] := X(q0[0]);
+    (ctrl:𝔹^n) ~(anc1:𝔹^1) ~(anc2:𝔹^1) ~(q0:𝔹^1) := omcz(ctrl~anc1~anc2~q0);
+    q0[0] := X(q0[0]);
+    q1[0] := X(q1[0]);
+    (ctrl:𝔹^n) ~(anc1:𝔹^1) ~(anc2:𝔹^1) ~(q1:𝔹^1) := omcz(ctrl ~ anc1 ~ anc2 ~ q1);
+    q1[0] := X(q1[0]);
+    for k in [0..n) {ctrl[k] := X(ctrl[k]);}
+    anc1[0] := X(anc1[0]);
+    (q0,) := q0;
+    ((ctrl:𝔹^n)~(anc1:𝔹^1) ~(anc2:𝔹^1),q0) := mcx[n + 2](ctrl ~ anc1 ~ anc2, q0);
+    anc1[0] := X(anc1[0]);
+    anc2[0] := X(anc2[0]);
+    (q1,) := q1;
+    ((ctrl:𝔹^n)~(anc1:𝔹^1)~(anc2:𝔹^1),q1) := mcx[n+2](ctrl ~ anc1 ~ anc2, q1);
+    anc2[0] := X(anc2[0]);
+    return (ctrl,anc1 ~ anc2,(q0,)~(q1,));
+}
+
+def unprep[n:!ℕ](ctrl:𝔹^n, anc:𝔹^2) mfree {
+    t := 2 * acos(sqrt(3/5));
+    p := 2 * acos(sqrt(1/3));
+    (anc1:𝔹^1) ~ (anc2:𝔹^1) := anc;  
+    anc1[0] := X(anc1[0]);
+    ((ctrl:𝔹^n)~(anc1:𝔹^1),anc2[0]) := mcrot[-p](ctrl ~ anc1, anc2[0], 2);
+    anc1[0] := X(anc1[0]);
+    (ctrl, anc1[0]) := mcrot[-t](ctrl, anc1[0], 2);
+    return (ctrl, anc1 ~ anc2);
+}
+
+def TFIM_cont[n:!ℕ](ctrl:𝔹^n,anc:𝔹^2, qs:𝔹^2)mfree{
+    (ctrl,anc) := prep(ctrl,anc);
+    (ctrl,anc, qs) := sel(ctrl,anc, qs);
+    (ctrl,anc) := unprep(ctrl,anc);
+    return (ctrl,anc,qs);
+}
+
+def TFIM_cont2[n:!ℕ](ctrl:𝔹^n,anc:𝔹^2,qs:𝔹^2)mfree{
+    t:=2*acos(sqrt(3/5));p:=2*acos(sqrt(1/3));
+    (anc0:𝔹^1)~(anc1:𝔹^1) := anc;(qs0:𝔹^1)~(qs1:𝔹^1) := qs;
+
+    (ctrl,anc1[0]) := mcrot[t](ctrl,anc1[0],2);
+    anc1[0] := X(anc1[0]);
+    ((ctrl:𝔹^n)~(anc1:𝔹^1),anc0[0]) := mcrot[p](ctrl~anc1,anc0[0],2);
+    anc1[0] := X(anc1[0]);
+    anc0[0] := Z(anc0[0]); anc1[0] := Z(anc1[0]);
+
+    anc0[0] := X(anc0[0]); anc1[0] := X(anc1[0]);
+    (ctrl:𝔹^n)~(anc0:𝔹^1)~(anc1:𝔹^1)~(qs0:𝔹^1)~(qs1:𝔹^1) := mcz(ctrl~anc0~anc1~qs0~qs1);
+    anc0[0] := X(anc0[0]); 
+    ((ctrl:𝔹^n)~(anc0:𝔹^1)~(anc1:𝔹^1),qs0[0]) := mcx(ctrl~anc0~anc1,qs0[0]);
+    anc1[0] := X(anc1[0]);
+    anc0[0] := X(anc0[0]);
+    ((ctrl:𝔹^n)~(anc0:𝔹^1)~(anc1:𝔹^1),qs1[0]) := mcx(ctrl~anc0~anc1,qs1[0]);
+    anc0[0] := X(anc0[0]);
+
+    anc1[0] := X(anc1[0]);
+    ((ctrl:𝔹^n)~(anc1:𝔹^1),anc0[0]) := mcrot[-p](ctrl~anc1,anc0[0],2);
+    anc1[0] := X(anc1[0]);
+    (ctrl,anc1[0]) := mcrot[-t](ctrl,anc1[0],2);
+
+    anc0[0] := X(anc0[0]);
+    anc0[0] := Z(anc0[0]);
+    anc0[0] := X(anc0[0]);
+
+
+    return (ctrl,anc0~anc1,qs0~qs1);
+}   
+
+def TFIM2(anc:𝔹^2,qs:𝔹^2)mfree{
+    t:=2*acos(sqrt(3/5));p:=2*acos(sqrt(1/3));
+    (anc0:𝔹^1)~(anc1:𝔹^1) := anc;(qs0:𝔹^1)~(qs1:𝔹^1) := qs;
+
+    anc1[0] := rotY(t,anc1[0]);
+    anc1[0] := X(anc1[0]);
+    ((anc1:𝔹^1),anc0[0]) := mcrot[p](anc1,anc0[0],2);
+    anc1[0] := X(anc1[0]);
+    anc0[0] := Z(anc0[0]); anc1[0] := Z(anc1[0]);
+
+    anc0[0] := X(anc0[0]); anc1[0] := X(anc1[0]);
+    (anc0:𝔹^1)~(anc1:𝔹^1)~(qs0:𝔹^1)~(qs1:𝔹^1) := mcz(anc0~anc1~qs0~qs1);
+    anc0[0] := X(anc0[0]); 
+    ((anc0:𝔹^1)~(anc1:𝔹^1),qs0[0]) := mcx(anc0~anc1,qs0[0]);
+    anc1[0] := X(anc1[0]);
+    anc0[0] := X(anc0[0]);
+    ((anc0:𝔹^1)~(anc1:𝔹^1),qs1[0]) := mcx(anc0~anc1,qs1[0]);
+    anc0[0] := X(anc0[0]);
+
+    anc1[0] := X(anc1[0]);
+    ((anc1:𝔹^1),anc0[0]) := mcrot[-p](anc1,anc0[0],2);
+    anc1[0] := X(anc1[0]);
+    anc1[0] := rotY(-t,anc1[0]);
+
+    anc0[0] := X(anc0[0]);
+    anc0[0] := Z(anc0[0]);
+    anc0[0] := X(anc0[0]);
+
+
+    return (anc0~anc1,qs0~qs1);
+}   
+
+
+
 def main(){
-    return TFIM[-sqrt(0.25),sqrt(0.5)][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2);
+    ctrl := 0:uint[0] as 𝔹^0;
+    return TFIM2(0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2);
+    //return TFIM[-sqrt(0.25),sqrt(0.5)][2,2](0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2);
 }

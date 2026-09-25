@@ -1,5 +1,4 @@
 //import primitves.list_op;
-import primitives.multicontrol;
 
 def gray_scalew(N:!ℕ){
     ord := [];
@@ -78,21 +77,34 @@ def c_cont(N:!ℕ){
     return c coerce !ℕ^(N-1 coerce !ℕ);
 }
 
-def walsh_hadamard[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k,cont:!ℕ^k) mfree{
+def walsh_phases[n:!ℕ,k:!ℕ](qs:𝔹^n,angles:!ℝ^k,ord:!ℕ^k,cont:!ℕ^k) mfree{
     for i in [0..k){
-        if ord[i]=0{phase(walsh_coefficient(0,t));}
-        else if ord[i]=1{qs[n sub 1] := rotZ(-2*walsh_coefficient(1,t),qs[n sub 1]);}
+        if ord[i]=0{if angles[i] != 0{phase(angles[i]);}}
+        else if ord[i]=1{
+            if angles[i] != 0{qs[n sub 1] := rotZ(-2*angles[i],qs[n sub 1]);}
+        }
         else{
             j := floor(log(ord[i])/log(2))+1 coerce !ℕ;
-            a := ord[i] coerce !ℕ;
-            b := n sub 1 sub cont[i] coerce !ℕ;
-            d := dup(qs[b]);
-            qs[n sub j] := mc(X)((d,),qs[n sub j]);
-            forget(d=qs[b]);
-            qs[n sub j] := rotZ(-2*walsh_coefficient(a,t),qs[n sub j]);
+            control := n sub 1 sub cont[i] coerce !ℕ;
+            target := n sub j;
+            assert(control < n && target < n && control != target);
+            (left:𝔹^target)~(pivot,)~(right:𝔹^(n sub (target+1))) := qs;
+            if control < target{
+                pivot := CNOT(left[control],pivot);
+            }else{
+                pivot := CNOT(right[control sub (target+1)],pivot);
+            }
+            if angles[i] != 0{pivot := rotZ(-2*angles[i],pivot);}
+            qs := left~(pivot,)~right;
         }
     }
     return qs;
+}
+
+def walsh_hadamard[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k,cont:!ℕ^k) mfree{
+    angles := vector(k,0:!ℝ);
+    for i in [0..k){angles[i] = walsh_coefficient(ord[i],t);}
+    return walsh_phases(qs,angles,ord,cont);
 }
 
 def walsh_hadamard_parallel[n:!ℕ,m:!ℕ](qs:𝔹^n,t:!ℝ^m,p:!ℕ) mfree{

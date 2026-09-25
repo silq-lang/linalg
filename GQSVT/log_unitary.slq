@@ -15,7 +15,7 @@ def sin_H[n:!ℕ](anc:𝔹^1,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n){
 
 def log_U[d:!ℕ][n:!ℕ](anc:𝔹^2,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n){
     def sin_H_(ancilla:𝔹^1,xs:𝔹^n){return sin_H(ancilla,xs,f);}
-    p := arcsin_poly(d);
+    p := normalize_polynomial[2*d+1](arcsin_poly(d));
     q:=complement[2*d+1](p,1e-8);
 	assert(is_complement[num_samples(2*d+1,1e-8)][2*d+1](p,q,1e-8));
 	angles:=gqsp_compute_angles[2*d+1](p,q);

@@ -1,75 +1,89 @@
-import phase_estimation.QFT;
-import primitives.multiplexed;
 import block_encodings.block_subroutines;
+import block_encodings.symtwobytwo;
 import block_encodings.diagonal;
 import Amplitude_Amplification.amplitude_amplification;
 import GQSVT.func_approx;
 
-def H_col[m:!ℕ](xs:𝔹^m){
-    for j in [0..m){xs[j] := H(xs[j]);}
-    return xs;
+def multiplexed_unitaries[q:qtype,m:!ℕ](const f:q → mfree q,const ctrl:𝔹^m,target:q) mfree{
+    for j in [0..m){
+        if ctrl[j]{
+            for k in [0..2^j){target := f(target);}
+        }
+    }
+    return target;
 }
 
-def qpe[q:qtype,m:!ℕ](const f:q → mfree q)(const window:!ℝ → qfree !ℝ,anc:𝔹^m,qs:q){
-    anc := H_col(anc);
-    t := vector(2^m,0:!ℝ);
-    for j in [0..2^m){t[j] = window(j);}
-    def non_unitary_diag_amp[m:!ℕ](flag:𝔹^1,xs:𝔹^m){
-        return non_unitary_diag(flag,xs,t);
-    }
-    (flag,anc) := non_unitary_diag_amp(0:uint[1] as 𝔹^1,anc);
-    anc := fixed_point_AA(flag,anc,non_unitary_diag_amp[m],H_col[m]);
+def QPE_core[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,anc:𝔹^m,qs:𝔹^n){
     qs := multiplexed_unitaries(f,anc,qs);
-    QFT(anc) := anc;
-    return (anc,qs);
+    μ := vector(m,0:!𝔹);
+    for k in [0..m){
+        θ := 0:!ℝ;for l in [0..k){if μ[l]{θ -= π/(2^(k-l));}}
+        i := m sub k sub 1;(bit,anc[i]) := (measure(H(rotZ(θ,anc[i]))),0:𝔹);
+        μ[k] = bit;
+    }
+    forget(anc=0:uint[m] as 𝔹^m);
+    return (μ as !uint[m] as !ℕ,qs);
 }
 
-def estimate_phase[shots:!ℕ][q:qtype,m:!ℕ](const f:q → mfree q)(const window:!ℝ → qfree !ℝ ,const ancilla:𝔹^m,const xs:q){
+def QPE[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,const prepare:𝔹^n → mfree 𝔹^n){
     counts := vector(2^m,0:!ℕ);
+    qs := prepare(0:uint[n] as 𝔹^n);
     for j in [0..shots){
-        anc := dup(ancilla);qs := dup(xs);
-        (anc,qs) := qpe[q,m](f)(window,anc,qs);
-        ϕ := measure(anc) as !uint[m] as !ℕ;
-        counts[ϕ] += 1;
-        measure(qs);
+        anc := 0:uint[m] as 𝔹^m;for k in [0..m){anc[k] := H(anc[k]);}
+        (ϕ,qs) := QPE_core[n,m](f,anc,qs);counts[ϕ] += 1;
     }
+    measure(qs);
     highest := 0:!ℕ;
-    for j in [0..2^m){
-        if counts[j]>counts[highest]{highest = j;}
-    }
+    for j in [0..2^m){if counts[j]>counts[highest]{highest = j;}}
     return highest/2^m as !ℝ;
 }
 
-def hermitian_phase_estimate[shots:!ℕ][n:!ℕ,m:!ℕ,k:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(const window:!ℝ → qfree !ℝ ,const ancilla:𝔹^k,const qs:𝔹^m × 𝔹^n){
-    def qubitized_f(anc:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
-        return qubitize(anc,xs,f);
+def prepare_window[m:!ℕ](const t:!ℝ^(2^m)){
+    def H_col[m:!ℕ](xs:𝔹^m) mfree{for j in [0..m){xs[j] := H(xs[j]);}return xs;}
+    def window_filter(flag:𝔹^1,xs:𝔹^m) mfree{return non_unitary_diag(flag,xs,t);}
+    uniform := t[0]!=0; for j in [1..2^m){if t[j]!=t[0]{uniform = 0:!𝔹;}}
+    anc := H_col(0:uint[m] as 𝔹^m);
+    if !uniform{
+        (flag,anc) := window_filter(0:uint[1] as 𝔹^1,anc);
+        anc := fixed_point_AA(flag,anc,window_filter,H_col[m]);
     }
-    γ := estimate_phase[shots][𝔹^m × 𝔹^n,k](qubitized_f)(window,ancilla,qs);
-    return γ;
+    return anc;
 }
 
-def rect_window(x:!ℝ) qfree{
-    return 1:!ℝ;
-}
-
-def sine_window[m:!ℕ](x:!ℝ) qfree{
-    return sin((π*(x+1))/(2^m+1));
-}
-
-def kaiser_window[α:!ℝ][m:!ℕ](x:!ℝ) qfree{
-    def kaiser_func(y:!ℝ){
-        return (1/(2^m)/bessi0(π*α))*bessi0(π*α*sqrt(1-(y/(2^(m-1)))^2));
+def window_QPE[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,const prepare:𝔹^n → mfree 𝔹^n)(const window:!ℝ → qfree !ℝ){
+    t := vector(2^m,0:!ℝ);
+    for j in [0..2^m){t[j] = window(j);}
+    counts := vector(2^m,0:!ℕ);
+    for j in [0..shots){
+        anc := prepare_window[m](t);
+        (ϕ,qs) := QPE_core[n,m](f,anc,prepare(0:uint[n] as 𝔹^n));counts[ϕ] += 1;
+        measure(qs);
     }
+    highest := 0:!ℕ;
+    for j in [0..2^m){if counts[j]>counts[highest]{highest = j;}}
+    return highest/2^m as !ℝ;
+}
+
+def qubitized_QPE[shots:!ℕ][n:!ℕ,m:!ℕ,k:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const prepare:𝔹^n → mfree 𝔹^n){
+    def qubitized_f(xs:𝔹^(m+n))mfree{(anc:𝔹^m)~(qs:𝔹^n) := xs;(anc,qs) := qubitize(anc,qs,f);return anc~qs;}
+    def prepare_joint(xs:𝔹^(m+n))mfree{(anc:𝔹^m)~(qs:𝔹^n) := xs;qs := prepare(qs);return anc~qs;}
+    ϕ := QPE[shots][m+n,k](qubitized_f,prepare_joint);
+    return 2*cos(2*π*ϕ);
+}
+
+def rect_window(x:!ℝ)lifted{return 1:!ℝ;}
+def sine_window[m:!ℕ](x:!ℝ)lifted{return sin((π*(x+1))/(2^m+1));}
+def kaiser_window[α:!ℝ][m:!ℕ](x:!ℝ)lifted{
+    def kaiser_func(y:!ℝ){return (1/(2^m)/bessi0(π*α))*bessi0(π*α*sqrt(1-(y/(2^(m-1)))^2));}
     if (x<2^(m-1)){return kaiser_func(x);}
     else{return kaiser_func(x-2^m);}
 }
 
-def T(x:𝔹^1){
-    x[0] := rotZ(2*π/3,x[0]);
-    phase(π/3);
-    return x;
-}
+def U(x:𝔹^1) mfree{x[0] := rotX(4*π*sqrt(2)/5,x[0]);return x;}
+
+def prepare_minus(x:𝔹^1) mfree{x[0] := H(X(x[0]));return x;}
 
 def main(){
-    return estimate_phase[10][𝔹^1,5](T)(kaiser_window[2][5],0:uint[5] as 𝔹^5,1:uint[1] as 𝔹^1);
+    def block(anc:𝔹^3,qs:𝔹^1)mfree{return twosym_herm(anc,qs,1/4,3/4);}
+    return qubitized_QPE[10][1,3,9](block,prepare_minus);
 }

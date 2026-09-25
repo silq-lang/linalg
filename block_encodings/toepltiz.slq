@@ -1,7 +1,7 @@
-import shift;
-import multiplexed;
-import uniform_superposition;
-import amplitude_amplification;
+import arithmetic.shift;
+import primitives.multiplexed;
+import primitives.uniform_superposition;
+import Amplitude_Amplification.amplitude_amplification;
 
 def toeplitz[n:!ℕ,m:!ℕ,D:!ℕ](anc:𝔹^m,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^m × 𝔹^n{
     assert(m = (log(D-1) div log(2))+3);
@@ -28,7 +28,7 @@ def main(){
     qs := 0:uint[2] as 𝔹^2;
     qs := Up(qs);
     def toepltiz_amp[n:!ℕ,m:!ℕ](anc:𝔹^m,xs:𝔹^n){
-        return toepltiz(anc,xs,v);
+        return toeplitz(anc,xs,v);
     }
     (anc,qs) := toepltiz_amp(0:uint[4] as 𝔹^4,qs);
     return fixed_point_AA(anc,qs,toepltiz_amp[2,4],Up);

@@ -59,7 +59,7 @@ def linear_diag[ϵ:!ℝ][n:!ℕ](anc:𝔹^(n+2),qs:𝔹^n) mfree:𝔹^(n+2)×�
 }
 
 def state_prep[n:!ℕ][d:!ℕ](p:!ℂ^(d+1),ϵ:!ℝ){
-    pq := chebyshev_coef[d](p);
+    pq := normalize_polynomial[d](chebyshev_coef[d](p));
     q:=complement[d](pq,1e-8);
 	assert(is_complement[num_samples(d,1e-8)][d](pq,q,1e-8));
 	angles:=gqsp_compute_angles[d](pq,q);

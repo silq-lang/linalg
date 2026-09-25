@@ -14,21 +14,20 @@ def hermitian_conjugate[n:!ℕ](A:(!ℂ^n)^n){
 }
 
 def invert_matrix[n:!ℕ,m:!ℕ](anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,ϵ:!ℝ,κ:!ℝ){
-    b := floor((κ^2)*log(κ/ϵ)) coerce !ℕ;
-    d := floor(sqrt(b*log(4*b/ϵ))) coerce !ℕ;
+    b := ceil((κ^2)*log(8*κ/ϵ)) coerce !ℕ;
+    d := min(b sub 1,ceil(sqrt(b*log(32*b/ϵ)))) coerce !ℕ;
     p := inverse_func(d,b);
-    //β := bound[num_samples(46,1e-8)][46](p);
-    for j in [0..2*d+1){p[j] = (0.5/κ)*p[j]/1.7;}
+    p := normalize_polynomial[2*d+1](p);
     q:=complement[2*d+1](p,1e-8);
 	assert(is_complement[num_samples(2*d+1,1e-8)][2*d+1](p,q,1e-8));
 	angles:=gqsp_compute_angles[2*d+1](p,q);
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    return gqsvt[0][2*d+1](θs,φs,λ)(f)(anc,qs);
+    return gqsvt[0][2*d+1](θs,φs,λ)(reverse(f))(anc,qs);
 }
 
 def main(){
     def twosym(anc:𝔹^2,xs:𝔹^1){
         return twosym_block(anc,xs,1,-1/3);
     }
-    return invert_matrix[1,2](2:uint[4] as 𝔹^4,1:uint[1] as 𝔹^1,twosym,2e-4,2);
+    return invert_matrix[1,2](2:uint[4] as 𝔹^4,1:uint[1] as 𝔹^1,twosym,2e-4,3);
 }

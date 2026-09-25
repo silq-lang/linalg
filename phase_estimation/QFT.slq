@@ -12,3 +12,16 @@ def QFT[n:!ℕ](ψ: 𝔹^n)mfree: 𝔹^n{
 	}
 	return ψ;
 }
+
+def semiclassical_qft[n:!ℕ](clock:𝔹^n){
+	bits := vector(n,0:!𝔹);
+	for k in [0..n){
+		θ := 0:!ℝ;
+		for l in [0..k){if bits[l]{θ -= π/(2^(k-l));}}
+		j := n sub k sub 1;
+		(bit,clock[j]) := (measure(H(rotZ(θ,clock[j]))),0:𝔹);
+		bits[k] = bit;
+	}
+	forget(clock=0:uint[n] as 𝔹^n);
+	return bits as !uint[n] as !ℕ;
+}

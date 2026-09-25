@@ -32,6 +32,7 @@ def complement_alg2[d:!ℕ](p:!ℂ^(d+1),ε:!ℝ,N:!ℕ):!ℂ^(d+1){
 }
 
 def num_samples(d:!ℕ,ε:!ℝ){
+	if d=0{return 2:!ℕ;}
 	N₀:=heuristic_N₀(ε/4,ε/(5·(d+1)),d);
 	return 2^(ceil(log₂(max(N₀,d+1))) coerce !ℕ);
 }
@@ -52,21 +53,14 @@ def is_complement[N:!ℕ][d:!ℕ](p:!ℂ^(d+1),q:!ℂ^(d+1),ε:!ℝ){
 	return ok;
 }
 
-def gqsp_compute_angles[d:!ℕ](
-	P:!ℂ^(d+1),
-	Q:!ℂ^(d+1),
-):!ℝ^(d+1)×!ℝ^(d+1)×!ℝ{
-	a0s:=sharp[d+1](P);
-	b0:=sharp[d+1](Q);
-	ρ:=a0s[0]/cabs(a0s[0]);
-	a0s:=vscale[d+1](1/ρ,a0s);
-	b0:=vscale[d+1](-1/ρ,b0);
-	n:=2^(ceil(log₂(d+1)) coerce !ℕ);
-	(γn,ξn,ηn):=inlfft[n](pad[n](a0s,0),pad[n](b0,0));
-	γs:=rev[d+1](vscale[d+1](-1,γn[0..d+1]));
-	(θs,φs):=vector(2,vector(d+1,0));
-	for i in 0..d+1{ (θs[i],φs[i])=(2·atan(cabs(γs[i])),carg(γs[i])); }
-	return (θs,φs,-carg(ρ));
+def gqsp_compute_angles[d:!ℕ](P:!ℂ^(d+1),Q:!ℂ^(d+1),):!ℝ^(d+1)×!ℝ^(d+1)×!ℝ{
+    n := 2^(ceil(log₂(d+1)) coerce !ℕ);
+    (γn,ξn,ηn) := inlfft[n](pad[n](Q,0),pad[n](vscale[d+1](-1,P),0));
+    θs := vector(d+1,0:!ℝ); φs := vector(d+1,0:!ℝ);
+    for j in [1..d+1){γ := γn[d-j];θs[j] = 2*atan(cabs(γ)); φs[j] = carg(γ);}
+    θs[0] = 2*atan2(1,cabs(γn[d]));
+    φs[0] = carg(-γn[d]);
+    return (θs,φs,φs[0]+carg(Q[0]));
 }
 
 def main(){

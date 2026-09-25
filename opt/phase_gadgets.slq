@@ -1,0 +1,205 @@
+def hamming_weight(x:!ℕ){
+    count := 0;
+    while x != 0{x &= x - 1;count += 1;}
+    return count;
+}
+
+def has_bit(x:!ℕ,i:!ℕ){return (x & (2^i)) != 0;}
+
+def first_support[n:!ℕ](r:!ℕ,s:!ℕ,skip:!ℕ){
+    pivot := n;
+    for i in [0..n){if pivot == n && i != skip && (has_bit(r,i) || has_bit(s,i)){pivot = i;}}
+    return pivot;
+}
+
+def commute(r1:!ℕ,s1:!ℕ,r2:!ℕ,s2:!ℕ){return hamming_weight((r1 & s2) ⊕ (s1 & r2)) % 2 == 0;}
+
+def tableau_1q(r:!ℕ,s:!ℕ,negative:!𝔹,i:!ℕ,kind:!ℕ){
+    x := has_bit(r,i);
+    z := has_bit(s,i);
+    if kind == 0{
+        if x && z{negative = !negative;}
+        if x != z{r = r ⊕ (2^i);s = s ⊕ (2^i);}
+    }else if kind == 1{
+        if z && !x{negative = !negative;}
+        if z{r = r ⊕ (2^i);}
+    }else{
+        if z{negative = !negative;}
+    }
+    return (r,s,negative);
+}
+
+def tableau_cx(r:!ℕ,s:!ℕ,negative:!𝔹,control:!ℕ,target:!ℕ){
+    xc := has_bit(r,control); xt := has_bit(r,target);
+    zc := has_bit(s,control); zt := has_bit(s,target);
+    if xc && zt && (xt == zc){negative = !negative;}
+    if xc{r = r ⊕ (2^target);}
+    if zt{s = s ⊕ (2^control);}
+    return (r,s,negative);
+}
+
+def cx[n:!ℕ](qs:𝔹^n,control:!ℕ,target:!ℕ)mfree:𝔹^n{
+    temp := dup(qs[control]);
+    qs[target] := CNOT(temp,qs[target]);
+    forget(temp=qs[control]);
+    return qs;
+}
+
+def diagonalize_pauli[n:!ℕ](r:!ℕ,s:!ℕ,qs:𝔹^n)mfree:𝔹^n{
+    pivot := first_support[n](r,s,n);
+    for i in [0..n){
+        x := has_bit(r,i);z := has_bit(s,i);
+        if x && !z{qs[i] := H(qs[i]);}
+        if x && z{qs[i] := rotX(π/2,qs[i]);}
+    }
+    for i in [0..n){if i != pivot && (has_bit(r,i) || has_bit(s,i)){qs := cx[n](qs,i,pivot);}}
+    return qs;
+}
+
+def pauli_rotation[n:!ℕ](r:!ℕ,s:!ℕ,theta:!ℝ,qs:𝔹^n)mfree:𝔹^n{
+    if r == 0 && s == 0{phase(-theta/2);return qs;}
+    pivot := first_support[n](r,s,n);
+    qs := diagonalize_pauli[n](r,s,qs);
+    qs[pivot] := rotZ(theta,qs[pivot]);
+    qs := reverse(diagonalize_pauli[n])(r,s,qs);
+    return qs;
+}
+
+def commuting_pair_plan[n:!ℕ](r1_input:!ℕ,s1_input:!ℕ,r2_input:!ℕ,s2_input:!ℕ)lifted{
+    r1 := r1_input; s1 := s1_input; r2 := r2_input; s2 := s2_input;
+    neg1 := false; neg2 := false; count := 0:!ℕ;
+    kinds := []; controls := []; targets := [];
+    pivot1 := first_support[n](r1,s1,n);
+    for i in [0..n){
+        x := has_bit(r1,i); z := has_bit(s1,i);
+        if x && !z{
+            kinds := kinds~[0];
+            controls := controls~[i];
+            targets := targets~[0];
+            count += 1;
+            (r1,s1,neg1) := tableau_1q(r1,s1,neg1,i,0);
+            (r2,s2,neg2) := tableau_1q(r2,s2,neg2,i,0);
+        }else if x && z{
+            kinds := kinds~[1];
+            controls := controls~[i];
+            targets := targets~[0];
+            count += 1;
+            (r1,s1,neg1) := tableau_1q(r1,s1,neg1,i,1);
+            (r2,s2,neg2) := tableau_1q(r2,s2,neg2,i,1);
+        }
+    }
+    for i in [0..n){
+        if i != pivot1 && has_bit(s1,i){
+            kinds := kinds~[3];
+            controls := controls~[i];
+            targets := targets~[pivot1];
+            count += 1;
+            (r1,s1,neg1) := tableau_cx(r1,s1,neg1,i,pivot1);
+            (r2,s2,neg2) := tableau_cx(r2,s2,neg2,i,pivot1);
+        }
+    }
+    if neg1{
+        kinds := kinds~[2];
+        controls := controls~[pivot1];
+        targets := targets~[0];
+        count += 1;
+        (r2,s2,neg2) := tableau_1q(r2,s2,neg2,pivot1,2);
+    }
+    pivot2 := first_support[n](r2,s2,pivot1);
+    for i in [0..n){
+        if i != pivot1{
+            x := has_bit(r2,i);
+            z := has_bit(s2,i);
+            if x && !z{
+                kinds := kinds~[0];
+                controls := controls~[i];
+                targets := targets~[0];
+                count += 1;
+                (r2,s2,neg2) := tableau_1q(r2,s2,neg2,i,0);
+            }else if x && z{
+                kinds := kinds~[1];
+                controls := controls~[i];
+                targets := targets~[0];
+                count += 1;
+                (r2,s2,neg2) := tableau_1q(r2,s2,neg2,i,1);
+            }
+        }
+    }
+    if has_bit(s2,pivot1){
+        kinds := kinds~[3];
+        controls := controls~[pivot1];
+        targets := targets~[pivot2];
+        count += 1;
+        (r2,s2,neg2) := tableau_cx(r2,s2,neg2,pivot1,pivot2);
+    }
+    for i in [0..n){
+        if i != pivot1 && i != pivot2 && has_bit(s2,i){
+            kinds := kinds~[3];
+            controls := controls~[i];
+            targets := targets~[pivot2];
+            count += 1;
+            (r2,s2,neg2) := tableau_cx(r2,s2,neg2,i,pivot2);
+        }
+    }
+    if neg2{
+        kinds := kinds~[2];
+        controls := controls~[pivot2];
+        targets := targets~[0];
+        count += 1;
+    }
+    return (count,kinds,controls,targets,pivot1,pivot2);
+}
+
+def canonicalize_commuting_pair[n:!ℕ](r1:!ℕ,s1:!ℕ,r2:!ℕ,s2:!ℕ,qs:𝔹^n)mfree:𝔹^n{
+    (count,kinds,controls,targets,pivot1,pivot2) := commuting_pair_plan[n](r1,s1,r2,s2);
+    for step in [0..count){
+        kind := kinds[step];
+        control := controls[step];
+        target := targets[step];
+        if kind == 0{
+            qs[control] := H(qs[control]);
+        }else if kind == 1{
+            qs[control] := rotX(π/2,qs[control]);
+        }else if kind == 2{
+            qs[control] := X(qs[control]);
+        }else{
+            qs := cx[n](qs,control,target);
+        }
+    }
+    return qs;
+}
+
+def commuting_pair_rotation[n:!ℕ](r1:!ℕ,s1:!ℕ,theta1:!ℝ,r2:!ℕ,s2:!ℕ,theta2:!ℝ,qs:𝔹^n)mfree:𝔹^n{
+    if r1 == r2 && s1 == s2{
+        return pauli_rotation[n](r1,s1,theta1+theta2,qs);
+    }
+    if (r1 == 0 && s1 == 0) || (r2 == 0 && s2 == 0) || !commute(r1,s1,r2,s2){
+        qs := pauli_rotation[n](r1,s1,theta1,qs);
+        qs := pauli_rotation[n](r2,s2,theta2,qs);
+        return qs;
+    }
+    (count,kinds,controls,targets,pivot1,pivot2) := commuting_pair_plan[n](r1,s1,r2,s2);
+    qs := canonicalize_commuting_pair[n](r1,s1,r2,s2,qs);
+    qs[pivot1] := rotZ(theta1,qs[pivot1]);
+    qs[pivot2] := rotZ(theta2,qs[pivot2]);
+    qs := reverse(canonicalize_commuting_pair[n])(r1,s1,r2,s2,qs);
+    return qs;
+}
+
+def prepare_interesting_state(qs:𝔹^5)mfree:𝔹^5{
+    qs[0] := H(qs[0]);
+    qs[2] := H(qs[2]);
+    qs[4] := rotY(π/3,qs[4]);
+    qs[1] := CNOT(qs[0],qs[1]);
+    qs[3] := CNOT(qs[2],qs[3]);
+    qs[4] := CNOT(qs[1],qs[4]);
+    qs[3] := rotX(π/5,qs[3]);
+    return qs;
+}
+
+def main(){
+    qs := vector(5,0:𝔹);
+    qs := prepare_interesting_state(qs);
+    qs := commuting_pair_rotation[5](11,6,π/3,22,3,-2·π/5,qs);
+    return qs;
+}

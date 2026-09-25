@@ -1,74 +1,66 @@
-def sum[m:!ℕ](t:!ℝ^m) qfree{
-    s := 0:!ℝ;
-    for i in [0..m){
-        s += t[i];
-    }
-    return s;
+// Sum of a real list.
+def sum[N:!ℕ](t:!ℝ^N) qfree{
+	s := 0:!ℝ;
+	for i in [0..N){
+		s += t[i];
+	}
+	return s;
 }
 
-def minus[m:!ℕ](t:!ℝ^m){
-    v := [];
-    for i in [0..m){
-        v := v~[-t[i]];
-    }
-    return v coerce !ℝ^m;
+// Negate each entry.
+def minus[N:!ℕ](t:!ℝ^N){
+	v := [];
+	for i in [0..N){
+		v := v~[-t[i]];
+	}
+	return v coerce !ℝ^N;
 }
 
-def div_list[m:!ℕ](t:!ℝ^m,d:!ℝ){
-    v := [];
-    for i in [0..m){
-        v := v~[t[i]/d];
-    }
-    return v coerce !ℝ^m;
+// Absolute value of each entry.
+def abs_list[N:!ℕ](t:!ℝ^N){
+	v := [];
+	for i in [0..N){
+		v := v~[abs(t[i])];
+	}
+	return v coerce !ℝ^N;
 }
 
-def abs_list[m:!ℕ](t:!ℝ^m){
-    v := [];
-    for i in [0..m){
-        v := v~[abs(t[i])];
-    }
-    return v coerce !ℝ^m;
+// Square root of the magnitude of each entry.
+def sqrt_list[N:!ℕ](t:!ℂ^N){
+	v := [];
+	for i in [0..N){
+		v := v~[sqrt(cabs(t[i]))];
+	}
+	return v coerce !ℝ^N;
 }
 
-def sqrt_list[m:!ℕ](t:!ℂ^m){
-    v := [];
-    for i in [0..m){
-        v := v~[sqrt(cabs(t[i]))];
-    }
-    return v coerce !ℝ^m;
+// asin of each entry after dividing by the largest magnitude.
+def arcsin[N:!ℕ](t:!ℝ^N){
+	maxt := max(abs_list(t));
+	v := [];
+	for i in [0..N){
+		v := v~[asin(t[i]/maxt)];
+	}
+	return v coerce !ℝ^N;
 }
 
-def arcsin[m:!ℕ](t:!ℝ^m){
-    maxt := max(abs_list(t));
-    v := [];
-    for i in [0..m){
-        v := v~[asin(t[i]/maxt)];
-    }
-    return v coerce !ℝ^m;
-}
-
-def vadd[n:!ℕ](a:!ℂ^n,b:!ℂ^n):!ℂ^n{
-	r:=vector(n,0);
-	for i in 0..n { r[i]=a[i]+b[i]; }
+// Entrywise sum a + b.
+def vadd[N:!ℕ](a:!ℂ^N,b:!ℂ^N):!ℂ^N{
+	r := vector(N,0);
+	for i in [0..N) { r[i]=a[i]+b[i]; }
 	return r;
 }
-def vsub[n:!ℕ](a:!ℂ^n,b:!ℂ^n):!ℂ^n{
-	r:=vector(n,0);
-	for i in 0..n { r[i]=a[i]-b[i]; }
+
+// Scale a by c.
+def vscale[N:!ℕ](c:!ℂ,a:!ℂ^N):!ℂ^N{
+	r := vector(N,0);
+	for i in [0..N) { r[i]=c·a[i]; }
 	return r;
 }
-def vscale[n:!ℕ](c:!ℂ,a:!ℂ^n):!ℂ^n{
-	r:=vector(n,0);
-	for i in 0..n { r[i]=c·a[i]; }
-	return r;
-}
-def rev[n:!ℕ](a:!ℂ^n):!ℂ^n{
-	r:=vector(n,0);
-	for i in 0..n { r[i]=a[n-1-i]; }
-	return r;
-}
-def sharp[n:!ℕ](a:!ℂ^n):!ℂ^n{
-	r:=vector(n,0);
-	for i in 0..n { r[i]=conj(a[n-1-i]); }
+
+// Reverse and conjugate a.
+def sharp[N:!ℕ](a:!ℂ^N):!ℂ^N{
+	r := vector(N,0);
+	for i in [0..N) { r[i]=conj(a[N-1-i]); }
 	return r;
 }

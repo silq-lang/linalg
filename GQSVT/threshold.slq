@@ -9,9 +9,11 @@ def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
     N := floor((315/(32*ζ^2))*log(1/δ)) coerce !ℕ;
     d := 2*floor(α*log(4/ζ)/(2*Δ)) coerce !ℕ;
     p := rect_func(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),λt/α);
-    print(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),N);
-    for j in [0..d+1){p[j] = p[j]/1.0487;} // might need to change scaling factor 
     p := chebyshev_coef[d sub 1](p);
+    scale := polynomial_normalization_scale[d sub 1](p);
+    N = max(N,ceil(4*N/scale^2)) coerce !ℕ;
+    print(d,(α/Δ/sqrt(2))*sqrt(log(32/π/ζ^2)),N);
+    p := normalize_polynomial[d sub 1](p);
     q := complement[d sub 1](p,1e-8);
     assert(is_complement[num_samples(d sub 1,1e-8)][d sub 1](p,q,1e-8));
     angles := gqsp_compute_angles[d sub 1](p,q);
@@ -29,8 +31,9 @@ def eigenvalue_threshold[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
         measure(anc,qs);
         print(j,r)
     }
-    c1 := abs(count/N - (ζ^2)*(1-ζ/4));
-    c2 := abs(count/N - (ζ^2)/32);
+    mean := (2*count/N-1)/scale;
+    c1 := abs(mean - (ζ^2)*(1-ζ/4));
+    c2 := abs(mean - (ζ^2)/32);
     print(c1,c2);
     measure(ancilla,xs);
     return (c1<c2);
@@ -48,8 +51,7 @@ def eigenstate_filtering[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^
         return (flag~ancilla,xs);
     }
     p := eigen_filt(k,Δ/(2*α));
-    β := bound[num_samples(2*k,1e-8)][2*k](p);
-    for j in [0..2*k+1){p[j] = p[j]/1.01;}
+    p := normalize_polynomial[2*k](p);
     q := complement[2*k](p,1e-8);
     assert(is_complement[num_samples(2*k+1,1e-8)][2*k](p,q,1e-8));
     angles := gqsp_compute_angles[2*k](p,q);
@@ -61,8 +63,7 @@ def singular_vector_trans[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹
     d := floor(2*log(1/ϵ)/κ) coerce !ℕ;
     k := (sqrt(2)/κ)*sqrt(log(2/π/ϵ^2));
     p := sign_func(d,k,0) coerce !ℂ^(d+1);
-    p := chebyshev_coef[d](p);
-    for j in [0..d){p[j] = p[j]/2;}
+    p := normalize_polynomial[d](chebyshev_coef[d](p));
     q := complement[d](p,1e-8);
     assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
     angles := gqsp_compute_angles[d](p,q);
