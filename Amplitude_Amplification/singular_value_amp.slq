@@ -7,7 +7,7 @@ def singular_value_amplification[n:!ℕ,m:!ℕ](anc:𝔹^(m+2),qs:𝔹^n,const f
     d := ceil((1/κ)*log(1/ϵ)) coerce !ℕ;
     k := (2/κ)*sqrt(log(2/π/(ϵ^2)));
     p := trunc_lin(d,k,γ);
-    p := chebyshev_coef[d](p);
+    p := normalize_polynomial[d](chebyshev_coef[d](p));
     q:=complement[d](p,1e-8);
 	assert(is_complement[num_samples(d,1e-8)][d](p,q,1e-8));
 	angles:=gqsp_compute_angles[d](p,q);

@@ -36,5 +36,4 @@ def main(){
     for j in [0..4){qs[j] := H(qs[j]);}
     return mcp[3](qs,π/2); 
     //if qs=vector(4,1){phase(π/2);}
-    return qs;
 }

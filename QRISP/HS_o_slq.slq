@@ -14,7 +14,7 @@ def jacobi_anger_coeffs(n:!ℕ,t:!ℝ){
     return p;
 }
 
-def time_evolution[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n,t:!ℝ,α:!ℝ,d:!ℕ) mfree{
+def time_evolution[n:!ℕ,m:!ℕ](const f:𝔹^1 × 𝔹^m × 𝔹^n → mfree 𝔹^1 ×𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n,t:!ℝ,α:!ℝ,d:!ℕ) mfree{
     //p := jacobi_anger_coeffs(d,α*t);
     //q := complement[2*d](p,1e-8);
     //assert(is_complement[num_samples(2*d,1e-8)][2*d](p,q,1e-8));
@@ -27,5 +27,5 @@ def time_evolution[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × �
 }
 
 def main(){
-    return time_evolution[2,2](TFIM[sqrt(0.25),sqrt(0.5)][2,2])(0:uint[3] as 𝔹^3,0:uint[2] as 𝔹^2,π/4,1.25,14);
+    return time_evolution[2,2](TFIM_cont2[1])(0:uint[3] as 𝔹^3,0:uint[2] as 𝔹^2,π/4,1.25,14);
 }

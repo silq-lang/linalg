@@ -65,6 +65,31 @@ def bound[N:!ℕ][d:!ℕ](p:!ℂ^(d+1)){
     return M*(1+abs(cimag(p[0]))+g1*t/π);
 }
 
+def polynomial_normalization_bound[d:!ℕ](p:!ℂ^(d+1)){
+    coefficient_sum := 0:!ℝ; derivative_bound := 0:!ℝ;
+    for j in [0..d+1){
+        coefficient_sum += cabs(p[j]); derivative_bound += j*cabs(p[j]);
+    }
+    if coefficient_sum=0{return 0:!ℝ;}
+    samples := 2^(ceil(log₂(max(1024,32*(d+1)))) coerce !ℕ);
+    values := fft(pad[samples](p,0));
+    peak := 0:!ℝ;
+    for j in [0..samples){peak = max(peak,cabs(values[j]));}
+    return min(coefficient_sum,peak+π*derivative_bound/samples)+1e-12*coefficient_sum;
+}
+
+def polynomial_normalization_scale[d:!ℕ](p:!ℂ^(d+1)){
+    beta := polynomial_normalization_bound[d](p);
+    if beta=0{return 1:!ℝ;}
+    return 0.9/beta;
+}
+
+def normalize_polynomial[d:!ℕ](p:!ℂ^(d+1)){
+    scale := polynomial_normalization_scale[d](p);
+    for j in [0..d+1){p[j] *= scale;}
+    return p;
+}
+
 def gqet[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)(anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
     def qubitized_f(ancilla:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
         return qubitize(ancilla,xs,f);
@@ -86,13 +111,7 @@ def gqsvt[k:!ℕ][d:!ℕ](θs:!ℝ^(d+1),φs:!ℝ^(d+1),λ:!ℝ)[n:!ℕ,m:!ℕ](
 
 def main(){
     p:=(-1,0,2):!ℂ^3;
-    N := num_samples(2,1e-8);
-    if !poly_cond[1000][2](p){
-        β := bound[N][2](p);
-        pq:=vector(3,0);
-        for j in [0..3){pq[j] = p[j]/β;}
-    }else{pq:=p;}
-    pq := chebyshev_coef[2](pq);
+    pq := normalize_polynomial[2](chebyshev_coef[2](p));
     q:=complement[2](pq,1e-8);
 	assert(is_complement[num_samples(2,1e-8)][2](pq,q,1e-8));
 	angles:=gqsp_compute_angles[2](pq,q);

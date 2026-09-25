@@ -1,24 +1,48 @@
 def walk[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n) mfree{
     if anc == vector(m,0){phase(π);}
     (anc,qs) := reverse(f)(anc,qs); // apply the inverse of the unitary to the working register
-    g(qs) := qs;
+    g(qs) := qs; //apply the inverse of the state preparation to the working register
+    // apply -Z gate on the ancilla controled on the index register in the |0^m> state
     if qs == vector(n,0){ 
         if anc == vector(m,0){phase(π);}
     }
+    // Invert operations
     qs := g(qs);
     (anc,qs) := f(anc,qs);
+    phase(π); //sign convention
     return (anc,qs);
 }
 
 def fixed_point_AA[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n) {
-    r := measure(anc) as !uint[m];
-    success := (r == 0);
-    while success=0{
+    r := measure(anc) as !uint[m]; //initial try
+    success := (r == 0); // set the counter
+    while success=0{ // stop the iteration when the ancillas are all measured to be 0
         forget(success);
         anc := r:uint[m] as 𝔹^m;
-        (anc,qs) := walk(anc,qs,f,g); 
+        (anc,qs) := walk(anc,qs,f,g); // apply the walk operator
         r := measure(anc) as !uint[m];
         success := (r == 0);
     }
     return qs;
+}
+
+// Example block encoding with top-left block diag(1/2,1/4)
+def example_block(anc:𝔹^1,qs:𝔹^1) mfree{
+    (flag,) := anc;
+    if !qs[0]{flag := rotY(2*acos(1/2),flag);}
+    if qs[0]{flag := rotY(2*acos(1/4),flag);}
+    return ((flag,),qs);
+}
+
+def prepare_plus(qs:𝔹^1) mfree{
+    qs[0] := H(qs[0]);
+    return qs;
+}
+
+// Conditioned on success, the result is 2/sqrt(5)|0> + 1/sqrt(5)|1>
+def main(){
+    qs := prepare_plus(0:uint[1] as 𝔹^1);
+    anc := 0:uint[1] as 𝔹^1;
+    (anc,qs) := example_block(anc,qs);
+    return fixed_point_AA[1,1](anc,qs,example_block,prepare_plus);
 }

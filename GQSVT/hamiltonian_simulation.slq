@@ -10,7 +10,7 @@ def time_evolution[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × �
     ϵ /= 4;
     d := ceil(0.5*(e*α*abs(t)/2+(log(4/5/ϵ))/log(e+2*log(4/5/ϵ)/e/abs(t)/α))) coerce !ℕ;
     p := c_exp(d,α*t);
-    for j in [0..2*d+1){p[j] = p[j]/1.75;}
+    p := normalize_polynomial[2*d](p);
     q := complement[2*d](p,1e-8);
     assert(is_complement[num_samples(2*d,1e-8)][2*d](p,q,1e-8));
 	angles:=gqsp_compute_angles[2*d](p,q);

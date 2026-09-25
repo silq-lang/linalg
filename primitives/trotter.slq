@@ -1,49 +1,67 @@
 import primitives.multicontrol;
-import block_encodings.pauli_LCU;
 
-def pauli_basis_change(x:𝔹,rj:!𝔹,sj:!𝔹) mfree{
-    if rj&&!sj{x := H(x);}
-    if rj&&sj{if x{phase(-π/2);}x := H(x);}
-    return x;
+// Map the X (r=1,s=0) or Y (r=1,s=1) eigenbasis of x to the Z (r=0,s=1) basis.
+def pauli_basis_change(x:𝔹,rj:!𝔹,sj:!𝔹) mfree:𝔹{
+	if rj&&!sj{x := H(x);}
+	if rj&&sj{if x{phase(-π/2);}x := H(x);}
+	return x;
 }
 
-def cnot_col[n:!ℕ](qs:𝔹^n,r:!ℕ,s:!ℕ,j:!ℕ,target:!ℕ) mfree{
-    temp := dup(qs[j]);
-    if (r as !uint[n])[j]||(s as !uint[n])[j]{qs[target] := mc(X)((temp,),qs[target]);}
-    forget(temp=qs[j]);
-    return qs;
+// CNOT from qubit j onto target if Pauli (r,s) acts on qubit j.
+def cnot_col[N:!ℕ](qs:𝔹^N,r:!ℕ,s:!ℕ,j:!ℕ,target:!ℕ) mfree{
+	temp := dup(qs[j]);
+	if (r as !uint[N])[j]||(s as !uint[N])[j]{qs[target] := mc(X)((temp,),qs[target]);}
+	forget(temp=qs[j]);
+	return qs;
 }
 
-def identity_string[n:!ℕ](r:!ℕ,s:!ℕ)qfree{
-    k := 0:!ℕ;
-    for j in [0..n){if (r as !uint[n])[j]||(s as !uint[n])[j]{k = j;}}
-    return k;
+// Highest qubit index on which Pauli (r,s) acts.
+def identity_string[N:!ℕ](r:!ℕ,s:!ℕ) qfree{
+	k := 0:!ℕ;
+	for j in [0..N){if (r as !uint[N])[j]||(s as !uint[N])[j]{k = j;}}
+	return k;
 }
 
-def pauli_exp[n:!ℕ](θ:!ℝ,qs:𝔹^n,r:!ℕ,s:!ℕ) mfree{
-    if (r=0)&&(s=0){phase(θ);}else{
-        target := identity_string[n](r,s);
-        for j in [0..n){qs[j] := pauli_basis_change(qs[j],(r as !uint[n])[j],(s as !uint[n])[j]);}
-        for j in [0..n){if j!=target{qs := cnot_col(qs,r,s,j,target);}}
-        qs[target] := rotZ(-2*θ,qs[target]);
-        for j in (n..-1..0]{if j!=target{cnot_col(qs,r,s,j,target) := qs;}}
-        for j in [0..n){pauli_basis_change(qs[j],(r as !uint[n])[j],(s as !uint[n])[j]) := qs[j];}
-    }
-    return qs;
+// exp(-iθP) for the Pauli string P given by bit masks (r,s).
+def pauli_exp[N:!ℕ](θ:!ℝ,qs:𝔹^N,r:!ℕ,s:!ℕ) mfree{
+	if (r=0)&&(s=0){
+		phase(-θ);
+	}else{
+		target := identity_string[N](r,s);
+		for j in [0..N){qs[j] := pauli_basis_change(qs[j],(r as !uint[N])[j],(s as !uint[N])[j]);}
+		for j in [0..N){if j!=target{qs := cnot_col(qs,r,s,j,target);}}
+		qs[target] := rotZ(2*θ,qs[target]);
+		for j in (N..-1..0]{if j!=target{cnot_col(qs,r,s,j,target) := qs;}}
+		for j in [0..N){pauli_basis_change(qs[j],(r as !uint[N])[j],(s as !uint[N])[j]) := qs[j];}
+	}
+	return qs;
 }
 
-def trotterization[n:!ℕ,D:!ℕ](qs:𝔹^n,coef:!ℝ^D,index:(!ℕ^2)^D,t:!ℝ,r:!ℕ) mfree{
-    for _ in [0..r){
-        for j in [0..D){qs := pauli_exp(t*coef[j]/(2*r),qs,index[j][0],index[j][1]);}
-        for j in (D..-1..0]{qs := pauli_exp(t*coef[j]/(2*r),qs,index[j][0],index[j][1]);}
-    }
-    return qs;
+// First-order Trotter for sum_j coef[j]·P_j over time t with r steps.
+def trotterization[N:!ℕ,D:!ℕ](qs:𝔹^N,coef:!ℝ^D,index:(!ℕ^2)^D,t:!ℝ,r:!ℕ) mfree{
+	repeat r{for j in [0..D){qs := pauli_exp[N](t*coef[j]/r,qs,index[j][0],index[j][1]);}}
+	return qs;
 }
 
+// Test state for main.
+def prepare_state(qs:𝔹^5) mfree{
+	qs[0] := H(qs[0]);
+	qs[2] := H(qs[2]);
+	qs[4] := rotY(π/3,qs[4]);
+	qs[1] := CNOT(qs[0],qs[1]);
+	qs[3] := CNOT(qs[2],qs[3]);
+	qs[4] := CNOT(qs[1],qs[4]);
+	qs[3] := rotX(π/5,qs[3]);
+	return qs;
+}
+
+// Expected (bits qs[0]..qs[4]): exp(iπ/5·ZYXIX)·exp(-iπ/6·XYZXI)|ψ0>, all 32 amplitudes nonzero;
+// e.g. |00000> ≈ 0.2885+0.0312i; max probability 0.0842 on 00000, 00110, 11001, 11111.
 def main(){
-    A := [[1,-1/3],[-1/3,1]] coerce (!ℝ^2)^2;
-    index := wh_index(A);
-    ind := index[1] coerce (!ℕ^2)^index[0];
-    coef := wh_coefficients(A) coerce !ℝ^index[0];
-    return trotterization[1,index[0]](0:uint[1] as 𝔹^1,coef,ind,3*π/4,2:!ℕ);
+	coef := [π/6,-π/5];
+	index := [(11,6),(22,3)];
+	qs := 0:uint[5] as 𝔹^5;
+	qs := prepare_state(qs);
+	qs := trotterization[5,2](qs,coef,index,1,1:!ℕ);
+	return qs;
 }

@@ -1,4 +1,4 @@
-import block_encodings.tridiag;
+import block_encodings.symtwobytwo;
 import GQSVT.func_approx;
 import GQSVT.gqsp_angles;
 import GQSVT.matrix_poly;
@@ -15,93 +15,97 @@ def G[n:!ℕ,m:!ℕ](anc:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree
     return (flag~anc,qs);
 }
 
-def f_aug[n:!ℕ,m:!ℕ](t:!ℝ,anc:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
+def f_aug[n:!ℕ,m:!ℕ](t:!ℝ,e:!ℕ,anc:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
     (flag:𝔹^1)~(anc:𝔹^m) := anc;
-    flag := proj_not(2^n sub 1,qs,flag);
+    flag := proj_not(e,qs,flag);
     if !flag[0]{(anc,qs) := f(anc,qs);}
     if flag[0]{anc[0] := rotY(-2*acos(1/t),anc[0]);}
-    flag := proj_not(2^n sub 1,qs,flag);
+    flag := proj_not(e,qs,flag);
     return (flag~anc,qs);
 }
 
-def b_aug[n:!ℕ](const b:𝔹^n → mfree 𝔹^n,flag:𝔹^1,qs:𝔹^n) mfree{
+def b_aug[n:!ℕ](e:!ℕ,const b:𝔹^n → mfree 𝔹^n,flag:𝔹^1,qs:𝔹^n) mfree{
     flag[0] := H(flag[0]);
     if !flag[0]{qs := b(qs);}
-    if flag[0]{for j in [0..n){qs[j] := X(qs[j]);}}
-    flag := proj_not(2^n sub 1,qs,flag);
+    if flag[0]{for j in [0..n){if (e as !uint[n])[j]{qs[j] := X(qs[j]);}}}
+    flag := proj_not(e,qs,flag);
     return (flag,qs);
 }
 
-def G_aug[n:!ℕ,m:!ℕ](t:!ℝ,anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n) mfree{
+def G_aug[n:!ℕ,m:!ℕ](t:!ℝ,e:!ℕ,anc:𝔹^(m+2),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n) mfree{
     (flag:𝔹^1)~(anc:𝔹^(m+1)) := anc;
-    (anc,qs) := f_aug(t,anc,qs,f);
+    (anc,qs) := f_aug(t,e,anc,qs,f);
     (anc:𝔹^m)~(ext:𝔹^1) := anc;
-    with {b_aug(b,ext,qs) := (ext,qs)}do{if !ext[0]{flag := proj_not(0:!ℕ,qs,flag);}}
+    with {b_aug(e,b,ext,qs) := (ext,qs)}do{if !ext[0]{flag := proj_not(0:!ℕ,qs,flag);}}
     return (flag~anc~ext,qs);
 }
 
-def kernel_aug[n:!ℕ,m:!ℕ,d:!ℕ](t:!ℝ,angles:!ℝ^(d+1)×!ℝ^(d+1)×!ℝ,anc:𝔹^(m+5),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n) mfree{
-    def Gt(ancilla:𝔹^(m+2),qs:𝔹^n){return G_aug(t,ancilla,qs,f,b);}
+def kernel_aug[n:!ℕ,m:!ℕ,d:!ℕ](t:!ℝ,e:!ℕ,angles:!ℝ^(d+1)×!ℝ^(d+1)×!ℝ,anc:𝔹^(m+5),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n) mfree{
+    def Gt(ancilla:𝔹^(m+2),qs:𝔹^n){return G_aug(t,e,ancilla,qs,f,b);}
     (flag:𝔹^1)~(anc:𝔹^(m+4)) := anc;
     θs:=angles[0];φs:=angles[1];λ:=angles[2];
     with {anc[1] := X(anc[1])}do{(anc,qs) := gqsvt[0][d](θs,φs,λ)(Gt)(anc,qs);}
-    if anc=vector(m+4,0:𝔹){flag := proj_not(2^n sub 1,qs,flag);}
+    if anc=vector(m+4,0:𝔹){flag := proj_not(e,qs,flag);}
     return (flag~anc,qs);
 }
 
-def uniform(a:!ℝ,b:!ℝ):!ℝ{
-	r:=0; precision:=64;
-	for i in (precision..-1..1]{r += measure(H(0))*2^-i;}
-	return a + (b-a)*r;
-}
-
-def norm_estimate[n:!ℕ,m:!ℕ,d:!ℕ](L:!ℝ,R:!ℝ,angles:!ℝ^(d+1)×!ℝ^(d+1)×!ℝ,anc:𝔹^(m+5),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
-    τ := uniform(log(L)-1/2,log(R)-1/2);
-    if τ<log(L){τ=log(L);}
-    if τ>log(R){τ=log(R);}
-    return kernel_aug[n,m,d](exp(τ),angles,anc,qs,f,b);
-}
-
-def qlss_aug[n:!ℕ,m:!ℕ](L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ, const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
-    def G_nt(ancilla:𝔹^(m+1),xs:𝔹^n){return G(ancilla,xs,f,b);}
-    k := ceil(κ*log(2/η)/2) coerce !ℕ; Δ := 1/κ;
-    p_kr := kernel_reflection(k,Δ);
-    for j in [0..2*k+1){p_kr[j] = p_kr[j]/1.4;}
-    q_kr := complement[2*k](p_kr,1e-8);
-    assert(is_complement[num_samples(2*k,1e-8)][2*k](p_kr,q_kr,1e-8));
-    angles_kr := gqsp_compute_angles[2*k](p_kr,q_kr);
-    flagged := 0:!𝔹; qs := 0:uint[n] as 𝔹^n;
-    while !flagged{
-        measure(qs);
-        qs := (2^n sub 1 coerce !ℕ) as uint[n] as 𝔹^n; 
-        anc := 0:uint[m+5] as 𝔹^(m+5);
-        (anc,qs) := norm_estimate(L,R,angles_kr,anc,qs,f,b);
-        r := measure(anc) as !uint[m+5];
-        if r=0{flagged = 1:!𝔹;}
+def qlss[n:!ℕ,m:!ℕ](L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
+    def padded(ancilla:𝔹^(m+1),xs:𝔹^(n+1)) mfree{
+        (flag:𝔹^1)~(anc:𝔹^m) := ancilla;(xs:𝔹^n)~(ext:𝔹^1) := xs;
+        if anc=vector(m,0:𝔹){flag[0] := X(flag[0]);}
+        (anc,xs) := f(anc,xs); 
+        if !ext[0]{flag[0] := X(flag[0]);}
+        return (flag~anc,xs~ext);
     }
-    anc := 2:uint[m+3] as 𝔹^(m+3);
+    def padded_b(xs:𝔹^(n+1)) mfree{(xs:𝔹^n)~(ext:𝔹^1) := xs; if !ext[0]{xs := b(xs);} return xs~ext;}
+    def G_nt(ancilla:𝔹^(m+2),xs:𝔹^(n+1)){return G[n+1,m+1](ancilla,xs,padded,padded_b);}
     μ := (η/(1-η))*sqrt(3+2*log((R^2+L^2)/(2*L^2)));
-    η_kp := (ϵ*sqrt(1-μ^2))/(μ*sqrt(1-ϵ^2));
+    η_kp := min(1/2,(ϵ*sqrt(1-μ^2))/(μ*sqrt(1-ϵ^2)));
+    k := ceil(κ*log(2/η)/2) coerce !ℕ; Δ := 1/κ;
     l := ceil(κ*log(2/η_kp)/2) coerce !ℕ;
-    p_kp := eigen_filt(l,Δ);
-    for j in [0..2*l+1){p_kp[j] = p_kp[j]/1.1;}
+    p_kr := normalize_polynomial[2*k](kernel_reflection(k,Δ));
+    q_kr := complement[2*k](p_kr,1e-8);
+    angles_kr := gqsp_compute_angles[2*k](p_kr,q_kr);
+    p_kp := normalize_polynomial[2*l](eigen_filt(l,Δ));
     q_kp := complement[2*l](p_kp,1e-8);
-    assert(is_complement[num_samples(2*l,1e-8)][2*l](p_kp,q_kp,1e-8));
     (θs,φs,λ) := gqsp_compute_angles[2*l](p_kp,q_kp);
-    (anc,qs) := gqsvt[0][2*l](θs,φs,λ)(G_nt)(anc,qs);
-    anc[1] := X(anc[1]);
-    return (anc,qs);
+    accepted := 0:!𝔹; xs := 0:uint[n] as 𝔹^n;
+    while !accepted{
+        measure(xs);
+        solved := 0:!𝔹; ys := 0:uint[n+1] as 𝔹^(n+1);
+        while !solved{
+            flagged := 0:!𝔹;
+            while !flagged{
+                measure(ys); ys := 2^n as uint[n+1] as 𝔹^(n+1);
+                anc := 0:uint[m+6] as 𝔹^(m+6);
+                u := 0:!ℝ;
+                for i in (64..-1..1]{u += measure(H(0))*2^-i;}
+                τ := log(L)-1/2+(log(R)-log(L)+1)*u;
+                t := exp(min(log(R),max(log(L),τ)));
+                (anc,ys) := kernel_aug[n+1,m+1,2*k](t,2^n,angles_kr,anc,ys,padded,padded_b);
+                r := measure(anc) as !uint[m+6];
+                if r=0{flagged = 1:!𝔹;}
+            }
+            anc := 2:uint[m+4] as 𝔹^(m+4);
+            (anc,ys) := gqsvt[0][2*l](θs,φs,λ)(G_nt)(anc,ys);
+            anc[1] := X(anc[1]);
+            r := measure(anc) as !uint[m+4];
+            if r=0{solved = 1:!𝔹;}
+        }
+        (xs:𝔹^n)~(ext:𝔹^1) := ys;
+        r := measure(ext) as !uint[1];
+        if r=0{accepted = 1:!𝔹;}
+    }
+    return xs;
 }
 
 def main(){
-    v := [1,-1/3,1,0,0,0,0] : !ℝ^7;
-    def b(xs:𝔹^2) mfree{
+    def b(xs:𝔹^1) mfree{
         xs[0] := X(xs[0]);
         return xs;
     }
-    def tridiag_amp(anc:𝔹^3,xs:𝔹^2) mfree{
-        v := v~[0];
-        return tridiagonal(anc,xs,v);
+    def matrix(anc:𝔹^2,xs:𝔹^1) mfree{
+        return twosym_block(anc,xs,1,-1/3);
     }
-    return qlss_aug[2,3](3,4,5,2e-2,1e-6,tridiag_amp,b);
+    return qlss[1,2](2,3,3,2e-2,1e-6,matrix,b);
 }

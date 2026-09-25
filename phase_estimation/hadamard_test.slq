@@ -20,7 +20,7 @@ def imag_hadamard_test[n:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),c
     return (flag~qs);
 }
 
-def real_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1))(const window:!ℝ → qfree !ℝ ,const anc:𝔹^m,const qs:𝔹^n){
+def real_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1)){
     def real_had_test(xs:𝔹^n) mfree{return real_hadamard_test(f,g,xs);}
     def G_real(xs:𝔹^n) mfree{
         if xs[0]=0{phase(π);}
@@ -29,11 +29,11 @@ def real_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) →
         }
         return xs;
     }
-    tr := estimate_phase[shots][𝔹^n,m](G_real)(window,anc,qs);
-    return (2*(cos(π*tr))^2-1) 
+    tr := QPE[shots][n,m](G_real,real_had_test);
+    return (2*(cos(π*tr))^2-1);
 }
 
-def imag_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1))(const window:!ℝ → qfree !ℝ ,const anc:𝔹^m,const qs:𝔹^n){
+def imag_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) → mfree 𝔹^(n sub 1),const g:𝔹^(n sub 1) → mfree 𝔹^(n sub 1)){
     def imag_had_test(xs:𝔹^n) mfree{return imag_hadamard_test(f,g,xs);}
     def G_imag(xs:𝔹^n) mfree{
         if xs[0]=0{phase(π);}
@@ -42,7 +42,7 @@ def imag_expectation_value[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^(n sub 1) →
         }
         return xs;
     }
-    ti := estimate_phase[shots][𝔹^n,m](G_imag)(window,anc,qs);
+    ti := QPE[shots][n,m](G_imag,imag_had_test);
     return (2*(cos(π*ti))^2-1);
 }
 
@@ -58,6 +58,6 @@ def Up(x:𝔹^1){
 }
 
 def main(){
-    return real_expectation_value[10][2,5](cP,Up)(sine_window[5],0:uint[5] as 𝔹^5,2:uint[2] as 𝔹^2);
-    //return imag_expectation_value[10][2,5](cP,Up)(sine_window[5],0:uint[5] as 𝔹^5,0:uint[2] as 𝔹^2);
+    return real_expectation_value[10][2,5](cP,Up);
+    //return imag_expectation_value[10][2,5](cP,Up);
 }

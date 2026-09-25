@@ -62,7 +62,6 @@ def mcp[n:!ℕ](qs:𝔹^(n+1),ϕ:!ℝ,ϵ:!ℝ) mfree{
     return qs coerce 𝔹^(n+1);
 }
 
-
 def main(){
     qs := 0:uint[6] as 𝔹^6;
     for j in [0..6){qs[j] := H(qs[j]);}

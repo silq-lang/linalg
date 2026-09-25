@@ -1,0 +1,38 @@
+import automatic_mbu_compiler;
+
+def compute_unit(x:𝔹^3) qfree:𝔹^3 × 𝔹^1{
+    (c,a,b) := x; carry := 0:𝔹;
+    if a && b{carry := X(carry);}
+    carry := CNOT(c,carry);
+    return ((c,a,b),(carry,));
+}
+
+def _add[n:!ℕ](const c:𝔹,a:𝔹^n,b:𝔹^n):𝔹^n × 𝔹^n{
+    assert(n>=1);
+    if n=1{
+        b[0] := CNOT(a[0],b[0]); b[0] := CNOT(c,b[0]);
+        return (a,b);
+    }
+    (a0,)~(at:𝔹^(n sub 1)) := a;
+    (b0,)~(bt:𝔹^(n sub 1)) := b;
+    a0 := CNOT(c,a0); b0 := CNOT(c,b0);
+    x := (dup(c),a0,b0);
+    (retained,garbage) := compute_unit(x);
+    (at,bt) := _add[n sub 1](garbage[0],at,bt);
+    m_forget(garbage);
+    (c0,a0,b0) := retained; forget(c0=c);
+    a0 := CNOT(c,a0); b0 := CNOT(a0,b0);
+    return ((a0,)~at,(b0,)~bt);
+}
+
+def adder_nocarry[n:!ℕ](a:𝔹^n,b:𝔹^n):𝔹^n × 𝔹^n{
+    return _add[n](0:𝔹,a,b);
+}
+
+def main(){
+    a := 0:uint[5] as 𝔹^5;
+    for i in [0..5){a[i] := H(a[i]);}
+    b := 10:uint[5] as 𝔹^5;
+    (a,b) := adder_nocarry[5](a,b);
+    return (a as uint[5],b as uint[5]);
+}

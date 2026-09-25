@@ -1,4 +1,4 @@
-import QFT;
+import phase_estimation.QFT;
 
 def c_phase[n:!ℕ,m:!ℕ](const x:𝔹^n, y:𝔹^m) mfree{
     assert(m=n+1);

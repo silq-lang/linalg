@@ -1,5 +1,5 @@
 import primitives.fft;
-import QRISP.phase_opt;
+import QRISP.phase_o_slq;
 
 def fourier_coeff[N:!ℕ](const f:!ℝ→!ℝ){
     assert(N > 0);

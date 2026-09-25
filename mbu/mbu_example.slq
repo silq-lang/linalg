@@ -1,0 +1,38 @@
+import automatic_mbu_compiler;
+
+def compute(x:𝔹^4) qfree:𝔹^4 × 𝔹^2{
+    (a,b,c,d) := x;
+    (t0,t1) := vector(2,0:𝔹);
+    if a && b{t0 := X(t0);} if t0 && c{t1 := X(t1);}
+    c := CNOT(t0,c); d := CNOT(t1,d);
+    a := CNOT(d,a); b := CNOT(d,b);
+    return ((a,b,c,d),(t0,t1));
+}
+
+def garbage_recipe(const retained:𝔹^4) qfree:𝔹^2{
+    (a,b,c,d) := retained;
+    t0 := (a != d) && (b != d);
+    t1 := t0 && !c;
+    return (t0,t1);
+}
+
+def adjoint_process() mfree:𝔹^4{
+    x := vector(4,0:𝔹);
+    x[0] := H(x[0]); x[1] := H(x[1]); x[2] := H(x[2]);
+    (retained,garbage) := compute(x);
+    forget(garbage = garbage_recipe(retained));
+    return retained;
+}
+
+def measure_process():𝔹^4{
+    x := vector(4,0:𝔹);
+    x[0] := H(x[0]); x[1] := H(x[1]); x[2] := H(x[2]);
+    (retained,garbage) := compute(x);
+    m_forget(garbage);
+    return retained;
+}
+
+def main():𝔹^4{
+    //return measure_process();
+    return measure_process();
+}

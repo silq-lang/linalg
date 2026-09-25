@@ -1,5 +1,4 @@
 import phase_estimation.QPE;
-import primitives.uniform_superposition;
 
 def projector_reflection[n:!ℕ](const f:𝔹^n → mfree 𝔹^n,xs:𝔹^n) mfree{
     with f(xs):=xs{
@@ -8,12 +7,12 @@ def projector_reflection[n:!ℕ](const f:𝔹^n → mfree 𝔹^n,xs:𝔹^n) mfre
     return xs;
 }
 
-def amplitude_estimation[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,const g:𝔹^n → mfree 𝔹^n)(const window:!ℝ → qfree !ℝ ,const anc:𝔹^m,const qs:𝔹^n){
+def amplitude_estimation[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,const g:𝔹^n → mfree 𝔹^n){
     def Q(xs:𝔹^n) mfree{
         xs := projector_reflection(g,xs);
         return projector_reflection(f,xs);
     }
-    t := estimate_phase[shots][𝔹^n,m](Q)(window,anc,qs);
+    t := QPE[shots][n,m](Q,f);
     return abs(cos(π*t));
 }
 
@@ -28,5 +27,5 @@ def identity(qs:𝔹^1){
 }
 
 def main(){
-    return amplitude_estimation[10][1,5](identity,r)(sine_window[5],0:uint[5] as 𝔹^5,0:uint[1] as 𝔹^1);
+    return amplitude_estimation[10][1,5](identity,r);
 }

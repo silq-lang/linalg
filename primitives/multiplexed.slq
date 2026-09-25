@@ -1,49 +1,54 @@
 import primitives.list_op;
 import arithmetic.shift;
 
-def multiplexed_rotX[n:!ℕ,D:!ℕ](const d:𝔹^n,data:𝔹,v:!ℝ^D) mfree{
-    norm_max := max(abs_list(v));
-    for i in [0..D){
-        if i == (d as uint[n]){
-            φ := 2*acos(v[i]/norm_max);
-            data := rotX(φ,data);
-        }
-    }
-    return data;
+// Rotate data about X by 2*acos(v[i]/max|v|) when the control equals i.
+def multiplexed_rotX[N:!ℕ,D:!ℕ](const d:𝔹^N,data:𝔹,v:!ℝ^D) mfree{
+	norm_max := max(abs_list(v));
+	for i in [0..D){
+		if i == (d as uint[N]){
+			φ := 2*acos(v[i]/norm_max);
+			data := rotX(φ,data);
+		}
+	}
+	return data;
 }
 
-def multiplexed_phase[n:!ℕ,D:!ℕ](const d:𝔹^n,v:!ℂ^D) mfree{
-    for i in [0..D){
-        if i == (d as uint[n]){
-            phase(carg(v[i]));
-        }
-    }
+// Apply phase arg(v[i]) when the control equals i.
+def multiplexed_phase[N:!ℕ,D:!ℕ](const d:𝔹^N,v:!ℂ^D) mfree{
+	for i in [0..D){
+		if i == (d as uint[N]){
+			phase(carg(v[i]));
+		}
+	}
 }
 
-def multiplexed_adder[n:!ℕ,m:!ℕ](const control:𝔹^n,target:𝔹^m) mfree{
-    for i in [0..2^n){
-        if i == (control as uint[n]){
-            target := lowshift_pow[i](target);
-        }
-    }
-    return target;
+// Apply lowshift_pow[i] to target when the control equals i.
+def multiplexed_adder[N:!ℕ,M:!ℕ](const control:𝔹^N,target:𝔹^M) mfree{
+	for i in [0..2^N){
+		if i == (control as uint[N]){
+			target := lowshift_pow[i](target);
+		}
+	}
+	return target;
 }
 
-def multiplexed_unitaries[q:qtype,m:!ℕ](const f:q → mfree q,const control:𝔹^m,target:q) mfree{
-    for j in [0..2^m){
-        if j == (control as uint[m]){
-            for k in [0..j){target := f(target);}
-        }
-    }
-    return target;
+// Apply f to target i times when the control equals i.
+def multiplexed_unitaries[q:qtype,N:!ℕ](const f:q → mfree q,const control:𝔹^N,target:q) mfree{
+	for j in [0..2^N){
+		if j == (control as uint[N]){
+			for k in [0..j){target := f(target);}
+		}
+	}
+	return target;
 }
 
-def multiplexed_rotY[m:!ℕ](const control:𝔹^m,target:𝔹^1,κ:!ℝ) mfree{
-    for j in [1..2^m){
-        if j == (control as uint[m]){
-            θ := 2*asin(1/(j*κ));
-            target[0] := rotY(θ,target[0]);
-        }
-    }
-    return target;
+// Rotate target about Y by 2*asin(1/(i*κ)) when the control equals i >= 1.
+def multiplexed_rotY[N:!ℕ](const control:𝔹^N,target:𝔹^1,κ:!ℝ) mfree{
+	for j in [1..2^N){
+		if j == (control as uint[N]){
+			θ := 2*asin(1/(j*κ));
+			target[0] := rotY(θ,target[0]);
+		}
+	}
+	return target;
 }

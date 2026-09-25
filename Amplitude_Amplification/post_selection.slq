@@ -1,0 +1,30 @@
+import block_encodings.symtwobytwo;
+
+// Apply a block encoding to a freshly prepared state and postselect the all-zero block-ancilla outcome.  
+def post_select[n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n, const prepare:𝔹^n → mfree 𝔹^n):𝔹^n{
+    accepted := 0:!𝔹;
+    qs := 0:uint[n] as 𝔹^n;
+    while !accepted{
+        // Discard the previous (failed) data state before restarting.
+        measure(qs);
+        qs := prepare(0:uint[n] as 𝔹^n);
+        anc := 0:uint[m] as 𝔹^m;
+        (anc,qs) := f(anc,qs);
+        outcome := measure(anc) as !uint[m];
+        if outcome=0{accepted = 1:!𝔹;}
+    }
+    return qs;
+}
+
+def test_block(anc:𝔹^2,qs:𝔹^1) mfree{
+    return twosym_block(anc,qs,1/2,1/sqrt(2));
+}
+
+def prepare(qs:𝔹^1) mfree{
+    return qs;
+}
+
+// The accepted state is 1/sqrt(3)|0> + sqrt(2/3)|1>.
+def main(){
+    return post_select[1,2](test_block,prepare);
+}

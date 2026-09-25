@@ -1,8 +1,9 @@
 def angle[n:!ℕ]{
-    // Ensures optimal number of iterations
+    // Ensures optimal number of iterations (https://arxiv.org/pdf/1409.3305.pdf)
     return acos((1-sin(π/(2*n)))/(1+sin(π/(2*n))));
 }
 
+// Scheme from https://www.nature.com/articles/s41598-022-15093-x
 def walk[k:!ℕ][m:!ℕ,n:!ℕ](flag:𝔹,anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
     // set the ancilla qubit
     flag := rotY(angle[k],flag);
@@ -35,4 +36,29 @@ def fixed_point_OAA[m:!ℕ,n:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n
     }
     measure(anc); // measure the index qubits
     return qs;
+}
+
+def tof(const x:𝔹,const y:𝔹,z:𝔹):𝔹{
+    if x&y{
+        z := X(z);
+    }
+    return z;
+}
+
+def test_gate(anc:𝔹^2,qs:𝔹^2) mfree{
+    anc[0] := rotY(π/3,anc[0]);
+    anc[0] := X(anc[0]);
+    qs[0] := rotY(π/3,qs[0]);
+    anc[1] := CNOT(anc[0],anc[1]);
+    qs[0] := tof(anc[0],anc[1],qs[0]);
+    qs[1] := tof(anc[1],qs[0],qs[1]);
+    return (anc,qs);
+}
+
+def main(){
+    anc := 0:uint[2] as 𝔹^2;
+    qs := 0:uint[2] as 𝔹^2;
+    (anc,qs) := test_gate(anc,qs);
+    // On success, qs is sqrt(3)/2|00> + 1/2|10>.
+    return fixed_point_OAA[2,2](anc,qs,test_gate);
 }

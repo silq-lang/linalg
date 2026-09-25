@@ -248,19 +248,21 @@ def filter_func[k:!ℕ,a:!ℝ](x:!ℝ):!ℝ{
     return numer / denom;
 }
 
-def eigen_filt(d:!ℕ, Δ:!ℝ) {               
-    c := vector(2*d+1,0:!ℝ);
+def eigen_filt(d:!ℕ, Δ:!ℝ) {
     N := 2*d+1;
-    for j in [0..N){          
-        sum := 0:!ℝ;
-        for k in [0..N){         
-            x := cos(π*(2*k+1)/(2*N));
-            f := filter_func[d,Δ](x);   
-            T := chebyshev_polynomial[j](x);
-            sum += f*T;
+    denominator := chebyshev_polynomial[d](-(1+Δ^2)/(1-Δ^2));
+    c := vector(2*d+1,0:!ℝ);
+    for sample in [0..N){
+        x := cos(π*(2*sample+1)/(2*N));
+        y := (2*x^2-(1+Δ^2))/(1-Δ^2);
+        value := chebyshev_polynomial[d](y)/denominator;
+        c[0] += value/N;
+        previous := 1:!ℝ; current := x;
+        for j in [1..N){
+            if j%2=0{c[j] += 2*value*current/N;}
+            next := 2*x*current-previous;
+            previous = current; current = next;
         }
-        if j=0{c[j] = sum/N;}
-        else{c[j] = 2*sum/N;}
     }
     return c;
 }
@@ -284,12 +286,20 @@ def choose(n:!ℕ, k:!ℕ){
 }
 
 def inverse_func(n:!ℕ,b:!ℕ){
+    assert(b>=1);
+    // w[k] <= exp(-k^2/(b+1/2)); the omitted weight is at most 1e-18.
+    cutoff := min(b,max(n+1,ceil(sqrt((b+0.5)*log(1e18*b))))) coerce !ℕ;
+    weights := vector(cutoff+1,0:!ℝ); weights[0] = 1;
+    mass := 1:!ℝ;
+    for k in [1..cutoff+1){
+        weights[k] = weights[k-1]*(b-k+1)/(b+k);
+        mass += 2*weights[k];
+    }
     p := vector(2*n+2,0:!ℂ);
-    for j in [0..n+1){
-        prefac := 0:!ℝ;
-        for k in [j+1..b+1){prefac += choose(2*b,b+k);}
-        p[2*j+1] = 4*((-1)^j)*(2^(-2*b))*prefac;
-        forget(prefac);
+    tail := 0:!ℝ;
+    for k in [cutoff..-1..0){
+        tail += weights[k];
+        if k<=n+1{p[2*k-1] = 4*((-1)^(k-1))*tail/mass;}
     }
     return p;
 }

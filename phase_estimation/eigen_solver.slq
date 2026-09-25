@@ -1,10 +1,7 @@
 import arithmetic.shift;
-import block_encodings.fable;
-import GQSVT.gqsp_angles;
-import GQSVT.matrix_poly;
-import GQSVT.func_approx;
-import phase_estimation.QFT;
+import GQSVT.augmentation;
 import block_encodings.symtwobytwo;
+import phase_estimation.QFT;
 
 def lowshift_pow_p[j:!ℕ][n:!ℕ](qs:𝔹^n) mfree{
     for k in [0..j){if (qs as uint[n])=(2^n sub k sub 1){phase(π);}}
@@ -20,47 +17,52 @@ def lowshift_block[j:!ℕ][n:!ℕ](anc:𝔹^1,qs:𝔹^n) mfree{
     return (anc,qs);
 }
 
-def pad[m:!ℕ,n:!ℕ,ν:!ℕ](ancilla:𝔹^(3+m),xs:𝔹^(n+ν), const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
-    (flag1:𝔹^1)~(flag2:𝔹^1)~(anc_low:𝔹^1)~(anc:𝔹^m) := ancilla; (qs:𝔹^n)~(qs_low:𝔹^ν) := xs;
+def pad[m:!ℕ,n:!ℕ,ν:!ℕ](ancilla:𝔹^(m+3),data:𝔹^(n+ν),const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
+    (flag1:𝔹^1)~(flag2:𝔹^1)~(shift_anc:𝔹^1)~(anc:𝔹^m) := ancilla;
+    (xs:𝔹^n)~(clock:𝔹^ν) := data;
     θ1 := 2*atan(sqrt(1/3)); flag1[0] := rotY(θ1,flag1[0]);
     if !flag1[0]{
         θ2 := 2*atan(sqrt(2)); flag2[0] := rotY(θ2,flag2[0]); flag2[0] := rotZ(π,flag2[0]);
-        if !flag2[0]{(anc_low,qs_low) := lowshift_block[2][ν](anc_low,qs_low);}
-        if flag2[0]{(anc_low,qs_low) := lowshift_block[1][ν](anc_low,qs_low); (anc,qs) := f(anc,qs);}
+        if !flag2[0]{(shift_anc,clock) := lowshift_block[2][ν](shift_anc,clock);}
+        if flag2[0]{(shift_anc,clock) := lowshift_block[1][ν](shift_anc,clock); (anc,xs) := f(anc,xs);}
         flag2[0] := rotY(-θ2,flag2[0]); phase(π/2);
     }
     flag1[0] := rotY(-θ1,flag1[0]);
-    return (flag1~flag2~anc_low~anc,qs~qs_low);
+    return (flag1~flag2~shift_anc~anc,xs~clock);
 }
 
-def chebyshev_history_state[ν:!ℕ][m:!ℕ,n:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n,ϵ:!ℝ,κ:!ℝ){
-    def pad_f(ancilla:𝔹^(3+m),xs:𝔹^(n+ν)) mfree{return pad[m,n,ν](ancilla,xs,f);}
-    def pad_b[ν:!ℕ](cs:𝔹^n) mfree{cs_low := 0:uint[ν] as 𝔹^ν; cs_low[1] := H(X(cs_low[1])); return cs~cs_low}
-    b := floor((κ^2)*log(κ/ϵ)) coerce !ℕ; d := floor(sqrt(b*log(4*b/ϵ))) coerce !ℕ; p := inverse_func(d,b);
-    for j in [0..2*d+1){p[j] = (0.5/κ)*p[j]/1.8;}
-    q:=complement[2*d+1](p,1e-8); assert(is_complement[num_samples(2*d+1,1e-8)][2*d+1](p,q,1e-8));
-	angles:=gqsp_compute_angles[2*d+1](p,q); θs:=angles[0];φs:=angles[1];λ:=angles[2];
-    flagged := 0:!𝔹; qs := pad_b[ν:!ℕ](g(0:uint[n] as 𝔹^n));
-    while !flagged{
-        measure(qs); qs := pad_b[ν:!ℕ](g(0:uint[n] as 𝔹^n));
-        (anc,qs) := gqsvt[0][2*d+1](θs,φs,λ)(pad_f)(0:uint[5+m] as 𝔹^(5+m),qs); anc[1] := X(anc[1]);
-        r := measure(anc) as !uint[m+5];
-        if r=0{flagged = 1:!𝔹;}
+def chebyshev_history_state[ν:!ℕ][m:!ℕ,n:!ℕ](L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
+    assert(ν>=2);
+    def history(ancilla:𝔹^(m+3),data:𝔹^(n+ν)) mfree{return pad[m,n,ν](ancilla,data,f);}
+    def rhs(data:𝔹^(n+ν)) mfree{
+        (xs:𝔹^n)~(clock:𝔹^ν) := data;
+        xs := b(xs); clock[1] := H(X(clock[1]));
+        return xs~clock;
     }
-    (qs:𝔹^n)~(qs_low:𝔹^ν) := qs;
-    return (qs_low,qs);
+    data := qlss[n+ν,m+3](L,R,κ,η,ϵ,history,rhs);
+    (xs:𝔹^n)~(clock:𝔹^ν) := data;
+    return (clock,xs);
 }
 
-def eigenvalue_estimator[ν:!ℕ][m:!ℕ,n:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^n → mfree 𝔹^n,α:!ℝ,ϵ:!ℝ,κ:!ℝ){
-    (anc,qs) := chebyshev_history_state[ν][m,n](f,g,ϵ,κ);
-    QFT(anc) := anc; ϕ := measure(anc) as !uint[ν] as !ℕ; measure(qs);
-    return α*cos(2*π*ϕ/(2^ν));
+def eigenvalue_estimator[shots:!ℕ][ν:!ℕ][m:!ℕ,n:!ℕ](α:!ℝ,L:!ℝ,R:!ℝ,κ:!ℝ,η:!ℝ,ϵ:!ℝ,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const b:𝔹^n → mfree 𝔹^n){
+    assert(shots>0);
+    counts := vector((2^ν div 2)+1,0:!ℕ);
+    for j in [0..shots){
+        (clock,xs) := chebyshev_history_state[ν][m,n](L,R,κ,η,ϵ,f,b);
+        sample := semiclassical_qft[ν](clock);
+        measure(xs);
+        folded := sample;
+        if folded>2^(ν sub 1){folded = 2^ν sub folded;}
+        counts[folded] += 1;
+    }
+    mode := 0:!ℕ;
+    for j in [1..(2^ν div 2)+1){if counts[j]>counts[mode]{mode = j;}}
+    φ := mode/2^ν as !ℝ;
+    return α*cos(2*π*φ);
 }
 
 def main(){
-    def twosym(anc:𝔹^2,xs:𝔹^1)mfree{return twosym_block(anc,xs,1/4,0);}
-    def b(x:𝔹^1)mfree{return x;}
-    //return pad[2,1,2](0:uint[5] as 𝔹^5,7:uint[3] as 𝔹^3,twosym);
-    //return chebyshev_history_state[2][2,1](twosym,b,2e-4,3.4);
-    return eigenvalue_estimator[6][2,1](twosym,b,2,2e-4,3.4);
+    def matrix(anc:𝔹^2,xs:𝔹^1)mfree{return twosym_block(anc,xs,sqrt(2-sqrt(2)),0);}
+    def b(xs:𝔹^1)mfree{return xs;}
+    return eigenvalue_estimator[3][4][2,1](1/(2*sqrt(2-sqrt(2))),15,16,25,1e-1,5e-2,matrix,b);
 }
