@@ -5,6 +5,7 @@ import primitives.uniform_superposition;
 import Amplitude_Amplification.amplitude_amplification;
 
 def tridiagonal[n:!ℕ,D:!ℕ](anc:𝔹^3,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^3 × 𝔹^n{
+    // Combines three shift branches with entry-controlled rotations.
     //assert(D=2^(n+1));
     (data:𝔹^1)~(s:𝔹^2) := anc;
     s := uniform_superposition[3](s);
@@ -20,16 +21,19 @@ def tridiagonal[n:!ℕ,D:!ℕ](anc:𝔹^3,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^3 × �
 }
 
 def Up(qs:𝔹^2) mfree{
+    // Leaves the input register unchanged.
     //qs[0] := X(qs[0]);
     //qs[1] := X(qs[1]);
     return qs;
 }
 
 def main(){
+    // Demonstrates amplitude amplification of a tridiagonal encoding.
     v := [2,-1,2,-1,2,-1,2] : !ℝ^7;
     qs := 0:uint[2] as 𝔹^2;
     qs := Up(qs);
     def tridiag_amp[n:!ℕ](anc:𝔹^3,xs:𝔹^n){
+        // Pads the example entries with zero before applying the tridiagonal encoding.
         v := v~[0];
         return tridiagonal(anc,xs,v);
     }

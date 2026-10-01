@@ -1,12 +1,17 @@
-def gray_scale(j:!ℕ){return j⊕(j div 2);}
+def gray_scale(j:!ℕ){
+    // Returns the reflected Gray-code index.
+    return j⊕(j div 2);
+}
 
 def gray_permute[N:!ℕ](t:!ℝ^N){
+    // Reorders angles by their Gray-code indices.
     out := vector(N,0:!ℝ);
     for i in [0..N){out[i] = t[gray_scale(i)];}
     return out;
 }
 
 def diff_bit(j:!ℕ, N:!ℕ){
+    // Finds the flipped bit in the next cyclic Gray-code step.
     assert((N & (N - 1 coerce !ℕ)) == 0); assert(j < N);
     x := j + 1; if x == N {x = N div 2;}
     bit := 0:!ℕ;
@@ -15,6 +20,7 @@ def diff_bit(j:!ℕ, N:!ℕ){
 }
 
 def fwht[N:!ℕ](t:!ℝ^N){
+    // Computes the normalized fast Walsh-Hadamard transform.
     if N == 1{return t;}
     assert((N & (N-1 coerce !ℕ)) == 0);
     out := vector(N,0:!ℝ); h := 1:!ℕ;
@@ -32,6 +38,7 @@ def fwht[N:!ℕ](t:!ℝ^N){
 }
 
 def uni_control[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j:!ℕ){
+    // Applies a Y or Z rotation followed by one Gray-code controlled X.
     assert(j < 2^n);
     if axis=0{data := rotY(θ,data);}    
     if axis=1{data := rotZ(θ,data);}
@@ -40,6 +47,7 @@ def uni_control[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j:!�
 }
 
 def uni_simpli[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j1:!ℕ,j2:!ℕ){
+    // Applies a rotation and cancels paired controlled X gates across skipped angles.
     assert(j1 < 2^n); assert(j2 <= 2^n);
     if axis=0{data := rotY(θ,data);}    
     if axis=1{data := rotZ(θ,data);}
@@ -50,6 +58,7 @@ def uni_simpli[axis:!𝔹][n:!ℕ](const control:𝔹^n,data:𝔹,θ:!ℝ,j1:!�
 }
 
 def entry_angles[N:!ℕ](A:(!ℂ^N)^N){
+    // Flattens matrix entries into magnitude and phase rotation angles.
     mag_angles := []; phase_angles := [];
     for i in [0..N){
         for j in [0..N){
@@ -63,6 +72,7 @@ def entry_angles[N:!ℕ](A:(!ℂ^N)^N){
 }
 
 def Oa[axis:!𝔹][n:!ℕ,N:!ℕ](δ:!ℝ,const control:𝔹^n,data:𝔹,angles:!ℝ^(N^2)){
+    // Implements multiplexed rotations after thresholding transformed angles.
     assert(N^2 == 2^n); assert(δ >= 0);
     angles := gray_permute(fwht(angles));
     for j in [0..2^n){if (abs(angles[j]) <= δ){angles[j] = 0;}}
@@ -86,6 +96,7 @@ def Oa[axis:!𝔹][n:!ℕ,N:!ℕ](δ:!ℝ,const control:𝔹^n,data:𝔹,angles:
 }
 
 def fable[n:!ℕ,N:!ℕ](ancilla:𝔹^(1+n),qs:𝔹^n,A:(!ℂ^N)^N,δ:!ℝ){
+    // Builds the complex matrix encoding from compressed magnitude and phase rotations.
     angles := entry_angles(A);
     mag_angles := angles[0]; phase_angles := angles[1];
     (data:𝔹^1)~(anc:𝔹^n) := ancilla; (data,) := data;
@@ -99,6 +110,7 @@ def fable[n:!ℕ,N:!ℕ](ancilla:𝔹^(1+n),qs:𝔹^n,A:(!ℂ^N)^N,δ:!ℝ){
 }
 
 def main(){
+    // Encodes the example complex matrix with no angle truncation.
     ancilla := 0:uint[2] as 𝔹^2;
     qs := 1:uint[1] as 𝔹^1;
     A := [[0.5+0.5i, -1/3],[-0.25i, 1/6]]:(!ℂ^2)^2;

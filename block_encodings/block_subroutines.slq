@@ -2,12 +2,14 @@ import primitives.multicontrol;
 import block_encodings.symtwobytwo;
 
 def qubitize[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+    // Applies f, then flips the phase of nonzero ancilla states.
     (anc,qs) := f(anc,qs);
     if anc != vector(m,0){phase(π);}
     return (anc,qs);
 }
 
 def hermitianization[n:!ℕ,m:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree{
+    // Forms a Hermitian dilation using controlled f and its inverse.
     (ext:𝔹^1)~(anc:𝔹^m) := ancilla;
     ext[0] := X(ext[0]);
     (anc,qs) := (omc(f)[1])(ext,(anc,qs));
@@ -16,6 +18,7 @@ def hermitianization[n:!ℕ,m:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,const f:𝔹^m 
 }
 
 def block_prod[n:!ℕ,m:!ℕ,k:!ℕ](anc:𝔹^(m+k),qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^k × 𝔹^n → mfree 𝔹^k × 𝔹^n) mfree{
+    // Composes f after g using separate ancilla registers.
     (ancf:𝔹^m)~(ancg:𝔹^k) := anc;
     (ancg,qs) := g(ancg,qs);
     (ancf,qs) := f(ancf,qs);
@@ -23,6 +26,7 @@ def block_prod[n:!ℕ,m:!ℕ,k:!ℕ](anc:𝔹^(m+k),qs:𝔹^n,const f:𝔹^m × 
 }
 
 def block_tens[n1:!ℕ,m1:!ℕ,n2:!ℕ,m2:!ℕ](anc:𝔹^(m1+m2),qs:𝔹^(n1+n2),const f:𝔹^m1 × 𝔹^n1 → mfree 𝔹^m1 × 𝔹^n1,const g:𝔹^m2 × 𝔹^n2 → mfree 𝔹^m2 × 𝔹^n2) mfree{
+    // Applies f and g to separate registers to form their tensor product.
     (ancf:𝔹^m1)~(ancg:𝔹^m2) := anc;
     (qsf:𝔹^n1)~(qsg:𝔹^n2) := qs;
     (ancg,qsg) := g(ancg,qsg);
@@ -31,6 +35,7 @@ def block_tens[n1:!ℕ,m1:!ℕ,n2:!ℕ,m2:!ℕ](anc:𝔹^(m1+m2),qs:𝔹^(n1+n2)
 }
 
 def norm[N:!ℕ](v:!ℝ^N)qfree:!ℝ{
+    // Computes the Euclidean norm of a real vector.
     sum := 0;
     for i in [0..N) {
         sum += v[i]^2;
@@ -39,6 +44,7 @@ def norm[N:!ℕ](v:!ℝ^N)qfree:!ℝ{
 }
 
 def abs_sum[m:!ℕ](t:!ℝ^m) qfree:!ℝ{
+    // Sums the absolute values of the coefficients.
     s := 0:!ℝ;
     for i in [0..m){
         s += cabs(t[i]);
@@ -47,6 +53,7 @@ def abs_sum[m:!ℕ](t:!ℝ^m) qfree:!ℝ{
 }
 
 def normalize[N:!ℕ](v:!ℝ^N)qfree:!ℝ^N{
+    // Divides a real vector by its Euclidean norm.
     p := norm(v);
     for i in [0..N){
         v[i] /= p;
@@ -55,6 +62,7 @@ def normalize[N:!ℕ](v:!ℝ^N)qfree:!ℝ^N{
 }
 
 def block_LC[n:!ℕ,m:!ℕ,k:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,c:!ℂ^2,a:!ℝ^2,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,const g:𝔹^k × 𝔹^n → mfree 𝔹^k × 𝔹^n) mfree{
+    // Combines f and g with complex weights c and normalization factors a.
     (ext:𝔹^1)~(anc:𝔹^m) := ancilla;
     t := atan(sqrt((a[0]*cabs(c[1]))/(a[1]*cabs(c[0]))));
     ext[0] := rotY(2*t,ext[0]);
@@ -69,20 +77,24 @@ def block_LC[n:!ℕ,m:!ℕ,k:!ℕ](ancilla:𝔹^(m+1),qs:𝔹^n,c:!ℂ^2,a:!ℝ^
 }
 
 def Up(qs:𝔹^1) mfree{
+    // Flips the input qubit.
     qs[0] := X(qs[0]);
     return qs;
 }
 
 def main(){
+    // Demonstrates a weighted combination of two symmetric block encodings.
     qs := 0:uint[1] as 𝔹^1;
     qs := Up(qs);
-    alpha1 := (1/2):!ℝ;
-    alpha2 := (1/sqrt(2)):!ℝ;
+    α1 := (1/2):!ℝ;
+    α2 := (1/sqrt(2)):!ℝ;
     def twosym1(anc:𝔹^2,xs:𝔹^1){
-        return twosym_block(anc,xs,alpha1,alpha2);
+        // Binds the example coefficients to the first symmetric block encoding.
+        return twosym_block(anc,xs,α1,α2);
     }
     def twosym2(anc:𝔹^2,xs:𝔹^1){
-        return twosym_block(anc,xs,alpha1,alpha2);
+        // Binds the example coefficients to the second symmetric block encoding.
+        return twosym_block(anc,xs,α1,α2);
     }
     (anc,qs) := block_LC[1,2,2](0:uint[3] as 𝔹^3,qs,[-1,2],[2,2],twosym1,twosym2);
     return (anc,qs);

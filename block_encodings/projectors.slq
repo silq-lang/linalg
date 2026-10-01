@@ -1,6 +1,7 @@
 import primitives.multicontrol;
 
 def block_projector[n:!ℕ](anc:𝔹^1,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n) mfree{
+    // Encodes the projector selected by f using one ancilla.
     anc[0] := X(H(anc[0]));
     (anc,) := anc;
     (qs,anc) := mc_sub(Z)(f,qs,anc);
@@ -9,11 +10,13 @@ def block_projector[n:!ℕ](anc:𝔹^1,qs:𝔹^n,const f:𝔹^n → mfree 𝔹^n
 }
 
 def Up(qs:𝔹^1) mfree{
+    // Flips the input qubit.
     qs[0] := X(qs[0]);
     return qs;
 }
 
 def main(){
+    // Applies the example projector encoding to a uniform one-qubit state.
     qs := 0:uint[1] as 𝔹^1;
     qs[0]:=H(qs[0]);
     (anc,qs) := block_projector(0:uint[1] as 𝔹^1,qs,Up);

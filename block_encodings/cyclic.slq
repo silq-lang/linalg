@@ -3,73 +3,94 @@ import primitives.multicontrol;
 import arithmetic.shift;
 import Amplitude_Amplification.amplitude_amplification;
 
-def rotc[alpha:!ℝ](x:𝔹) mfree{return rotY(alpha,x);}
+// https://arxiv.org/abs/2203.10236, Sections 4.2 and 8.
 
-def Oa[alpha:!ℝ,beta:!ℝ,gamma:!ℝ][n:!ℕ](anc:𝔹, const l:𝔹^2, const qs:𝔹^n) mfree{
-    theta0 := 2*acos(alpha-1);
-    theta1 := 2*acos(beta);
-    theta2 := 2*acos(gamma);
-    anc := mc(rotc[theta0])((!l[0],!l[1]),anc);
-    anc := mc(rotc[theta1])((l[0],!l[1]),anc);
-    anc := mc(rotc[theta2])((!l[0],l[1]),anc);
+def rotc[α:!ℝ](x:𝔹) mfree{
+    // Applies a Y rotation by α.
+    return rotY(α,x);
+}
+
+def Oa[α:!ℝ,β:!ℝ,γ:!ℝ][n:!ℕ](anc:𝔹, const l:𝔹^2, const qs:𝔹^n) mfree{
+    // Loads cyclic entries, splitting the diagonal across labels 0 and 3.
+    θ0 := 2*acos(α-1);
+    θ1 := 2*acos(β);
+    θ2 := 2*acos(γ);
+    anc := mc(rotc[θ0])((!l[0],!l[1]),anc);
+    anc := mc(rotc[θ1])((l[0],!l[1]),anc);
+    anc := mc(rotc[θ2])((!l[0],l[1]),anc);
     return anc;
 }
 
 def Oc[n:!ℕ](const l:𝔹^2, qs:𝔹^n) mfree{
+    // Applies the cyclic row shift selected by the two label bits.
     qs := ([n:!N]⇒mc(lower_shift[n])[1])((l[0],),qs);
     qs := ([n:!N]⇒mc(upper_shift[n])[1])((l[1],),qs);
     return qs;
 }
 
-def Oa_sym[alpha:!ℝ,beta:!ℝ][n:!ℕ](anc:𝔹,const l:𝔹^n,const qs:𝔹^n) mfree{
-    theta0 := acos(sqrt(beta)-1);
-    theta1 := acos(sqrt(alpha))+π;   //π
-    theta2 := acos((beta))+π;
-    anc := mc(rotc[theta2])((!qs[0],!qs[1]),anc);
-    anc := mc(rotc[theta1])((qs[0],!qs[1]),anc);
-    anc := mc(rotc[theta0])((!qs[0],qs[1]),anc);
+def Oa_sym[α:!ℝ,β:!ℝ][n:!ℕ](anc:𝔹,const l:𝔹^n,const qs:𝔹^n) mfree{
+    // Loads sqrt(|β|), sqrt(|α|), sqrt(|β|), then zero; Oap_sym supplies the signs.
+    assert(n>=2);
+    assert(α>=-1 && α<=1);
+    assert(β>=-1 && β<=1);
+    anc := rotY(π,anc);
+    for k in [0..3){
+        if (l as uint[n]) == k{
+            if k==1{
+                anc := rotY(2*acos(sqrt(cabs(α)))-π,anc);
+            }else{
+                anc := rotY(2*acos(sqrt(cabs(β)))-π,anc);
+            }
+        }
+    }
     return anc;
 }
 
-def Oap_sym[n:!ℕ](const anc:𝔹,const l:𝔹^n,const qs:𝔹^n) mfree{}
+def Oap_sym[α:!ℝ,β:!ℝ][n:!ℕ](const anc:𝔹,const l:𝔹^n,const qs:𝔹^n) mfree{
+    // Restores negative-entry signs on label 1 (α) and the swap-paired labels 0 and 2 (β).
+    if α<0{if (l as uint[n]) == 1{phase(π);}}
+    if β<0{if ((l as uint[n]) == 0) | ((l as uint[n]) == 2){phase(π);}}
+}
 
-def Oc_sym[n:!ℕ](l:𝔹^n,const qs:𝔹^n){
+def Oc_sym[n:!ℕ](l:𝔹^n,const qs:𝔹^n) mfree{
+    // Maps l to (l + j - 1) mod 2^n using little-endian controlled shifts (Eq. 8.7).
     l := upper_shift(l);
     for i in[0..n){
-        (ll:𝔹^(n sub i))~(nl:𝔹^i) := l; 
-        if qs[i]{
-            ll := lower_shift(ll);
-        }
-        l := (ll)~(nl);
+        (nl:𝔹^i)~(ll:𝔹^(n sub i)) := l;
+        if qs[i]{ll := lower_shift(ll);}
+        l := (nl)~(ll);
     }
     return l;
 }
 
-def cyclic_block[n:!ℕ](ancilla:𝔹^3,qs:𝔹^n, const alpha:!ℝ, const beta:!ℝ, const gamma:!ℝ){
-    return sparse_block[3,n](ancilla,qs,Oc[n],Oa[alpha,beta,gamma][n]);
+def cyclic_block[n:!ℕ](ancilla:𝔹^3,qs:𝔹^n, const α:!ℝ, const β:!ℝ, const γ:!ℝ){
+    // Block-encodes the banded circulant matrix divided by four.
+    return sparse_block[3,n](ancilla,qs,Oc[n],Oa[α,β,γ][n]);
 }
 
-def cyclic_sym_block[n:!ℕ](ancilla:𝔹^(n+2),qs:𝔹^n, const alpha:!ℝ, const beta:!ℝ){
-    return herm_sparse_block[2,n](ancilla,qs,Oc_sym[n],Oa_sym[alpha,beta][n],Oap_sym[n]);
+def cyclic_sym_block[n:!ℕ](ancilla:𝔹^(n+2),qs:𝔹^n, const α:!ℝ, const β:!ℝ) mfree{
+    // Hermitian block-encoding of A/4 with diagonal α and cyclic neighbours β (Fig. 18).
+    assert(n>=2);
+    return herm_sparse_block[2,n](ancilla,qs,Oc_sym[n],Oa_sym[α,β][n],Oap_sym[α,β][n]);
 }
 
 def Up(qs:𝔹^3) mfree{
-    //qs[0] := X(qs[0]);
-    //qs[1] := X(qs[1]);
+    // Prepares the computational-basis input for the example.
     return qs;
 }
 
 def main(){
+    // Demonstrates the Hermitian cyclic block encoding on three system qubits.
     qs := 0:uint[3] as 𝔹^3;
     def cyclic_amp[n:!ℕ](anc:𝔹^3,xs:𝔹^n){
-        return cyclic_block(anc,xs,0.5,0.25,0.25);
+        // Binds the cyclic example coefficients.
+        return cyclic_block(anc,xs,0.5,0.25,-0.25);
     }
     def cyclic_sym_amp[n:!ℕ](anc:𝔹^(n+2),xs:𝔹^n){
-        return cyclic_sym_block[n](anc,xs,0.25,0.5);
+        // Binds the Hermitian example coefficients.
+        return cyclic_sym_block[n](anc,xs,-0.5,0.25);
     }
     qs := Up(qs);
-    return cyclic_amp(0:uint[3] as 𝔹^3,qs);
-    //return fixed_point_AA(anc,qs,cyclic_amp[2],Up);
-    //return cyclic_sym_amp[3](0:uint[5] as 𝔹^5,qs);
-    //return fixed_point_AA(anc,qs,cyclic_sym_amp[3],Up);
+    //return cyclic_amp(0:uint[3] as 𝔹^3,qs);
+    return cyclic_sym_amp[3](0:uint[5] as 𝔹^5,qs);
 }

@@ -6,6 +6,7 @@ import block_encodings.pauli_LCU;
 import Amplitude_Amplification.amplitude_amplification;
 
 def select[l:!ℕ,n:!ℕ,L:!ℕ](const control:𝔹^l,qs:𝔹^n, index:(!ℕ^2)^L) mfree{
+    // Applies indexed X/Z masks with phases on overlapping mask bits.
     for i in [0..L){
         if i == (control as uint[l]){
             for j in [0..n){
@@ -19,6 +20,7 @@ def select[l:!ℕ,n:!ℕ,L:!ℕ](const control:𝔹^l,qs:𝔹^n, index:(!ℕ^2)^
 }
 
 def prepare[m:!ℕ,D:!ℕ](ex:𝔹^1,anc:𝔹^m,coef:!ℂ^D) mfree{
+    // Prepares uniform labels with coefficient phases and square-root magnitude rotations.
     anc := uniform_superposition[D](anc);
     (ex,) := ex;
     multiplexed_phase(anc,coef);
@@ -27,6 +29,7 @@ def prepare[m:!ℕ,D:!ℕ](ex:𝔹^1,anc:𝔹^m,coef:!ℂ^D) mfree{
 }
 
 def unprepare[m:!ℕ,D:!ℕ](ex:𝔹^1,anc:𝔹^m,coef:!ℂ^D) mfree{
+    // Prepares labels and magnitude rotations for use in inverse preparation.
     anc := uniform_superposition[D](anc);
     (ex,) := ex;
     ex := multiplexed_rotX(anc,ex,sqrt_list(coef));
@@ -34,6 +37,7 @@ def unprepare[m:!ℕ,D:!ℕ](ex:𝔹^1,anc:𝔹^m,coef:!ℂ^D) mfree{
 }
 
 def prep_sel[n:!ℕ,m:!ℕ,D:!ℕ](ancilla:𝔹^m,qs:𝔹^n,index:(!ℕ^2)^D,coef:!ℂ^D) mfree{
+    // Combines coefficient preparation, indexed selection and inverse preparation.
     (ext1:𝔹^1)~(ext2:𝔹^1)~(anc:𝔹^(m sub 2)) := ancilla;
     (ext2,anc) := prepare(ext2,anc,coef);
     qs := select(anc,qs,index);
@@ -42,12 +46,14 @@ def prep_sel[n:!ℕ,m:!ℕ,D:!ℕ](ancilla:𝔹^m,qs:𝔹^n,index:(!ℕ^2)^D,coe
 }
 
 def Up(qs:𝔹^2) mfree{
+    // Flips the second system qubit for the example input.
     //qs[0] := X(qs[0]);
     qs[1] := X(qs[1]);
     return qs;
 }
 
 def main(){
+    // Runs the example encoding with fixed-point amplitude amplification.
     A := [[0.25,0,0,0.75],[0,-0.25,-0.75,0],[0,0.75,0.25,0],[0.75,0,0,-0.25]] coerce (!ℝ^4)^4;
     index := wh_index(A);
     ind := index[1] coerce (!ℕ^2)^index[0];
@@ -55,6 +61,7 @@ def main(){
     qs := 0:uint[2] as 𝔹^2;
     qs := Up(qs);
     def prep_sel_amp[n:!ℕ,m:!ℕ](ancilla:𝔹^m,xs:𝔹^n) mfree{
+        // Binds the example Pauli masks and coefficients.
         return prep_sel(ancilla,xs,ind,coef);
     }
     m := floor(log(index[0]-1)/log(2))+3 coerce !ℕ;

@@ -1,6 +1,7 @@
 import primitives.multicontrol;
 
 def gray_scale(N:!ℕ){
+    // Lists the first N binary-reflected Gray codes.
     ord := [];
     for k in [0..N){
         ord := ord~[k ⊕ floor(k/2)];
@@ -9,12 +10,14 @@ def gray_scale(N:!ℕ){
 }
 
 def c_phase[t:!ℝ](x:𝔹) mfree{
+    // Applies phase t to the one state of a qubit.
     phase(t/2);
     x := rotZ(t,x);
     return x;
 }
 
 def mc_phase[n:!ℕ](qs:𝔹^n,t:!ℝ) mfree{
+    // Applies phase t when every register qubit is one.
     cont := dup(qs[1..n]);
     qs[0] := mc(c_phase[t])(cont,qs[0]);
     forget(cont=qs[1..n]);
@@ -22,6 +25,7 @@ def mc_phase[n:!ℕ](qs:𝔹^n,t:!ℝ) mfree{
 }
 
 def unit[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k,i:!ℕ) mfree{
+    // Applies one diagonal phase and advances to the next Gray-code label.
     qs := mc_phase(qs,t[ord[i]]);
     j := log(ord[i] ⊕ ord[i+1])/log(2) coerce !ℕ;
     qs[j] := X(qs[j]);
@@ -29,6 +33,7 @@ def unit[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k,i:!ℕ) mfree{
 }
 
 def x_col[n:!ℕ](qs:𝔹^n,m:!ℕ) qfree{
+    // Flips the zero bits of the selected basis label.
     for i in [0..n){
         if (m as !uint[n])[i]=0{
             qs[i] := X(qs[i]);
@@ -38,6 +43,7 @@ def x_col[n:!ℕ](qs:𝔹^n,m:!ℕ) qfree{
 }
 
 def sequential_decomposition[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k) mfree{
+    // Applies diagonal phases in the supplied Gray-code order.
     qs := x_col(qs,ord[0] coerce !ℕ);
     for i in [0..k sub 1){
         qs := unit(qs,t,ord,i);
@@ -48,6 +54,7 @@ def sequential_decomposition[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k
 }
 
 def sequential_decomposition_parallel[n:!ℕ,m:!ℕ](qs:𝔹^n,t:!ℝ^m,p:!ℕ) mfree{
+    // Splits the Gray-code phase sequence across p copied registers.
     ord := gray_scale(m);
     xs := vector(p,qs);
     k := floor(m/p) coerce !ℕ;
@@ -59,6 +66,7 @@ def sequential_decomposition_parallel[n:!ℕ,m:!ℕ](qs:𝔹^n,t:!ℝ^m,p:!ℕ) 
 }
 
 def main(){
+    // Demonstrates a two-qubit diagonal phase decomposition in two segments.
     v := [π/3,-π,-2*π,π/2] : !ℝ^4;
     qs := 1:uint[2] as 𝔹^2;
     qs[0] := H(qs[0]);

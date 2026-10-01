@@ -1,3 +1,4 @@
+import phase_estimation.QFT;
 import block_encodings.block_subroutines;
 import block_encodings.symtwobytwo;
 import block_encodings.diagonal;
@@ -13,16 +14,15 @@ def multiplexed_unitaries[q:qtype,m:!ℕ](const f:q → mfree q,const ctrl:𝔹^
     return target;
 }
 
-def QPE_core[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,anc:𝔹^m,qs:𝔹^n){
+def QPE_coherent[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,anc:𝔹^m,qs:𝔹^n) mfree{
     qs := multiplexed_unitaries(f,anc,qs);
-    μ := vector(m,0:!𝔹);
-    for k in [0..m){
-        θ := 0:!ℝ;for l in [0..k){if μ[l]{θ -= π/(2^(k-l));}}
-        i := m sub k sub 1;(bit,anc[i]) := (measure(H(rotZ(θ,anc[i]))),0:𝔹);
-        μ[k] = bit;
-    }
-    forget(anc=0:uint[m] as 𝔹^m);
-    return (μ as !uint[m] as !ℕ,qs);
+    QFT(anc) := anc;
+    return (anc,qs);
+}
+
+def QPE_core[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,anc:𝔹^m,qs:𝔹^n){
+    (anc,qs) := QPE_coherent(f,anc,qs);
+    return (measure(anc as uint[m]) as !ℕ,qs);
 }
 
 def QPE[shots:!ℕ][n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,const prepare:𝔹^n → mfree 𝔹^n){

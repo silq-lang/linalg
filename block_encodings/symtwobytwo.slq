@@ -2,57 +2,65 @@ import block_encodings.sparse_block;
 import Amplitude_Amplification.amplitude_amplification;
 
 def Oc(const l:𝔹^1, qs:𝔹^1) mfree{
+    // Flips the row qubit when the label selects the off-diagonal entry.
     if l[0]{qs[0] := X(qs[0]);}
     return qs;
 }
 
-def Oa[alpha1:!ℝ,alpha2:!ℝ](anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
-    theta1 := 2*acos(alpha1);
-    theta2 := 2*acos(alpha2);
-    if !l[0]{anc := rotY(theta1,anc);}
-    if l[0]{anc := rotY(theta2,anc);}
+def Oa[α1:!ℝ,α2:!ℝ](anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
+    // Loads α1 or α2 into the zero-state amplitude according to the label.
+    θ1 := 2*acos(α1);
+    θ2 := 2*acos(α2);
+    if !l[0]{anc := rotY(θ1,anc);}
+    if l[0]{anc := rotY(θ2,anc);}
     return anc;
 }
 
 def Oc_sym(l:𝔹^1, const qs:𝔹^1) mfree{
+    // Maps the entry label to a row index using the column qubit.
     if qs[0]{l[0] := X(l[0]);}
     return l;
 }
 
-def Oa_sym[alpha1:!ℂ,alpha2:!ℂ](anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
-    theta1 := 2*acos(sqrt(cabs(alpha1)));
-    theta2 := 2*acos(sqrt(cabs(alpha2)));
-    if !l[0]{anc := rotY(theta1,anc);}
-    if l[0]{anc := rotY(theta2,anc);}
+def Oa_sym[α1:!ℂ,α2:!ℂ](anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
+    // Loads the square root of the selected coefficient magnitude.
+    θ1 := 2*acos(sqrt(cabs(α1)));
+    θ2 := 2*acos(sqrt(cabs(α2)));
+    if !l[0]{anc := rotY(θ1,anc);}
+    if l[0]{anc := rotY(θ2,anc);}
     return anc;
 }
 
-def Oap[alpha1:!ℂ,alpha2:!ℂ](const anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
-    if !l[0]{phase(carg(alpha1));}
-    if l[0]{phase(carg(alpha2));}
+def Oap[α1:!ℂ,α2:!ℂ](const anc:𝔹, const l:𝔹^1, const qs:𝔹^1) mfree{
+    // Applies the complex phase of the selected coefficient.
+    if !l[0]{phase(carg(α1));}
+    if l[0]{phase(carg(α2));}
 }
 
-def twosym_block(ancilla:𝔹^2,qs:𝔹^1,alpha1:!ℝ,alpha2:!ℝ){
-    return sparse_block[2,1](ancilla,qs,Oc,Oa[alpha1,alpha2]);
+def twosym_block(ancilla:𝔹^2,qs:𝔹^1,α1:!ℝ,α2:!ℝ){
+    // Block-encodes the symmetric matrix with diagonal α1 and off-diagonal α2.
+    return sparse_block[2,1](ancilla,qs,Oc,Oa[α1,α2]);
 }
 
-def twosym_herm(ancilla:𝔹^3,qs:𝔹^1,alpha1:!ℂ,alpha2:!ℂ){
-    return herm_sparse_block[1,1](ancilla,qs,Oc_sym,Oa_sym[alpha1,alpha2],Oap[alpha1,alpha2]);
+def twosym_herm(ancilla:𝔹^3,qs:𝔹^1,α1:!ℂ,α2:!ℂ){
+    // Applies the Hermitian sparse construction with magnitude and phase oracles.
+    return herm_sparse_block[1,1](ancilla,qs,Oc_sym,Oa_sym[α1,α2],Oap[α1,α2]);
 }
 
 def Up(qs:𝔹^1) mfree{
+    // Flips the input qubit.
     qs[0] := X(qs[0]);
     return qs;
 }
 
 def main(){
+    // Amplifies a signed symmetric 2×2 block encoding from the one state.
     qs := 0:uint[1] as 𝔹^1;
     qs := Up(qs);
-    // A = [[1/2 1/sqrt(2)],[1/sqrt(2) 1/2]]
-    alpha1 := (1/2):!ℝ;
-    alpha2 := (1/sqrt(2)):!ℝ;
-    // A/2 |0> = 1/4 |0> + sqrt(2)/4 |1> --> Normalization 1/sqrt(3) |0> + sqrt(2/3) |1>
+    α1 := (1/2):!ℝ;
+    α2 := (1/sqrt(2)):!ℝ;
     def twosym_amp(anc:𝔹^3,xs:𝔹^1){
+        // Binds the signed example coefficients for amplitude amplification.
         return twosym_herm(anc,xs,1,-1/3);
     }
     (anc,qs) := twosym_amp(0:uint[3] as 𝔹^3,qs);

@@ -1,6 +1,7 @@
 //import primitves.list_op;
 
 def gray_scalew(N:!ℕ){
+    // Lists binary-reflected Gray codes with the initial zero omitted.
     ord := [];
     for k in [1..N){
         ord := ord~[k ⊕ floor(k/2)];
@@ -9,6 +10,7 @@ def gray_scalew(N:!ℕ){
 }
 
 def walsh_function(j:!ℕ,x:!ℝ){
+    // Evaluates the jth Walsh function at the binary fraction x.
     if j==0{
         n := 0:!ℕ;
     }else{
@@ -34,6 +36,7 @@ def walsh_function(j:!ℕ,x:!ℝ){
 }
 
 def walsh_coefficient[m:!ℕ](j:!ℕ,t:!ℝ^m){
+    // Computes one discrete Walsh coefficient of the phase table.
     a := 0:!ℝ;
     for k in [0..m){
         a += t[k]*walsh_function(j,k/m);
@@ -42,6 +45,7 @@ def walsh_coefficient[m:!ℕ](j:!ℕ,t:!ℝ^m){
 }
 
 def groups(N:!ℕ){
+    // Groups nonzero Gray-code labels by their highest set bit.
     v := gray_scalew(N);
     G := [[1]];
     g := [];
@@ -59,6 +63,7 @@ def groups(N:!ℕ){
 }
 
 def c_cont(N:!ℕ){
+    // Selects CNOT controls from successive labels in each Gray-code group.
     n := floor(log(N)/log(2)) coerce !ℕ;
     G := groups(N);
     c := [0];
@@ -78,6 +83,7 @@ def c_cont(N:!ℕ){
 }
 
 def walsh_phases[n:!ℕ,k:!ℕ](qs:𝔹^n,angles:!ℝ^k,ord:!ℕ^k,cont:!ℕ^k) mfree{
+    // Applies ordered Walsh rotations and their Gray-code CNOT updates.
     for i in [0..k){
         if ord[i]=0{if angles[i] != 0{phase(angles[i]);}}
         else if ord[i]=1{
@@ -102,12 +108,14 @@ def walsh_phases[n:!ℕ,k:!ℕ](qs:𝔹^n,angles:!ℝ^k,ord:!ℕ^k,cont:!ℕ^k) 
 }
 
 def walsh_hadamard[n:!ℕ,m:!ℕ,k:!ℕ](qs:𝔹^n,t:!ℝ^m,ord:!ℕ^k,cont:!ℕ^k) mfree{
+    // Expands the phase table in Walsh functions and applies the selected terms.
     angles := vector(k,0:!ℝ);
     for i in [0..k){angles[i] = walsh_coefficient(ord[i],t);}
     return walsh_phases(qs,angles,ord,cont);
 }
 
 def walsh_hadamard_parallel[n:!ℕ,m:!ℕ](qs:𝔹^n,t:!ℝ^m,p:!ℕ) mfree{
+    // Splits the Walsh phase sequence across p copied registers.
     ord := (0,)~gray_scalew(m);
     cont := (0,)~c_cont(m);
     xs := vector(p,qs);
@@ -120,6 +128,7 @@ def walsh_hadamard_parallel[n:!ℕ,m:!ℕ](qs:𝔹^n,t:!ℝ^m,p:!ℕ) mfree{
 }
 
 def main(){
+    // Demonstrates a two-qubit Walsh phase decomposition in two segments.
     v := [π/3,-π,-2*π,π/2] : !ℝ^4;
     qs := 1:uint[2] as 𝔹^2;
     qs[0] := H(qs[0]);

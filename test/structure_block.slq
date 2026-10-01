@@ -1,0 +1,45 @@
+import block_encodings.structure_block;
+
+def column_oracle(label:𝔹^1,multiplicity:𝔹^3) mfree:𝔹^2 × 𝔹^2{
+    // Cycle four bits from label/multiplicity widths 1+3 to column-slot/system widths 2+2.
+    (copy:𝔹^1)~(low:𝔹^1)~(high:𝔹^1) := multiplicity;
+    return (high~low,label~copy);
+}
+
+def row_oracle(label:𝔹^1,multiplicity:𝔹^3) mfree:𝔹^2 × 𝔹^2{
+    // Place the two active rows at indices zero and two.
+    (copy:𝔹^1)~(low:𝔹^1)~(high:𝔹^1) := multiplicity;
+    return (label~high,low~copy);
+}
+
+def range_oracle(del:𝔹,const label:𝔹^1,const multiplicity:𝔹^3) mfree{
+    // Delete padded multiplicities and the absent entry in column three.
+    if multiplicity[1] | multiplicity[2] | (label[0] & multiplicity[0]){
+        del := X(del);
+    }
+    return del;
+}
+
+def data_oracle(data:𝔹,const label:𝔹^1) mfree{
+    // Load repeated value -1/2 for label zero and value one for label one.
+    if !label[0]{data := rotX(2*acos(-0.5),data);}
+    return data;
+}
+
+def column_diffusion(s:𝔹^2) mfree{
+    // Prepare the sole occupied column slot, Sc = 1.
+    return s;
+}
+
+def row_diffusion(s:𝔹^2) mfree{
+    // Prepare the first two of four padded row slots, Sr = 2.
+    s[0] := H(s[0]);
+    return s;
+}
+
+def main(j:!ℕ){
+    // Encode each column of [[-1/2,1,0,0],[0,0,0,0],[0,0,-1/2,0],[0,0,0,0]]/sqrt(2).
+    qs := j as !uint[2] as 𝔹^2;
+    return structure_block[4,2,1](0:uint[4] as 𝔹^4,qs,
+        column_oracle,row_oracle,range_oracle,data_oracle,column_diffusion,row_diffusion);
+}
