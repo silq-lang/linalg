@@ -2,7 +2,8 @@ import automatic_mbu_compiler;
 
 def compute_unit(x:𝔹^3) qfree:𝔹^3 × 𝔹^1{
     (c,a,b) := x; carry := 0:𝔹;
-    if a && b{carry := X(carry);}
+    if a{carry := X(carry);}
+
     carry := CNOT(c,carry);
     return ((c,a,b),(carry,));
 }

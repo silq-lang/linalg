@@ -1,0 +1,29 @@
+// Base scheme: https://arxiv.org/abs/2302.10949, Eq. (16); zero flags select A/(sqrt(Sc*Sr)*max|A|).
+// Oc/Or map (d,multiplicity) to (column-slot,column)/(row-slot,row), with DM = SN after padding.
+// Org flips del for invalid labels; Odata has <0|Odata(d)|0> = A[d]/max|A|.
+// Hc/Hr prepare uniform Sc/Sr slot states; ancilla order is (data,del,slots), with m >= 2.
+
+def structure_block[m:!ℕ,n:!ℕ,d:!ℕ](
+    ancilla:𝔹^m,
+    qs:𝔹^n,
+    const Oc:𝔹^d × 𝔹^((m+n) sub (d+2)) → mfree 𝔹^(m sub 2) × 𝔹^n,
+    const Or:𝔹^d × 𝔹^((m+n) sub (d+2)) → mfree 𝔹^(m sub 2) × 𝔹^n,
+    const Org:𝔹 × const 𝔹^d × const 𝔹^((m+n) sub (d+2)) → mfree 𝔹,
+    const Odata:𝔹 × const 𝔹^d → mfree 𝔹,
+    const Hc:𝔹^(m sub 2) → mfree 𝔹^(m sub 2),
+    const Hr:𝔹^(m sub 2) → mfree 𝔹^(m sub 2)
+) mfree:𝔹^m × 𝔹^n{
+    // Compose structure, range, data and diffusion oracles into the full structured block encoding.
+    assert(m >= 2);
+    assert(d+2 <= m+n);
+    (data:𝔹^1)~(del:𝔹^1)~(s:𝔹^(m sub 2)) := ancilla;
+    (data,) := data;
+    (del,) := del;
+    s := Hc(s);
+    (label,multiplicity) := reverse(Oc)(s,qs);
+    del := Org(del,label,multiplicity);
+    data := Odata(data,label);
+    (s,qs) := Or(label,multiplicity);
+    s := reverse(Hr)(s);
+    return ((data,)~(del,)~s,qs) coerce 𝔹^m × 𝔹^n;
+}

@@ -1,4 +1,8 @@
+// https://arxiv.org/abs/2203.10236, Sections 4.1 and 8.
+
 def sparse_block[m:!ℕ,n:!ℕ](ancilla:𝔹^m,qs:𝔹^n, const Oc: const 𝔹^(m sub 1) × 𝔹^n → mfree 𝔹^n,const Oa: 𝔹 × const 𝔹^(m sub 1) × const 𝔹^n → mfree 𝔹) mfree{
+    // Encodes A/2^(m-1) by loading entries, selecting rows, and unpreparing labels.
+    assert(m>=1);
     (anc:𝔹^1)~(l:𝔹^(m sub 1)) := ancilla;
     (anc,) := anc;
     for i in [0..m sub 1){l[i] := H(l[i]);}
@@ -10,6 +14,8 @@ def sparse_block[m:!ℕ,n:!ℕ](ancilla:𝔹^m,qs:𝔹^n, const Oc: const 𝔹^(
 
 
 def herm_sparse_block[m:!ℕ,n:!ℕ](anc:𝔹^(n+2),qs:𝔹^n, const Oc: 𝔹^n × const 𝔹^n → mfree 𝔹^n,const Oa: 𝔹 × const 𝔹^n × const 𝔹^n → mfree 𝔹,const Oap: const 𝔹 × const 𝔹^n × const 𝔹^n → mfree 𝟙) mfree{
+    // Uses square-root loading and a register swap to encode A/2^m, with Oap correcting phases.
+    assert(m<=n);
     (anc1:𝔹^1)~(anc2:𝔹^1)~(l:𝔹^n) := anc;
     (anc1,):=anc1;(anc2,):=anc2;
     for i in [0..m){l[i] := H(l[i]);}

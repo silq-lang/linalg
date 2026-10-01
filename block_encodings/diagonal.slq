@@ -5,17 +5,22 @@ import block_encodings.sequential_decomposition;
 import block_encodings.walsh_hadamard;
 
 def non_unitary_diag[n:!ℕ,m:!ℕ](anc:𝔹^1,qs:𝔹^n,t:!ℝ^m) mfree:𝔹^1 × 𝔹^n{
+    // Encodes a real diagonal matrix using opposite Walsh phase evolutions.
     anc[0] := H(anc[0]);
     def seq_decomp[n:!ℕ](qs:𝔹^n) mfree{
+        // Applies arcsine phases by sequential decomposition.
         return sequential_decomposition(qs,arcsin(t),gray_scale(m));
     }
     def seq_decompm[n:!ℕ](qs:𝔹^n) mfree{
+        // Applies negated arcsine phases by sequential decomposition.
         return sequential_decomposition(qs,minus(arcsin(t)),gray_scale(m));
     }
     def wh[n:!ℕ](qs:𝔹^n) mfree{
+        // Applies arcsine phases through their Walsh expansion.
         return walsh_hadamard(qs,arcsin(t),gray_scale(m),(0,)~c_cont(m));
     }
     def whm[n:!ℕ](qs:𝔹^n) mfree{
+        // Applies negated arcsine phases through their Walsh expansion.
         return walsh_hadamard(qs,minus(arcsin(t)),gray_scale(m),(0,)~c_cont(m));
     }
     //////////// SEQUENTIAL DECOMPOSITION
@@ -32,18 +37,20 @@ def non_unitary_diag[n:!ℕ,m:!ℕ](anc:𝔹^1,qs:𝔹^n,t:!ℝ^m) mfree:𝔹^1 
     return (anc,qs);
 } 
 
-
 def Up(qs:𝔹^2) mfree{
+    // Prepares the two-qubit example input state.
     qs[1] := X(qs[1]);
     qs[0] := H(qs[0]);
     return qs;
 }
 
 def main(){
+    // Demonstrates amplitude amplification of the diagonal block encoding.
     v := [0.5,0.25,0.3,0.75] : !ℝ^4;
     qs := 0:uint[2] as 𝔹^2;
     qs := Up(qs);
     def non_unitary_diag_amp[n:!ℕ](anc:𝔹^1,xs:𝔹^n){
+        // Binds the example diagonal entries for amplitude amplification.
         return non_unitary_diag(anc,xs,v);
     }
     (anc,qs) := non_unitary_diag_amp(0:uint[1] as 𝔹^1,qs);

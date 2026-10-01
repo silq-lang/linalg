@@ -4,6 +4,7 @@ import primitives.uniform_superposition;
 import Amplitude_Amplification.amplitude_amplification;
 
 def toeplitz[n:!ℕ,m:!ℕ,D:!ℕ](anc:𝔹^m,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^m × 𝔹^n{
+    // Combines coefficient-controlled rotations and shifts to encode Toeplitz bands.
     assert(m = (log(D-1) div log(2))+3);
     (data:𝔹^1)~(s:𝔹^(m sub 2))~(del:𝔹^1) := anc;
     s := uniform_superposition[D](s);
@@ -19,15 +20,18 @@ def toeplitz[n:!ℕ,m:!ℕ,D:!ℕ](anc:𝔹^m,qs:𝔹^n,v:!ℝ^D) mfree:𝔹^m �
 }
 
 def Up(qs:𝔹^2) mfree{
+    // Flips the first input qubit.
     qs[0] := X(qs[0]);
     return qs;
 }
 
 def main(){
+    // Demonstrates amplitude amplification of a three-band Toeplitz encoding.
     v := [-1,2,-1] : !ℝ^3;
     qs := 0:uint[2] as 𝔹^2;
     qs := Up(qs);
     def toepltiz_amp[n:!ℕ,m:!ℕ](anc:𝔹^m,xs:𝔹^n){
+        // Binds the example band coefficients to the Toeplitz encoding.
         return toeplitz(anc,xs,v);
     }
     (anc,qs) := toepltiz_amp(0:uint[4] as 𝔹^4,qs);

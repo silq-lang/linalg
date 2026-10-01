@@ -1,4 +1,5 @@
 def hamming_weight(x:!ℕ){
+    // Counts the set bits in x.
     count := 0;
     while x!=0{
         x &= x - 1;  
@@ -8,10 +9,12 @@ def hamming_weight(x:!ℕ){
 }
 
 def bitwise_dotprod(x:!ℕ,y:!ℕ){
+    // Returns the parity of overlapping set bits.
     return hamming_weight(x&y)%2;
 }
 
 def wh_coefficient[N:!ℕ](A:(!ℝ^N)^N,r:!ℕ,s:!ℕ){
+    // Computes the Pauli expansion coefficient for masks r and s.
     sum := 0:!ℝ;
     for q in [0..N){
         sum +=  A[q⊕r][q]*((-1)^(bitwise_dotprod(q,s)));
@@ -20,6 +23,7 @@ def wh_coefficient[N:!ℕ](A:(!ℝ^N)^N,r:!ℕ,s:!ℕ){
 }
 
 def wh_coefficients[N:!ℕ](A:(!ℝ^N)^N){
+    // Collects the nonzero Pauli expansion coefficients.
     coef := [];
     for r in [0..N){
         for s in [0..N){
@@ -33,6 +37,7 @@ def wh_coefficients[N:!ℕ](A:(!ℝ^N)^N){
 }
 
 def wh_index[N:!ℕ](A:(!ℝ^N)^N){
+    // Lists the masks of nonzero Pauli coefficients and counts them.
     index := [];
     count := 0:!ℕ;
     for r in [0..N){
@@ -48,6 +53,7 @@ def wh_index[N:!ℕ](A:(!ℝ^N)^N){
 }
 
 def main(){
+    // Computes the coefficients and masks for the example matrix.
     A := [[0.25,0,0,0.75],[0,-0.25,0.75,0],[0,0.75,0.25,0],[0.75,0,0,-0.25]] coerce (!ℝ^4)^4;
     return (wh_coefficients(A),wh_index(A));
 }
