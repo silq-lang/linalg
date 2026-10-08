@@ -34,8 +34,7 @@ def main(){
     qs := Up(qs);
     def tridiag_amp[n:!ℕ](anc:𝔹^3,xs:𝔹^n){
         // Pads the example entries with zero before applying the tridiagonal encoding.
-        v := v~[0];
-        return tridiagonal(anc,xs,v);
+        return tridiagonal(anc,xs,v~[0]);
     }
     (anc,qs) := tridiagonal(0:uint[3] as 𝔹^3,qs,v);
     return fixed_point_AA(anc,qs,tridiag_amp[2],Up);
