@@ -1,6 +1,7 @@
 import arithmetic.CQ_adder;
 import arithmetic.QQ_adder;
 import arithmetic.QQ_mult;
+import arithmetic.mod_inv;
 import arithmetic.miscellaneous;
 import primitives.QROAM;
 

@@ -1,0 +1,424 @@
+import arithmetic.QQ_adder;
+import arithmetic.CQ_adder;
+import arithmetic.QQ_mult;
+
+// Ping-pong arithmetic for p=2^n-f. It uses a bounded round schedule,
+// bounded pseudo-Mersenne carry propagation, and top-bit carry erasure.
+// The secp256k1 parameters target total failure probability below 1e-11.
+
+def pp_fold_window[n:!ℕ]() lifted:!ℕ{
+    if n>=128{return 82;}
+    return 28;
+}
+
+def pp_rounds[n:!ℕ]() lifted:!ℕ{
+    if n=256{return 780;}
+    return 4*n+4;
+}
+
+def pp_width[n:!ℕ](r:!ℕ) lifted:!ℕ{
+    if n=256{
+        t := [258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,257,257,257,257,256,256,256,256,256,255,255,255,255,254,254,254,254,253,253,253,253,252,252,252,252,251,251,251,251,250,250,250,250,249,249,249,249,248,248,248,248,247,247,247,246,246,246,246,245,245,245,245,244,244,244,243,243,243,243,242,242,242,242,241,241,241,240,240,240,240,239,239,239,238,238,238,238,237,237,237,236,236,236,236,235,235,235,234,234,234,234,233,233,233,232,232,232,231,231,231,231,230,230,230,229,229,229,229,228,228,228,227,227,227,226,226,226,226,225,225,225,224,224,224,223,223,223,222,222,222,222,221,221,221,220,220,220,219,219,219,218,218,218,218,217,217,217,216,216,216,215,215,215,214,214,214,214,213,213,213,212,212,212,211,211,211,210,210,210,209,209,209,208,208,208,208,207,207,207,206,206,206,205,205,205,204,204,204,203,203,203,202,202,202,201,201,201,201,200,200,200,199,199,199,198,198,198,197,197,197,196,196,196,195,195,195,194,194,194,193,193,193,192,192,192,191,191,191,190,190,190,190,189,189,189,188,188,188,187,187,187,186,186,186,185,185,185,184,184,184,183,183,183,182,182,182,181,181,181,180,180,180,179,179,179,178,178,178,177,177,177,176,176,176,175,175,175,174,174,174,173,173,173,172,172,172,171,171,171,170,170,170,169,169,169,168,168,168,167,167,167,166,166,166,165,165,165,164,164,164,163,163,163,162,162,162,161,161,161,160,160,160,159,159,159,158,158,158,157,157,157,156,156,156,155,155,155,154,154,154,153,153,153,152,152,152,151,151,151,150,150,149,149,149,148,148,148,147,147,147,146,146,146,145,145,145,144,144,144,143,143,143,142,142,142,141,141,141,140,140,140,139,139,139,138,138,138,137,137,137,136,136,136,135,135,134,134,134,133,133,133,132,132,132,131,131,131,130,130,130,129,129,129,128,128,128,127,127,127,126,126,126,125,125,124,124,124,123,123,123,122,122,122,121,121,121,120,120,120,119,119,119,118,118,118,117,117,117,116,116,116,115,115,114,114,114,113,113,113,112,112,112,111,111,111,110,110,110,109,109,109,108,108,108,107,107,106,106,106,105,105,105,104,104,104,103,103,103,102,102,102,101,101,100,100,100,99,99,99,98,98,97,97,97,96,96,95,95,94,94,94,93,93,92,91,91,90,90,89,89,88,87,87,86,86,86,86,85,85,84,84,84,83,83,82,82,82,81,81,80,80,80,79,79,78,78,77,77,77,76,76,75,75,75,74,74,73,73,73,72,72,71,71,71,70,70,69,69,68,68,68,67,67,66,66,66,65,65,64,64,64,63,63,62,62,61,61,61,60,60,59,59,59,58,58,57,57,57,56,56,55,55,55,54,54,53,53,52,52,52,51,51,50,50,50,49,49,48,48,48,47,47,46,46,45,45,45,44,44,43,43,43,42,42,41,41,41,40,40,39,39,39,38,38,37,37,36,36,36,35,35,34,34,34,33,33,32,32,32,31,31,30,30,30,29,29,28,28,27,27,27,26,26,25,25,25,24,24,23,23,23,22,22,21,21,20,20,20,19,19,18,18,18,17,17,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16];
+        return t[r];
+    }
+    if n=64{
+        t := [66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,66,65,65,65,65,64,64,64,64,64,63,63,63,63,62,62,62,62,61,61,61,61,60,60,60,60,59,59,59,59,58,58,58,58,57,57,57,57,56,56,56,56,55,55,55,54,54,54,54,53,53,53,53,52,52,52,51,51,51,51,50,50,50,50,49,49,49,48,48,48,47,47,47,46,46,45,45,44,44,44,44,43,43,42,42,42,41,41,40,40,40,39,39,38,38,38,37,37,36,36,35,35,35,34,34,33,33,33,32,32,31,31,31,30,30,29,29,29,28,28,27,27,26,26,26,25,25,24,24,24,23,23,22,22,22,21,21,20,20,19,19,19,18,18,17,17,17,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16];
+        return t[r];
+    }
+    return n+2;
+}
+
+def pp_chunk_compare[n:!ℕ]() lifted:!ℕ{
+    if n>=128{return 48;}
+    return n div 3;
+}
+
+def pp_compare_bits[n:!ℕ]() lifted:!ℕ{
+    if n>=128{return 48;}
+    return 24;
+}
+
+def phase_lt[c:!ℕ](a:𝔹^c,b:𝔹^c){
+    for j in [0..c){b[j] := X(b[j]);}
+    cr := 0:uint[c+1] as 𝔹^(c+1);
+    cr[0] := X(cr[0]);
+    for j in [0..c){
+        (a[j],b[j],prod) := add_unit(cr[j],a[j],b[j]);
+        (cr[j+1],prod) := (prod,cr[j+1]); forget(prod=0);
+    }
+    cr[c] := X(cr[c]); cr[c] := Z(cr[c]); cr[c] := X(cr[c]);
+    for back in [0..c){
+        j := c sub back sub 1;
+        anc := 0:𝔹; (anc,cr[j+1]) := (cr[j+1],anc);
+        anc := CNOT(cr[j],anc);
+        (a[j],b[j]) := AND_uncomp(a[j],b[j],anc);
+        a[j] := CNOT(cr[j],a[j]); b[j] := CNOT(cr[j],b[j]);
+    }
+    cr[0] := X(cr[0]);
+    forget(cr=0:uint[c+1]);
+    for j in [0..c){b[j] := X(b[j]);}
+    return (a,b);
+}
+
+def pp_half[f:!ℕ][n:!ℕ](x:𝔹^n){
+    w := pp_fold_window[n]();
+    (b0,)~(low:𝔹^(w sub 1))~(high:𝔹^(n sub w)) := x;
+    low := c_const_addsub[1:!𝔹][w sub 1](b0,low,(f sub 1) div 2);
+    return (low~high~(b0,)) coerce 𝔹^n;
+}
+
+def pp_double[f:!ℕ][n:!ℕ](x:𝔹^n){
+    w := pp_fold_window[n]();
+    (low:𝔹^(w sub 1))~(high:𝔹^(n sub w))~(b0,) := x;
+    low := c_const_addsub[0:!𝔹][w sub 1](b0,low,(f sub 1) div 2);
+    return ((b0,)~low~high) coerce 𝔹^n;
+}
+
+def pp_cneg[f:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n){
+    w := pp_fold_window[n]();
+    for j in [0..n){x[j] := CNOT(ctrl,x[j]);}
+    (b0,)~(low:𝔹^(w sub 1))~(high:𝔹^(n sub w)) := x;
+    low := c_const_addsub[1:!𝔹][w sub 1](ctrl,low,(f sub 1) div 2);
+    return ((b0,)~low~high) coerce 𝔹^n;
+}
+
+def add_select5[w:!ℕ](const s0:𝔹,const s1:𝔹,const s2:𝔹,const s3:𝔹,const s4:𝔹,x:𝔹^w,c0:!ℕ,c1:!ℕ,c2:!ℕ,c3:!ℕ,c4:!ℕ){
+    b0 := c0 as !uint[w]; b1 := c1 as !uint[w]; b2 := c2 as !uint[w];
+    b3 := c3 as !uint[w]; b4 := c4 as !uint[w];
+    carry := 0:uint[w] as 𝔹^w;
+    for j in [0..w sub 1){
+        operand := 0:𝔹;
+        if b0[j]{operand := CNOT(s0,operand);} if b1[j]{operand := CNOT(s1,operand);}
+        if b2[j]{operand := CNOT(s2,operand);} if b3[j]{operand := CNOT(s3,operand);}
+        if b4[j]{operand := CNOT(s4,operand);}
+        (operand,x[j],prod) := add_unit(carry[j],operand,x[j]);
+        (carry[j+1],prod) := (prod,carry[j+1]); forget(prod=0);
+        operand := CNOT(carry[j],operand);
+        if b0[j]{operand := CNOT(s0,operand);} if b1[j]{operand := CNOT(s1,operand);}
+        if b2[j]{operand := CNOT(s2,operand);} if b3[j]{operand := CNOT(s3,operand);}
+        if b4[j]{operand := CNOT(s4,operand);}
+        forget(operand=0);
+    }
+    x[w sub 1] := CNOT(carry[w sub 1],x[w sub 1]);
+    if b0[w sub 1]{x[w sub 1] := CNOT(s0,x[w sub 1]);} if b1[w sub 1]{x[w sub 1] := CNOT(s1,x[w sub 1]);}
+    if b2[w sub 1]{x[w sub 1] := CNOT(s2,x[w sub 1]);} if b3[w sub 1]{x[w sub 1] := CNOT(s3,x[w sub 1]);}
+    if b4[w sub 1]{x[w sub 1] := CNOT(s4,x[w sub 1]);}
+    for k in [0..w sub 1){
+        j := w sub k sub 2; operand := 0:𝔹;
+        if b0[j]{operand := CNOT(s0,operand);} if b1[j]{operand := CNOT(s1,operand);}
+        if b2[j]{operand := CNOT(s2,operand);} if b3[j]{operand := CNOT(s3,operand);}
+        if b4[j]{operand := CNOT(s4,operand);}
+        operand := CNOT(carry[j],operand);
+        anc := 0:𝔹; (anc,carry[j+1]) := (carry[j+1],anc);
+        (operand,x[j]) := add_unit_uncomp(carry[j],operand,x[j],anc);
+        if b0[j]{operand := CNOT(s0,operand);} if b1[j]{operand := CNOT(s1,operand);}
+        if b2[j]{operand := CNOT(s2,operand);} if b3[j]{operand := CNOT(s3,operand);}
+        if b4[j]{operand := CNOT(s4,operand);}
+        forget(operand=0);
+    }
+    forget(carry=0:uint[w]);
+    return x;
+}
+
+def pp_fold5[f:!ℕ][w:!ℕ](pl:𝔹,e:𝔹,ov:𝔹,low:𝔹^w){
+    t1 := AND(e,pl,0:𝔹); t0 := dup(e); t0 := CNOT(t1,t0);
+    a := AND(t1,ov,0:𝔹); b := AND(t0,ov,0:𝔹);
+    c := dup(t1); c := CNOT(a,c);
+    d := dup(t0); d := CNOT(b,d);
+    g := dup(ov); g := CNOT(a,g); g := CNOT(b,g);
+    low := add_select5[w](g,d,b,c,a,low,f,2^w sub (f sub 1),1,f sub 1,2*f sub 1);
+    g := CNOT(b,g); g := CNOT(a,g); g := CNOT(ov,g); forget(g=0);
+    d := CNOT(b,d); d := CNOT(t0,d); forget(d=0);
+    c := CNOT(a,c); c := CNOT(t1,c); forget(c=0);
+    (t0,ov) := AND_uncomp(t0,ov,b);
+    (t1,ov) := AND_uncomp(t1,ov,a);
+    t0 := CNOT(t1,t0); t0 := CNOT(e,t0); forget(t0=0);
+    (e,pl) := AND_uncomp(e,pl,t1);
+    return (pl,e,ov,low);
+}
+
+def pp_chunk_add[n:!ℕ](s:𝔹^n,t:𝔹^n){
+    k := n div 3; k3 := n sub 2*k; cc := pp_chunk_compare[n]();
+    (s1:𝔹^k)~(s2:𝔹^k)~(s3:𝔹^k3) := s coerce 𝔹^(2*k+k3);
+    (t1:𝔹^k)~(t2:𝔹^k)~(t3:𝔹^k3) := t coerce 𝔹^(2*k+k3);
+    c0 := 0:𝔹;
+    (s1,u1) := adder_carry[k](c0,s1,t1~(0,));
+    forget(c0=0);
+    (t1:𝔹^k)~(b1,) := u1;
+    (s2,u2) := adder_carry[k](b1,s2,t2~(0,));
+    (t2:𝔹^k)~(b2,) := u2;
+    (s3,u3) := adder_carry[k3](b2,s3,t3~(0,));
+    (t3:𝔹^k3)~(ov,) := u3;
+    (t2l:𝔹^(k sub cc))~(t2h:𝔹^cc) := t2; (s2l:𝔹^(k sub cc))~(s2h:𝔹^cc) := s2;
+    b2 := H(b2); m2 := measure(b2);
+    if m2{(t2h,s2h) := phase_lt[cc](t2h,s2h);}
+    (t1l:𝔹^(k sub cc))~(t1h:𝔹^cc) := t1; (s1l:𝔹^(k sub cc))~(s1h:𝔹^cc) := s1;
+    b1 := H(b1); m1 := measure(b1);
+    if m1{(t1h,s1h) := phase_lt[cc](t1h,s1h);}
+    s := (s1l~s1h~s2l~s2h~s3) coerce 𝔹^n;
+    t := (t1l~t1h~t2l~t2h~t3) coerce 𝔹^n;
+    return (s,t,ov);
+}
+
+def pp_fused_core[div:!𝔹][f:!ℕ][n:!ℕ](sign:𝔹,s:𝔹^n,t:𝔹^n){
+    w := pp_fold_window[n](); c := pp_compare_bits[n]();
+    for j in [0..n){t[j] := CNOT(sign,t[j]);}
+    (s,body,ov) := pp_chunk_add[n](s,t);
+    e := dup(body[0]);
+    if div{e := CNOT(ov,e); e := CNOT(sign,e);}
+    else{e := CNOT(sign,e); e := CNOT(s[0],e); sign := X(sign);}
+    (low:𝔹^w)~(rest:𝔹^(n sub w)) := body;
+    (sign,e,ov,low) := pp_fold5[f][w](sign,e,ov,low);
+    if div{e := CNOT(low[0],e); e := CNOT(sign,e);}
+    else{sign := X(sign); e := CNOT(low[0],e); e := CNOT(ov,e); e := CNOT(sign,e); e := CNOT(s[0],e);}
+    forget(e=0);
+    (mid:𝔹^(n sub w sub c))~(top:𝔹^c) := rest;
+    (slow:𝔹^(n sub c))~(stop:𝔹^c) := s;
+    ov := H(ov); m := measure(ov);
+    if m{(top,stop) := phase_lt[c](top,stop);}
+    s := (slow~stop) coerce 𝔹^n;
+    t := (low~mid~top) coerce 𝔹^n;
+    for j in [0..n){t[j] := CNOT(sign,t[j]);}
+    return (sign,s,t);
+}
+
+def pp_cell_div[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (sign,s,t) := pp_fused_core[1:!𝔹][f][n](sign,s,t);
+    (b0,)~(rest:𝔹^(n sub 1)) := t;
+    return (sign,s,(rest~(b0,)) coerce 𝔹^n);
+}
+
+def pp_cell_mul[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (rest:𝔹^(n sub 1))~(top,) := t;
+    t := ((top,)~rest) coerce 𝔹^n;
+    sign := X(sign);
+    (sign,s,t) := pp_fused_core[0:!𝔹][f][n](sign,s,t);
+    sign := X(sign);
+    return (sign,s,t);
+}
+
+def pp_odd_add[w:!ℕ](const sign:𝔹,s:𝔹^w,t:𝔹^w){
+    (t0,t1)~(th:𝔹^(w sub 2)) := t coerce 𝔹^(2+(w sub 2));
+    (s0,s1)~(sh:𝔹^(w sub 2)) := s coerce 𝔹^(2+(w sub 2));
+    t0 := X(t0);
+    t1 := CNOT(s1,t1); t1 := CNOT(sign,t1); t1 := X(t1);
+    (sh,th) := adder_nocarry[w sub 2](s1,sh,th);
+    return (((s0,s1)~sh) coerce 𝔹^w,((t0,t1)~th) coerce 𝔹^w);
+}
+
+def pp_even_add[w:!ℕ](const sign:𝔹,s:𝔹^w,t:𝔹^w){
+    (t0,t1)~(th:𝔹^(w sub 2)) := t coerce 𝔹^(2+(w sub 2));
+    (s0,s1)~(sh:𝔹^(w sub 2)) := s coerce 𝔹^(2+(w sub 2));
+    t0 := X(t0);
+    t1 := CNOT(sign,t1); t1 := CNOT(s1,t1);
+    (sh,th) := adder_nocarry[w sub 2](s1,sh,th);
+    return (((s0,s1)~sh) coerce 𝔹^w,((t0,t1)~th) coerce 𝔹^w);
+}
+
+def pp_step[w:!ℕ](state:𝔹^w×𝔹^w×𝔹) @noinline{
+    (s,t,sign) := state;
+    sign := CNOT(t[1],sign); sign := CNOT(s[1],sign);
+    for j in [0..w){t[j] := CNOT(sign,t[j]);}
+    (s,t) := pp_odd_add[w](sign,s,t);
+    for j in [0..w){t[j] := CNOT(sign,t[j]);}
+    (b0,)~(rest:𝔹^(w sub 1)) := t;
+    b0 := H(b0); m := measure(b0);
+    top := dup(rest[w sub 2]);
+    return (s,(rest~(top,)) coerce 𝔹^w,sign);
+}
+
+def pp_unstep[w:!ℕ][release:!𝔹](state:𝔹^w×𝔹^w×𝔹) @noinline{
+    (s,t,sign) := state;
+    (rest:𝔹^(w sub 1))~(top,) := t;
+    top := CNOT(rest[w sub 2],top); top := H(top); m0 := measure(top);
+    t := ((0:𝔹,)~rest) coerce 𝔹^w;
+    sign := X(sign);
+    for j in [0..w){t[j] := CNOT(sign,t[j]);}
+    (s,t) := pp_even_add[w](sign,s,t);
+    for j in [0..w){t[j] := CNOT(sign,t[j]);}
+    sign := X(sign);
+    sign := CNOT(t[1],sign); sign := CNOT(s[1],sign);
+    if release{
+        anc := 0:𝔹; (anc,sign) := (sign,anc);
+        anc := H(anc); m := measure(anc);
+    }
+    return (s,t,sign);
+}
+
+def pp_drop[k:!ℕ](x:𝔹^k){
+    for j in [0..k){
+        anc := 0:𝔹; (anc,x[j]) := (x[j],anc);
+        anc := H(anc); m := measure(anc);
+    }
+    forget(x=0:uint[k]);
+    return ();
+}
+
+def pp_shrink[wp:!ℕ,w:!ℕ](x:𝔹^wp){
+    (lo:𝔹^w)~(hi:𝔹^(wp sub w)) := x;
+    for j in [0..wp sub w){hi[j] := CNOT(lo[w sub 1],hi[j]);}
+    pp_drop[wp sub w](hi);
+    return lo;
+}
+
+def pp_grow[w:!ℕ,wp:!ℕ](lo:𝔹^w){
+    hi := 0:uint[wp sub w] as 𝔹^(wp sub w);
+    for j in [0..wp sub w){hi[j] := CNOT(lo[w sub 1],hi[j]);}
+    return (lo~hi) coerce 𝔹^wp;
+}
+
+def pp_rail_pack[w:!ℕ](x:𝔹^w){
+    (1,)~(mid:𝔹^(w sub 2))~(top,) := x;
+    for j in [0..w sub 2){mid[j] := CNOT(top,mid[j]);}
+    pp_drop[w sub 2](mid);
+    return top;
+}
+
+def pp_rail_unpack[w:!ℕ](top:𝔹){
+    mid := 0:uint[w sub 2] as 𝔹^(w sub 2);
+    for j in [0..w sub 2){mid[j] := CNOT(top,mid[j]);}
+    return ((1:𝔹,)~mid~(top,)) coerce 𝔹^w;
+}
+
+def pp_round[n:!ℕ][r:!ℕ](state:𝔹^(n+2)×𝔹^(n+2)×𝔹) @noinline{
+    (u,v,sign) := state;
+    W := n+2; w := pp_width[n](r); wp := W; if r>0{wp = pp_width[n](r sub 1);}
+    (ul:𝔹^wp)~(0:uint[W sub wp] as 𝔹^(W sub wp)) := u coerce 𝔹^W;
+    (vl:𝔹^wp)~(0:uint[W sub wp] as 𝔹^(W sub wp)) := v coerce 𝔹^W;
+    us := pp_shrink[wp,w](ul); vs := pp_shrink[wp,w](vl);
+    if r%2=0{(us,vs,sign) := pp_step[w]((us,vs,sign));}
+    else{(vs,us,sign) := pp_step[w]((vs,us,sign));}
+    u := (us~(0:uint[W sub w] as 𝔹^(W sub w))) coerce 𝔹^W;
+    v := (vs~(0:uint[W sub w] as 𝔹^(W sub w))) coerce 𝔹^W;
+    return (u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),sign);
+}
+
+def pp_unround[n:!ℕ][r:!ℕ][release:!𝔹](state:𝔹^(n+2)×𝔹^(n+2)×𝔹) @noinline{
+    (u,v,sign) := state;
+    W := n+2; w := pp_width[n](r); wp := W; if r>0{wp = pp_width[n](r sub 1);}
+    (us:𝔹^w)~(0:uint[W sub w] as 𝔹^(W sub w)) := u coerce 𝔹^W;
+    (vs:𝔹^w)~(0:uint[W sub w] as 𝔹^(W sub w)) := v coerce 𝔹^W;
+    if r%2=0{(us,vs,sign) := pp_unstep[w][release]((us,vs,sign));}
+    else{(vs,us,sign) := pp_unstep[w][release]((vs,us,sign));}
+    ul := pp_grow[w,wp](us); vl := pp_grow[w,wp](vs);
+    u := (ul~(0:uint[W sub wp] as 𝔹^(W sub wp))) coerce 𝔹^W;
+    v := (vl~(0:uint[W sub wp] as 𝔹^(W sub wp))) coerce 𝔹^W;
+    return (u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),sign);
+}
+
+def pp_pack_rails[n:!ℕ][w:!ℕ](state:𝔹^(n+2)×𝔹^(n+2)){
+    (u,v) := state; W := n+2;
+    (ul:𝔹^w)~(0:uint[W sub w] as 𝔹^(W sub w)) := u coerce 𝔹^W;
+    (vl:𝔹^w)~(0:uint[W sub w] as 𝔹^(W sub w)) := v coerce 𝔹^W;
+    return (pp_rail_pack[w](ul),pp_rail_pack[w](vl));
+}
+
+def pp_unpack_rails[n:!ℕ][w:!ℕ](state:𝔹×𝔹){
+    (su,sv) := state; W := n+2;
+    ul := pp_rail_unpack[w](su); vl := pp_rail_unpack[w](sv);
+    u := (ul~(0:uint[W sub w] as 𝔹^(W sub w))) coerce 𝔹^W;
+    v := (vl~(0:uint[W sub w] as 𝔹^(W sub w))) coerce 𝔹^W;
+    return (u coerce 𝔹^(n+2),v coerce 𝔹^(n+2));
+}
+
+def pp_seed_div[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (t1,a,b) := state;
+    b := pp_half[f][n](b);
+    for j in [0..n){a[j] := CNOT(b[j],a[j]);}
+    a := pp_cneg[f][n](t1,a);
+    a := pp_half[f][n](a);
+    return (t1,a,b);
+}
+
+def pp_end_div[f:!ℕ][n:!ℕ](state:𝔹×𝔹×𝔹^n×𝔹^n) @noinline{
+    (su,sv,a,b) := state;
+    a := pp_cneg[f][n](su,a);
+    b := pp_cneg[f][n](sv,b);
+    for j in [0..n){a[j] := CNOT(b[j],a[j]);}
+    return (su,sv,a,b);
+}
+
+def pp_seed_mul[f:!ℕ][n:!ℕ](state:𝔹×𝔹×𝔹^n×𝔹^n) @noinline{
+    (su,sv,a,b) := state;
+    for j in [0..n){a[j] := CNOT(b[j],a[j]);}
+    a := pp_cneg[f][n](su,a);
+    b := pp_cneg[f][n](sv,b);
+    return (su,sv,a,b);
+}
+
+def pp_end_mul[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (t1,a,b) := state;
+    a := pp_double[f][n](a);
+    a := pp_cneg[f][n](t1,a);
+    for j in [0..n){a[j] := CNOT(b[j],a[j]);}
+    b := pp_double[f][n](b);
+    return (t1,a,b);
+}
+
+def pp_modular_map[inverse:!𝔹][p:!ℕ][n:!ℕ][rounds:!ℕ](state:𝔹^n×𝔹^n) @noinline{
+    (x,y) := state;
+    assert(p>2); assert(p%2=1); assert(field_bits(p)=n); assert(rounds>=2);
+    f := (2^n sub p) coerce !ℕ;
+    W := n+2;
+    assert(rounds>=n);
+    u := p as uint[W] as 𝔹^W;
+    v := 0:uint[W] as 𝔹^W;
+    for j in [0..n){v[j] := CNOT(x[j],v[j]);}
+    for j in [0..n){x[j] := CNOT(v[j],x[j]);}
+    q := 0:𝔹; q := CNOT(v[0],q); q := X(q);
+    v := c_const_addsub[1:!𝔹][W](q,v,p);
+    q := CNOT(v[W sub 1],q); forget(q=0);
+    tape := (x~(0:uint[rounds sub n] as 𝔹^(rounds sub n))) coerce 𝔹^rounds;
+    for r in [0..rounds){
+        (u1,v1,tape[r]) := pp_round[n][r]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
+        u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
+    }
+    wl := pp_width[n](rounds sub 1);
+    (su,sv) := pp_pack_rails[n][wl]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2)));
+    a := 0:uint[n] as 𝔹^n; b := y;
+    if !inverse{
+        (tape[1],a,b) := pp_seed_div[f][n]((tape[1],a,b));
+        for r in [2..rounds){
+            if r%2=0{(tape[r],a,b) := pp_cell_div[f][n]((tape[r],a,b));}
+            else{(tape[r],b,a) := pp_cell_div[f][n]((tape[r],b,a));}
+        }
+        (su,sv,a,b) := pp_end_div[f][n]((su,sv,a,b));
+    }else{
+        (su,sv,a,b) := pp_seed_mul[f][n]((su,sv,a,b));
+        for back in [0..rounds sub 2){
+            r := rounds sub back sub 1;
+            if r%2=0{(tape[r],a,b) := pp_cell_mul[f][n]((tape[r],a,b));}
+            else{(tape[r],b,a) := pp_cell_mul[f][n]((tape[r],b,a));}
+        }
+        (tape[1],a,b) := pp_end_mul[f][n]((tape[1],a,b));
+    }
+    pp_drop[n](a);
+    (u2,v2) := pp_unpack_rails[n][wl]((su,sv));
+    u := u2 coerce 𝔹^W; v := v2 coerce 𝔹^W;
+    for back in [0..rounds){
+        r := rounds sub back sub 1;
+        (u1,v1,tape[r]) := pp_unround[n][r][r>=n]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
+        u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
+    }
+    (x:𝔹^n)~(rest:𝔹^(rounds sub n)) := tape coerce 𝔹^(n+(rounds sub n));
+    forget(rest=0:uint[rounds sub n]);
+    q := dup(v[W sub 1]);
+    v := c_const_addsub[0:!𝔹][W](q,v,p);
+    q := CNOT(v[0],q); q := X(q); forget(q=0);
+    pbits := p as !uint[W];
+    for j in [0..W){if pbits[j]{u[j] := X(u[j]);}}
+    pp_drop[W](u);
+    (vx:𝔹^n)~(0,0) := v coerce 𝔹^(n+2);
+    for j in [0..n){x[j] := CNOT(vx[j],x[j]);}
+    for j in [0..n){vx[j] := CNOT(x[j],vx[j]);}
+    forget(vx=0:uint[n]);
+    return (x,b);
+}
+
+def main(){
+    p := (2^64-59) coerce !ℕ;
+    (x,y) := pp_modular_map[0:!𝔹][p][64][260]((1234567:uint[64] as 𝔹^64,7654321:uint[64] as 𝔹^64));
+    return (x as uint[64],y as uint[64]);
+}
