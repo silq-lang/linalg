@@ -1,0 +1,72 @@
+import arithmetic.ecc.mod_div;
+import arithmetic.QQ_mult;
+import arithmetic.miscellaneous;
+import arithmetic.CQ_adder;
+import arithmetic.QQ_adder;
+import arithmetic.ecc.pingpong;
+
+// Ping-pong division for cryptographic sizes; its windowed pseudo-Mersenne
+// folds need n well above the fold window, so small fields stay exact.
+def runtime_modular_map[inverse:!𝔹][p:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n){
+    if n>=128{return pp_modular_map[inverse][p][n][pp_rounds[n]()](state);}
+    return binary_modular_map[inverse][p][n](state);
+}
+
+// Finite points with distinct x coordinates; tangent=(3*bx^2+a)/(2*by), in ordinary residues.
+def challenge_point_add_runtime[p:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n×𝔹^n×𝔹^n×𝔹^n) @noinline{
+    (x,y,bx,by,tangent) := state;
+    (bx,x) := QQ_sub_modp[p](bx,x);
+    (by,y) := QQ_sub_modp[p](by,y);
+    (x,y) := runtime_modular_map[0:!𝔹][p][n]((x,y));
+    (x,y) := square_sub_modp[0:!𝔹][p][n](1:𝔹,x,y);
+    for j in [0..3){(bx,x) := QQ_add_modp[p](bx,x);}
+    // A=-2B: clear the tangent slope and avoid a zero GCD input.
+    zero := (x as uint[n])=0;
+    (tangent,y) := c_QQ_sub_modp[p](zero,tangent,y);
+    x[0] := CNOT(zero,x[0]);
+    (x,y) := runtime_modular_map[1:!𝔹][p][n]((x,y));
+    x[0] := CNOT(zero,x[0]);
+    forget(zero=(x as uint[n])=0);
+    x := c_neg_modp[p](1:𝔹,x);
+    (bx,x) := QQ_add_modp[p](bx,x);
+    (by,y) := QQ_sub_modp[p](by,y);
+    return (x,y,bx,by,tangent);
+}
+
+// Classical tangent precomputation for the exporter; mu starts at zero.
+def challenge_tangent[p:!ℕ][ca:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n×𝔹^n) @noinline{
+    (bx,by,mu) := state;
+    for j in [0..n){bx := double_modp[p](bx); by := double_modp[p](by);}
+    (bx,z) := square_modp[p](bx);
+    for j in [0..3){(z,mu) := QQ_add_modp[p](z,mu);}
+    (bx,z) := square_modp_into[p](bx,z);
+    forget(z=0:uint[n]);
+    mu := QC_add_modp[p](mu,montgomery_const[p](ca));
+    by := double_modp[p](by);
+    (by,mu) := binary_div_modp_inplace[p](by,mu);
+    for j in [0..n){mu := half_modp[p](mu);}
+    return (bx,by,mu);
+}
+
+def challenge_tangent_probe[p:!ℕ][ca:!ℕ][n:!ℕ](){
+    bx := 0:uint[n] as 𝔹^n; by := 0:uint[n] as 𝔹^n;
+    mu := 0:uint[n] as 𝔹^n;
+    for j in [0..n){bx[j] := H(bx[j]); by[j] := H(by[j]); mu[j] := H(mu[j]);}
+    return challenge_tangent[p][ca][n]((bx,by,mu));
+}
+
+// The exporter replaces these H gates with runtime inputs.
+def challenge_runtime_probe[p:!ℕ][n:!ℕ](){
+    x := 0:uint[n] as 𝔹^n; y := 0:uint[n] as 𝔹^n;
+    bx := 0:uint[n] as 𝔹^n; by := 0:uint[n] as 𝔹^n;
+    tangent := 0:uint[n] as 𝔹^n;
+    for j in [0..n){x[j] := H(x[j]);}
+    for j in [0..n){y[j] := H(y[j]);}
+    for j in [0..n){bx[j] := H(bx[j]);}
+    for j in [0..n){by[j] := H(by[j]);}
+    for j in [0..n){tangent[j] := H(tangent[j]);}
+    return challenge_point_add_runtime[p][n]((x,y,bx,by,tangent));
+}
+
+// Fixed-offset probe for small-field experiments.
+def main(){return challenge_runtime_probe[(2^256-2^32-977) coerce !ℕ][256]();}

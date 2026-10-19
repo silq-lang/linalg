@@ -1,29 +1,42 @@
 import arithmetic.QQ_adder;
 import arithmetic.CQ_adder;
+import arithmetic.QQ_mult;
 
+// Map: |v> -> |rotate_left_k(v)>.
 def cyclic_lshift[k:!ℕ][n:!ℕ](v:𝔹^n){s := k%n;(a:𝔹^s)~(b:𝔹^(n sub s)) := v;return b~a;}
+// Map: |v> -> |rotate_right_k(v)>.
 def cyclic_rshift[k:!ℕ][n:!ℕ](v:𝔹^n){s := k%n;(a:𝔹^(n sub s))~(b:𝔹^s) := v;return b~a;}
 
+// Map: Applies the reversible Cuccaro majority map to |a,b,c>.
 def maj(a:𝔹,b:𝔹,c:𝔹){b := CNOT(a,b);c := CNOT(a,c);if c{a := CNOT(b,a);}return (a,b,c);}
+// Map: Applies the reversible Cuccaro unmajority-and-add map.
 def uma(a:𝔹,b:𝔹,c:𝔹){if c{a := CNOT(b,a);}c := CNOT(a,c);b := CNOT(c,b);return (a,b,c);}
 
+// Map: |a,b> -> |a,b,ab>.
 def AND_compute(const a:𝔹,const b:𝔹)mfree{return AND(a,b,0:𝔹);}
+// Map: |a,b,ab> -> |a,b> by measurement.
 def AND_uncompute(const a:𝔹,const b:𝔹,prod:𝔹){prod := H(prod);p := measure(prod);if p&a&b{phase(π);}}
 
+// Map: |x_0...x_(n-1)> -> |x_(n-1)...x_0>.
 def reverse_bits[n:!ℕ](x:𝔹^n){for j in [0..n div 2){(x[j],x[n sub j sub 1]) := (x[n sub j sub 1],x[j]);} return x;}
+// Map: |x,z> -> |x,z xor [x=0]>.
 def toggle_zero[n:!ℕ](const x:𝔹^n,z:𝔹){if x=vector(n,0){z ⊕= 1;}return z;}
+// Map: |x> -> |x xor a>.
 def XOR_const[n:!ℕ](x:𝔹^n,a:!ℕ){x := x coerce uint[n]; x ⊕= a; return x coerce 𝔹^n;}
+// Map: |x,L> -> |x,L xor bitlength(x)>.
 def xor_initial_length[n:!ℕ,l:!ℕ](const x:𝔹^n,out:𝔹^(l+1)){
     found := 0:!𝔹;for L in [1..n+1){if !found{if (x as uint[n])<(2^L){out := XOR_const[l+1](out,L); found ⊕= 1;}}}
     forget(found=1);return out;
 }
 
+// Map: Classically splits I at its highest differing bit.
 def split_interval[n:!ℕ](I:!ℕ^n)lifted{
     diff := (min(I) coerce !ℕ) ⊕ (max(I) coerce !ℕ); bit_pos := floor(log₂(diff)); I0 := []; I1 := [];
     for j in [0..n){bit := floor(I[j]/(2^bit_pos))%2;if bit=0{I0 ~= [I[j]];}else{I1 ~= [I[j]];}}
     return ((I0,I1),bit_pos);
 }
 
+// Map: Applies U[address] to qs under control c.
 def unary_iteration[n:!ℕ,m:!ℕ,k:!ℕ](I:!ℕ^n,const c:𝔹,const L:𝔹^m,qs:𝔹^k,const U:(𝔹^k → mfree 𝔹^k)[]){
     if n=1{if c{qs := U[I[0]](qs);}return qs;}
     ((I0,I1):!ℕ[]^2,b coerce !ℕ) := split_interval(I);
@@ -34,6 +47,7 @@ def unary_iteration[n:!ℕ,m:!ℕ,k:!ℕ](I:!ℕ^n,const c:𝔹,const L:𝔹^m,q
     return qs;
 }
 
+// Map: Conditionally swaps sign with the addressed bit of u.
 def loc_cswap[k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,lt:𝔹^(l+1),lq:𝔹^(l+1),sign:𝔹,u:𝔹^n){
     (lt,lq) := adder_nocarry[l+1](0:𝔹,lt,lq);
     U := [λ(qs:𝔹^(n+1))mfree{(qs[n],qs[j]) := (qs[j],qs[n]);return qs;} for j in [0..n+1)];
@@ -45,6 +59,7 @@ def loc_cswap[k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,lt:𝔹^(l+1),lq:�
     return (lt,lq,sign,u);
 }
 
+// Map: Applies one localized reversible MAJ/UMA arithmetic sweep.
 def loc_carith_iter[d:!ℕ,add:!ℕ][n:!ℕ,m:!ℕ,k:!ℕ](I:!ℕ^n,const cL:𝔹,const cR:𝔹,const L:𝔹^m,const R:𝔹^m,s:𝔹,carry:𝔹,u:𝔹^k,v:𝔹^k){
     if n=1{
         j := I[0];
@@ -82,6 +97,7 @@ def loc_carith_iter[d:!ℕ,add:!ℕ][n:!ℕ,m:!ℕ,k:!ℕ](I:!ℕ^n,const cL:�
     return (s,carry,u,v);
 }
 
+// Map: Applies controlled localized addition or subtraction of u into v.
 def loc_arith[add:!ℕ,update:!ℕ][k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,lt:𝔹^(l+1),lq:𝔹^(l+1),ls:𝔹^(l+1),sign:𝔹,u:𝔹^n,v:𝔹^n){
     (lt,lq) := adder_nocarry[l+1](0:𝔹,lt,lq);lq := QC_adder[l+1](0:𝔹,lq,2);
     ls := QC_sub[l+1](0:𝔹,ls,n+1);for j in [0..l+1){ls[j] := X(ls[j]);}
@@ -97,6 +113,7 @@ def loc_arith[add:!ℕ,update:!ℕ][k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:�
     return (lt,lq,ls,sign,u,v);
 }
 
+// Map: Applies the same arithmetic with a fixed classical boundary.
 def loc_tarith[add:!ℕ,update:!ℕ][b:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,const boundary:𝔹^(l+1),sign:𝔹,u:𝔹^n,v:𝔹^n){
     if b=K+1{return (sign,u,v);}
     active := AND_compute(ctrl,(boundary as uint[l+1])=b);
@@ -109,11 +126,13 @@ def loc_tarith[add:!ℕ,update:!ℕ][b:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:�
     return loc_tarith[add,update][b+1,K][n,l](ctrl,boundary,sign,u,v);
 }
 
+// Map: Rotates work2 into its canonical EEA position.
 def canonicalize_work2[n:!ℕ,l:!ℕ](const ls:𝔹^(l+3),work2:𝔹^(n+3)){
     for j in [0..l+3){d := ((2^j)%(n+3)) coerce !ℕ; if d>0{if ls[j]{work2 := cyclic_rshift[d][n+3](work2);}}}
     return work2;
 }
 
+// Map: Applies one reversible length-detection scan.
 def len_z_scan[q:!ℕ,m:!ℕ,w:!ℕ,d:!ℕ,side:!ℕ,k:!ℕ,K:!ℕ](I:!ℕ^q,const e:𝔹,const L:𝔹^m,bacc:𝔹,const x:𝔹^w,g:𝔹^w){
     if q=1{
         j := I[0];
@@ -145,6 +164,7 @@ def len_z_scan[q:!ℕ,m:!ℕ,w:!ℕ,d:!ℕ,side:!ℕ,k:!ℕ,K:!ℕ](I:!ℕ^q,con
     return (bacc,g);
 }
 
+// Map: XORs the detected length of x into out.
 def xor_detected_length[side:!ℕ,k:!ℕ,K:!ℕ][q:!ℕ,m:!ℕ,w:!ℕ,l:!ℕ](I:!ℕ^q,const ctrl:𝔹,const L:𝔹^m,const x:𝔹^w,out:𝔹^(l+1),g:𝔹^w){
     if side=0{out := XOR_const[l+1](out,K);}else{out := XOR_const[l+1](out,(w+1) sub k);}
     repeat 2{
@@ -163,6 +183,7 @@ def xor_detected_length[side:!ℕ,k:!ℕ,K:!ℕ][q:!ℕ,m:!ℕ,w:!ℕ,l:!ℕ](I:
     return (out,g);
 }
 
+// Map: Updates one EEA length register and boundary.
 def loc_length_update_one[side:!ℕ,k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:𝔹,out:𝔹^(l+1),boundary:𝔹^(l+1),u:𝔹^n,v:𝔹^n){
     if side=0{for j in [0..l+1){boundary[j] := X(boundary[j]);}boundary := QC_adder[l+1](0:𝔹,boundary,n+1);}else{boundary := QC_adder[l+1](0:𝔹,boundary,2);}
     m := floor(log₂(K))+1 coerce !ℕ;(Bl:𝔹^m)~(Bh:𝔹^(l+1 sub m)) := boundary;
@@ -173,12 +194,14 @@ def loc_length_update_one[side:!ℕ,k:!ℕ,K:!ℕ][n:!ℕ,l:!ℕ](const ctrl:�
     return (out,boundary,u,v);
 }
 
+// Map: Computes or reverses the temporary EEA boundary.
 def prepare_t_boundary[undo:!ℕ][n:!ℕ,l:!ℕ](const phase2:𝔹,lt:𝔹^(l+1),lrp:𝔹^(l+1),ls:𝔹^(l+1)){
     if undo=0{lt := QC_adder[l+1](0:𝔹,lt,1);for j in [0..l+1){lrp[j] := X(lrp[j]);}lrp := QC_adder[l+1](0:𝔹,lrp,n+4);(ls,lrp) := subst_nocarry[l+1](0:𝔹,ls,lrp);if phase2{(lt,lrp) := (lrp,lt);}
     }else{if phase2{(lt,lrp) := (lrp,lt);}(ls,lrp) := adder_nocarry[l+1](0:𝔹,ls,lrp);lrp := QC_sub[l+1](0:𝔹,lrp,n+4);for j in [0..l+1){lrp[j] := X(lrp[j]);}lt := QC_sub[l+1](0:𝔹,lt,1);}
     return (lt,lrp,ls);
 }
 
+// Map: |EEA_state_T> -> |EEA_state_(T+1)>.
 def step_EEA[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,work1:𝔹^(n+3),work2:𝔹^(n+3),ls:𝔹^(l+3),lq:𝔹^(l+1),lt:𝔹^(l+1),lrp:𝔹^(l+1),iter:𝔹){
     λ := (2+sqrt(3))^(1/3); c := 1/log₂(λ); η := ((4*sqrt(3)-3)/13)*(λ^2); δ := -log₂(η)/log₂(λ);
     k1 := max(ceil((T-n-1-4*δ)/(4*c-1)),1)+2 coerce !ℕ; K1 := n+3;
@@ -188,7 +211,7 @@ def step_EEA[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,work1:𝔹
     k5 := max(ceil((T-4*δ)/(4*c)),1) coerce !ℕ; K5 := n+3;
     if !phase1{work2 := cyclic_lshift[1][n+3](work2);}
     ls := c_QC_adder[l+3](!phase1,0:𝔹,ls,1);
-    if !phase1&phase2{work2 := cyclic_rshift[2][n+3](work2);} 
+    if !phase1&phase2{work2 := cyclic_rshift[2][n+3](work2);}
     ls := c_QC_sub[l+3](!phase1&phase2,0:𝔹,ls,2);(lslow:𝔹^(l+1))~(lshigh:𝔹^2) := ls;
     zr_live := toggle_zero(lrp,0:𝔹); rctrl := AND_compute(!phase1,!zr_live);
     (lt,lq,lslow,sign,work1,work2) := loc_arith[0,1][k1,K1][n+3,l](rctrl,lt,lq,lslow,sign,work1,work2);
@@ -211,7 +234,7 @@ def step_EEA[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,work1:𝔹
     ls := c_QC_sub[l+3](phase1&phase2,0:𝔹,ls,2);
     zq := toggle_zero(lq,0:𝔹); zr := toggle_zero(lrp,0:𝔹); pctrl := AND_compute(zq,!zr);
     if pctrl{phase2 := CNOT(sign,phase2); phase2 := CNOT(phase1,phase2); sign := CNOT(phase2,sign);}
-    AND_uncompute(zq,!zr,pctrl); 0 := toggle_zero(lrp,zr); 
+    AND_uncompute(zq,!zr,pctrl); 0 := toggle_zero(lrp,zr);
     zs := toggle_zero(ls,0:𝔹); phase1 := CNOT(zs,phase1); phase2 := CNOT(zs,phase2);
     if T%4=0{
         endctrl := AND_compute(zq,zs);
@@ -224,6 +247,7 @@ def step_EEA[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,work1:𝔹
     return (phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter);
 }
 
+// Map: |EEA_state_(T+1)> -> |EEA_state_T>.
 def step_EEA_inverse[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,work1:𝔹^(n+3),work2:𝔹^(n+3),ls:𝔹^(l+3),lq:𝔹^(l+1),lt:𝔹^(l+1),lrp:𝔹^(l+1),iter:𝔹){
     λ := (2+sqrt(3))^(1/3); c := 1/log₂(λ); η := ((4*sqrt(3)-3)/13)*(λ^2); δ := -log₂(η)/log₂(λ);
     k1 := max(ceil((T-n-1-4*δ)/(4*c-1)),1)+2 coerce !ℕ; K1 := n+3;
@@ -269,6 +293,7 @@ def step_EEA_inverse[T:!ℕ][n:!ℕ,l:!ℕ](phase1:𝔹,phase2:𝔹,sign:𝔹,wo
     return (phase1,phase2,sign,work1,work2,ls,lq,lt,lrp,iter);
 }
 
+// Map: |x,a> -> |x^(-1) mod p,a',transcript>.
 def eea_forward[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n){
     assert(p>2); assert(p%2=1); assert(p>=(2^(n sub 1))); assert(p<(2^n)); assert(n+3<(2^(l+1)));
     λ := (2+sqrt(3))^(1/3); N := 4*ceil(n/log₂(λ)) coerce !ℕ;
@@ -282,6 +307,7 @@ def eea_forward[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n){
     for j in [0..n){x[j] := CNOT(!iter,x[j]);}x := c_QC_adder[n](!iter,0:𝔹,x,p+1);
     return (x,aout,(phase1,phase2,sign,ls,lq,lt,lrp,iter));
 }
+// Map: Consumes the EEA transcript and reverses eea_forward.
 def eea_inverse[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n,state:𝔹×𝔹×𝔹×𝔹^(l+3)×𝔹^(l+1)×𝔹^(l+1)×𝔹^(l+1)×𝔹){
     assert(p>2);assert(p%2=1);assert(p>=(2^(n sub 1)));assert(p<(2^n));assert(n+3<(2^(l+1)));
     (phase1,phase2,sign,ls,lq,lt,lrp,iter) := state;
@@ -293,9 +319,70 @@ def eea_inverse[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n,state:𝔹×𝔹×𝔹�
     for j in [0..n){if floor(p/(2^(n sub j sub 1)))%2=1{work1[3+j] := X(work1[3+j]);}}vector(3,0)~(a:𝔹^n) := work1;vector(l+1,0) := XOR_const[l+1](lt,1);
     forget(phase1=0);forget(phase2=0);forget(sign=0);forget(iter=0);forget(ls=vector(l+3,0));forget(lq=vector(l+1,0));return (x,a);
 }
+// Map: |x> -> |x,x^(-1) mod p>.
 def mod_inv[p:!ℕ][n:!ℕ](x:𝔹^n){
     l := floor(log₂(n+3)) coerce !ℕ;a := 0:uint[n] as 𝔹^n;
     (x,a,state) := eea_forward[p][n,l](x,a);out := dup(x);(x,a) := eea_inverse[p][n,l](x,a,state);forget(a=0:uint[n] as 𝔹^n);return (x,out);
 }
 
+// Montgomery inversion and the in-place arithmetic that uses it.
+// Map: |x,0> -> |R^2*x^(-1) mod p,a',transcript>.
+def minv_forward[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n){
+    (x,a,state) := eea_forward[p][n,l](x,a);
+    for j in [0..2*n){x := double_modp[p][n](x);}
+    return (x,a,state);
+}
+
+// Map: Reverses minv_forward.
+def minv_inverse[p:!ℕ][n:!ℕ,l:!ℕ](x:𝔹^n,a:𝔹^n,state:𝔹×𝔹×𝔹×𝔹^(l+3)×𝔹^(l+1)×𝔹^(l+1)×𝔹^(l+1)×𝔹){
+    for j in [0..2*n){x := half_modp[p][n](x);}
+    return eea_inverse[p][n,l](x,a,state);
+}
+
+// Map: |x> -> |x,R^2*x^(-1) mod p>.
+def inv_modp[p:!ℕ][n:!ℕ](x:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,a,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    result := dup(x); (x,0:uint[n] as 𝔹^n) := minv_inverse[p][n,l](x,a,state);
+    return (x,result);
+}
+
+// Map: |x,y> -> |x,y,R*y*x^(-1) mod p>.
+def div_modp[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,a,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    (x,y,result) := mult_modp_clean[p][n](x,y);
+    (x,0:uint[n] as 𝔹^n) := minv_inverse[p][n,l](x,a,state);
+    return (x,y,result);
+}
+
+// Map: |x,y> -> |x,x*y*R^(-1) mod p> by measurement.
+def mult[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,y,a) := mult_modp_clean[p][n](x,y);
+    for j in [0..n){y[j] := H(y[j]);} b := measure(y) as !uint[n];
+    (x,y,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    (x,a,y) := mult_modp_into[p][n](x,a,y);
+    for j in [0..n){if b[j]{y[j] := Z(y[j]);}}
+    (x,a,y) := mult_modp_into[p][n](x,a,y);
+    (x,y) := minv_inverse[p][n,l](x,y,state);
+    (y,a) := (a,y); forget(a=0:uint[n] as 𝔹^n);
+    return (x,y);
+}
+
+// Map: |x,y> -> |x,R*y*x^(-1) mod p> by measurement.
+def div_modp_inplace[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    l := floor(log₂(n+3)) coerce !ℕ;
+    (x,a,state) := minv_forward[p][n,l](x,0:uint[n] as 𝔹^n);
+    (x,y,a) := mult_modp_into[p][n](x,y,a);
+    for j in [0..n){y[j] := H(y[j]);} b := measure(y) as !uint[n];
+    (x,y) := minv_inverse[p][n,l](x,0:uint[n] as 𝔹^n,state);
+    (x,a,y) := mult_modp_into[p][n](x,a,y);
+    for j in [0..n){if b[j]{y[j] := Z(y[j]);}}
+    (x,a,y) := mult_modp_into[p][n](x,a,y);
+    (y,a) := (a,y); forget(a=0:uint[n] as 𝔹^n);
+    return (x,y);
+}
+
+// Map: Example: |13> -> |13>|20> for p=37.
 def main(){return mod_inv[37](13:uint[6] as 𝔹^6) as uint[6]×uint[6];}
