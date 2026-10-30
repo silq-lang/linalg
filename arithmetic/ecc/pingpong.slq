@@ -4,21 +4,26 @@ import arithmetic.QQ_mult;
 
 // Ping-pong arithmetic for p=2^n-f. It uses a bounded round schedule,
 // bounded pseudo-Mersenne carry propagation, and top-bit carry erasure.
-// The secp256k1 parameters target total failure probability below 1e-11.
+// Cryptographic sizes use bounded-error width, round and correction windows.
+// Validate each exported circuit with the challenge evaluator; this is not an
+// all-input correctness guarantee.
 
 def pp_fold_window[n:!ℕ]() lifted:!ℕ{
-    if n>=128{return 82;}
+    if n>=128{return 64;}
     return 28;
 }
 
 def pp_rounds[n:!ℕ]() lifted:!ℕ{
-    if n=256{return 780;}
+    if n=256{return 736;}
     return 4*n+4;
 }
 
+// Guard the empirical rail envelope by eight bits, with a 19-bit tail.
+// After round 702 the tail narrows one bit per two rounds to bound live storage.
+// Extra rounds allow slow walks to converge; this remains a bounded-error profile.
 def pp_width[n:!ℕ](r:!ℕ) lifted:!ℕ{
     if n=256{
-        t := [258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,257,257,257,257,256,256,256,256,256,255,255,255,255,254,254,254,254,253,253,253,253,252,252,252,252,251,251,251,251,250,250,250,250,249,249,249,249,248,248,248,248,247,247,247,246,246,246,246,245,245,245,245,244,244,244,243,243,243,243,242,242,242,242,241,241,241,240,240,240,240,239,239,239,238,238,238,238,237,237,237,236,236,236,236,235,235,235,234,234,234,234,233,233,233,232,232,232,231,231,231,231,230,230,230,229,229,229,229,228,228,228,227,227,227,226,226,226,226,225,225,225,224,224,224,223,223,223,222,222,222,222,221,221,221,220,220,220,219,219,219,218,218,218,218,217,217,217,216,216,216,215,215,215,214,214,214,214,213,213,213,212,212,212,211,211,211,210,210,210,209,209,209,208,208,208,208,207,207,207,206,206,206,205,205,205,204,204,204,203,203,203,202,202,202,201,201,201,201,200,200,200,199,199,199,198,198,198,197,197,197,196,196,196,195,195,195,194,194,194,193,193,193,192,192,192,191,191,191,190,190,190,190,189,189,189,188,188,188,187,187,187,186,186,186,185,185,185,184,184,184,183,183,183,182,182,182,181,181,181,180,180,180,179,179,179,178,178,178,177,177,177,176,176,176,175,175,175,174,174,174,173,173,173,172,172,172,171,171,171,170,170,170,169,169,169,168,168,168,167,167,167,166,166,166,165,165,165,164,164,164,163,163,163,162,162,162,161,161,161,160,160,160,159,159,159,158,158,158,157,157,157,156,156,156,155,155,155,154,154,154,153,153,153,152,152,152,151,151,151,150,150,149,149,149,148,148,148,147,147,147,146,146,146,145,145,145,144,144,144,143,143,143,142,142,142,141,141,141,140,140,140,139,139,139,138,138,138,137,137,137,136,136,136,135,135,134,134,134,133,133,133,132,132,132,131,131,131,130,130,130,129,129,129,128,128,128,127,127,127,126,126,126,125,125,124,124,124,123,123,123,122,122,122,121,121,121,120,120,120,119,119,119,118,118,118,117,117,117,116,116,116,115,115,114,114,114,113,113,113,112,112,112,111,111,111,110,110,110,109,109,109,108,108,108,107,107,106,106,106,105,105,105,104,104,104,103,103,103,102,102,102,101,101,100,100,100,99,99,99,98,98,97,97,97,96,96,95,95,94,94,94,93,93,92,91,91,90,90,89,89,88,87,87,86,86,86,86,85,85,84,84,84,83,83,82,82,82,81,81,80,80,80,79,79,78,78,77,77,77,76,76,75,75,75,74,74,73,73,73,72,72,71,71,71,70,70,69,69,68,68,68,67,67,66,66,66,65,65,64,64,64,63,63,62,62,61,61,61,60,60,59,59,59,58,58,57,57,57,56,56,55,55,55,54,54,53,53,52,52,52,51,51,50,50,50,49,49,48,48,48,47,47,46,46,45,45,45,44,44,43,43,43,42,42,41,41,41,40,40,39,39,39,38,38,37,37,36,36,36,35,35,34,34,34,33,33,32,32,32,31,31,30,30,30,29,29,28,28,27,27,27,26,26,25,25,25,24,24,23,23,23,22,22,21,21,20,20,20,19,19,18,18,18,17,17,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16];
+        t := [258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,258,257,257,256,256,256,256,256,256,255,255,254,254,253,253,253,252,252,251,251,251,250,250,250,250,250,249,249,247,247,247,246,246,246,246,245,245,245,245,244,244,243,243,243,243,242,242,242,242,242,240,240,240,239,239,238,238,238,238,237,237,237,237,235,235,234,234,234,234,234,234,234,234,233,233,232,232,231,231,230,230,230,230,230,230,229,229,228,227,227,227,227,227,227,226,226,225,225,224,224,223,223,223,222,222,222,222,222,221,221,220,220,218,218,218,218,218,216,216,216,215,215,215,215,214,214,214,214,213,213,213,212,212,212,212,211,211,211,210,210,210,210,209,209,208,208,207,207,206,206,206,205,205,204,204,204,203,203,202,202,201,201,201,200,200,200,200,200,200,200,200,200,199,198,197,197,197,197,196,196,195,195,195,195,194,194,193,192,192,191,191,191,191,191,190,190,189,189,189,189,189,188,188,187,187,186,186,186,186,186,186,186,186,184,184,183,183,182,182,182,181,181,179,179,178,178,178,177,177,177,176,176,176,176,175,175,174,174,174,174,174,173,173,172,172,171,171,170,170,169,169,168,168,167,167,167,167,166,166,166,166,165,165,164,163,163,162,162,162,161,161,161,161,161,159,159,158,158,157,157,157,157,157,156,156,156,156,155,155,154,154,154,154,154,153,153,152,152,151,151,149,149,149,148,148,148,148,148,148,147,147,146,146,145,145,145,143,143,143,142,142,142,142,140,140,140,140,139,139,139,139,138,138,138,137,137,137,136,136,136,136,136,136,134,134,134,134,134,133,133,131,131,131,131,131,131,131,130,130,129,129,128,126,126,125,125,125,125,125,125,125,125,125,123,123,123,121,121,121,121,121,121,121,121,120,119,118,118,118,118,117,117,117,116,115,115,115,115,115,114,114,114,114,111,111,111,111,111,110,110,109,109,109,109,108,108,106,106,106,106,105,105,105,103,102,102,102,102,102,101,101,100,100,100,99,99,98,98,98,97,97,97,97,97,96,96,95,94,94,93,93,92,92,92,91,91,90,90,90,90,90,90,89,89,88,88,87,87,86,85,85,85,84,84,83,82,82,82,81,81,81,80,80,79,78,78,78,78,77,77,76,76,76,75,75,75,75,74,74,73,73,73,73,73,73,72,72,71,70,70,69,69,68,68,68,68,68,68,67,67,66,66,65,64,63,63,63,63,62,62,61,61,60,60,60,60,60,59,59,58,58,58,58,58,57,57,56,56,56,54,54,54,54,52,52,52,51,51,51,51,50,50,50,50,49,49,49,47,47,47,47,45,45,44,44,44,44,44,43,43,43,43,42,42,42,41,41,40,40,40,39,39,38,37,37,36,36,36,36,35,35,35,34,33,32,32,31,30,30,30,30,29,29,29,29,28,28,27,27,27,26,26,25,25,24,24,23,23,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,21,19,19,19,19,19,19,19,19,18,18,17,17,16,16,15,15,14,14,13,13,12,12,11,11,10,10,9,9,8,8,7,7,6,6,5,5,4,4,3,3];
         return t[r];
     }
     if n=64{
@@ -29,33 +34,41 @@ def pp_width[n:!ℕ](r:!ℕ) lifted:!ℕ{
 }
 
 def pp_chunk_compare[n:!ℕ]() lifted:!ℕ{
-    if n>=128{return 48;}
+    if n>=128{return 40;}
     return n div 3;
 }
 
 def pp_compare_bits[n:!ℕ]() lifted:!ℕ{
-    if n>=128{return 48;}
+    if n>=128{return 40;}
     return 24;
 }
 
+// Phase oracle for a<b: compute all but the last carry, then express the
+// final majority as three CZ phases. This saves one temporary AND per call.
 def phase_lt[c:!ℕ](a:𝔹^c,b:𝔹^c){
+    assert(c>=1);
     for j in [0..c){b[j] := X(b[j]);}
-    cr := 0:uint[c+1] as 𝔹^(c+1);
-    cr[0] := X(cr[0]);
-    for j in [0..c){
+    cr := 0:uint[c] as 𝔹^c; cr[0] := X(cr[0]);
+    for j in [0..c sub 1){
         (a[j],b[j],prod) := add_unit(cr[j],a[j],b[j]);
         (cr[j+1],prod) := (prod,cr[j+1]); forget(prod=0);
     }
-    cr[c] := X(cr[c]); cr[c] := Z(cr[c]); cr[c] := X(cr[c]);
-    for back in [0..c){
-        j := c sub back sub 1;
+    cr[0] := Z(cr[0]);
+    (al:𝔹^(c sub 1))~(ah,) := a;
+    (bl:𝔹^(c sub 1))~(bh,) := b;
+    (cl:𝔹^(c sub 1))~(ch,) := cr;
+    if ch{ah := Z(ah); bh := Z(bh);}
+    if ah{bh := Z(bh);}
+    a := (al~(ah,)) coerce 𝔹^c; b := (bl~(bh,)) coerce 𝔹^c;
+    cr := (cl~(ch,)) coerce 𝔹^c;
+    for back in [0..c sub 1){
+        j := c sub back sub 2;
         anc := 0:𝔹; (anc,cr[j+1]) := (cr[j+1],anc);
         anc := CNOT(cr[j],anc);
         (a[j],b[j]) := AND_uncomp(a[j],b[j],anc);
         a[j] := CNOT(cr[j],a[j]); b[j] := CNOT(cr[j],b[j]);
     }
-    cr[0] := X(cr[0]);
-    forget(cr=0:uint[c+1]);
+    cr[0] := X(cr[0]); forget(cr=0:uint[c]);
     for j in [0..c){b[j] := X(b[j]);}
     return (a,b);
 }
@@ -137,33 +150,101 @@ def pp_fold5[f:!ℕ][w:!ℕ](pl:𝔹,e:𝔹,ov:𝔹,low:𝔹^w){
     return (pl,e,ov,low);
 }
 
+// Two carry ladders share their scratch. The intermediate carry is erased
+// using the same bounded top-bit comparison as the final overflow carry.
 def pp_chunk_add[n:!ℕ](s:𝔹^n,t:𝔹^n){
-    k := n div 3; k3 := n sub 2*k; cc := pp_chunk_compare[n]();
-    (s1:𝔹^k)~(s2:𝔹^k)~(s3:𝔹^k3) := s coerce 𝔹^(2*k+k3);
-    (t1:𝔹^k)~(t2:𝔹^k)~(t3:𝔹^k3) := t coerce 𝔹^(2*k+k3);
-    c0 := 0:𝔹;
-    (s1,u1) := adder_carry[k](c0,s1,t1~(0,));
-    forget(c0=0);
-    (t1:𝔹^k)~(b1,) := u1;
-    (s2,u2) := adder_carry[k](b1,s2,t2~(0,));
-    (t2:𝔹^k)~(b2,) := u2;
-    (s3,u3) := adder_carry[k3](b2,s3,t3~(0,));
-    (t3:𝔹^k3)~(ov,) := u3;
-    (t2l:𝔹^(k sub cc))~(t2h:𝔹^cc) := t2; (s2l:𝔹^(k sub cc))~(s2h:𝔹^cc) := s2;
-    b2 := H(b2); m2 := measure(b2);
-    if m2{(t2h,s2h) := phase_lt[cc](t2h,s2h);}
-    (t1l:𝔹^(k sub cc))~(t1h:𝔹^cc) := t1; (s1l:𝔹^(k sub cc))~(s1h:𝔹^cc) := s1;
-    b1 := H(b1); m1 := measure(b1);
-    if m1{(t1h,s1h) := phase_lt[cc](t1h,s1h);}
-    s := (s1l~s1h~s2l~s2h~s3) coerce 𝔹^n;
-    t := (t1l~t1h~t2l~t2h~t3) coerce 𝔹^n;
-    return (s,t,ov);
+    if n<128{
+        (s,wide) := adder_carry[n](0:𝔹,s,t~(0:𝔹,));
+        (t:𝔹^n)~(ov,) := wide; return (s,t,ov);
+    }
+    k := n div 2; h := n sub k; c := pp_chunk_compare[n]();
+    (sl:𝔹^k)~(sh:𝔹^h) := s coerce 𝔹^(k+h);
+    (tl:𝔹^k)~(th:𝔹^h) := t coerce 𝔹^(k+h);
+    (sl,wide) := adder_carry[k](0:𝔹,sl,tl~(0:𝔹,));
+    (tl:𝔹^k)~(carry,) := wide;
+    (sh,wideh) := adder_carry[h](carry,sh,th~(0:𝔹,));
+    (th:𝔹^h)~(ov,) := wideh;
+    (sll:𝔹^(k sub c))~(slt:𝔹^c) := sl;
+    (tll:𝔹^(k sub c))~(tlt:𝔹^c) := tl;
+    carry := H(carry); m := measure(carry);
+    if m{(tlt,slt) := phase_lt[c](tlt,slt);}
+    return ((sll~slt~sh) coerce 𝔹^n,(tll~tlt~th) coerce 𝔹^n,ov);
 }
 
-def pp_fused_core[div:!𝔹][f:!ℕ][n:!ℕ](sign:𝔹,s:𝔹^n,t:𝔹^n){
-    w := pp_fold_window[n](); c := pp_compare_bits[n]();
+def pp_chunk_add_wide[n:!ℕ](s:𝔹^n,t:𝔹^n){
+    if n<128{
+        (s,wide) := adder_carry[n](0:𝔹,s,t~(0:𝔹,));
+        (t:𝔹^n)~(ov,) := wide; return (s,t,ov);
+    }
+    k := n div 2; h := n sub k; c := pp_quad_compare[n]();
+    (sl:𝔹^k)~(sh:𝔹^h) := s coerce 𝔹^(k+h);
+    (tl:𝔹^k)~(th:𝔹^h) := t coerce 𝔹^(k+h);
+    (sl,wide) := adder_carry[k](0:𝔹,sl,tl~(0:𝔹,));
+    (tl:𝔹^k)~(carry,) := wide;
+    (sh,wideh) := adder_carry[h](carry,sh,th~(0:𝔹,));
+    (th:𝔹^h)~(ov,) := wideh;
+    (sll:𝔹^(k sub c))~(slt:𝔹^c) := sl;
+    (tll:𝔹^(k sub c))~(tlt:𝔹^c) := tl;
+    carry := H(carry); m := measure(carry);
+    if m{(tlt,slt) := phase_lt[c](tlt,slt);}
+    return ((sll~slt~sh) coerce 𝔹^n,(tll~tlt~th) coerce 𝔹^n,ov);
+}
+
+// Four 64-bit ladders share one ladder's scratch. The middle carry uses the
+// existing comparison width; the two new carries use wider comparisons so the
+// erasure error stays negligible.
+def pp_chunk_add4[n:!ℕ](s:𝔹^n,t:𝔹^n){
+    assert(n=256);
+    c := pp_chunk_compare[n](); d := pp_quad_compare[n]();
+    (s0:𝔹^64)~(s1:𝔹^64)~(s2:𝔹^64)~(s3:𝔹^64) := s coerce 𝔹^(64+64+64+64);
+    (t0:𝔹^64)~(t1:𝔹^64)~(t2:𝔹^64)~(t3:𝔹^64) := t coerce 𝔹^(64+64+64+64);
+    (s0,w0) := adder_carry[64](0:𝔹,s0,t0~(0:𝔹,));
+    (t0:𝔹^64)~(c0,) := w0;
+    (s1,w1) := adder_carry[64](c0,s1,t1~(0:𝔹,));
+    (t1:𝔹^64)~(c1,) := w1;
+    (s2,w2) := adder_carry[64](c1,s2,t2~(0:𝔹,));
+    (t2:𝔹^64)~(c2,) := w2;
+    (s3,w3) := adder_carry[64](c2,s3,t3~(0:𝔹,));
+    (t3:𝔹^64)~(ov,) := w3;
+    // c1 is the carry at bit 128: compare the top c bits of the low half.
+    (s1l:𝔹^(64 sub c))~(s1t:𝔹^c) := s1;
+    (t1l:𝔹^(64 sub c))~(t1t:𝔹^c) := t1;
+    c1 := H(c1); m1 := measure(c1);
+    if m1{(t1t,s1t) := phase_lt[c](t1t,s1t);}
+    s1 := (s1l~s1t) coerce 𝔹^64; t1 := (t1l~t1t) coerce 𝔹^64;
+    (s0l:𝔹^(64 sub d))~(s0t:𝔹^d) := s0;
+    (t0l:𝔹^(64 sub d))~(t0t:𝔹^d) := t0;
+    c0 := H(c0); m0 := measure(c0);
+    if m0{(t0t,s0t) := phase_lt[d](t0t,s0t);}
+    s0 := (s0l~s0t) coerce 𝔹^64; t0 := (t0l~t0t) coerce 𝔹^64;
+    (s2l:𝔹^(64 sub d))~(s2t:𝔹^d) := s2;
+    (t2l:𝔹^(64 sub d))~(t2t:𝔹^d) := t2;
+    c2 := H(c2); m2 := measure(c2);
+    if m2{(t2t,s2t) := phase_lt[d](t2t,s2t);}
+    s2 := (s2l~s2t) coerce 𝔹^64; t2 := (t2l~t2t) coerce 𝔹^64;
+    return ((s0~s1~s2~s3) coerce 𝔹^n,(t0~t1~t2~t3) coerce 𝔹^n,ov);
+}
+
+def pp_quad_compare[n:!ℕ]() lifted:!ℕ{return 40;}
+
+// Payload cell selection by live width r+2*w: full ladder, two shared
+// ladders, then four shared ladders where the tape is longest.
+def pp_full_threshold[n:!ℕ]() lifted:!ℕ{return 551;}
+def pp_quad_threshold[n:!ℕ]() lifted:!ℕ{return 678;}
+// The multiplication map carries a few more live qubits than the division.
+def pp_mul_full_threshold[n:!ℕ]() lifted:!ℕ{return 541;}
+
+def pp_fused_core[div:!𝔹][split:!ℕ][f:!ℕ][n:!ℕ](sign:𝔹,s:𝔹^n,t:𝔹^n){
+    w := pp_fold_window[n](); if div && n=256{w += 2;} c := pp_compare_bits[n]();
     for j in [0..n){t[j] := CNOT(sign,t[j]);}
-    (s,body,ov) := pp_chunk_add[n](s,t);
+    body := t; ov := 0:𝔹;
+    if split=2{forget(ov=0); (s,body,ov) := pp_chunk_add4[n](s,body);}
+    else if split=1{forget(ov=0); (s,body,ov) := pp_chunk_add[n](s,body);}
+    else if split=3{forget(ov=0); (s,body,ov) := pp_chunk_add_wide[n](s,body);}
+    else{
+        (s,wide) := adder_carry[n](0:𝔹,s,body~(ov,));
+        (body:𝔹^n)~(ov,) := wide;
+    }
     e := dup(body[0]);
     if div{e := CNOT(ov,e); e := CNOT(sign,e);}
     else{e := CNOT(sign,e); e := CNOT(s[0],e); sign := X(sign);}
@@ -184,7 +265,21 @@ def pp_fused_core[div:!𝔹][f:!ℕ][n:!ℕ](sign:𝔹,s:𝔹^n,t:𝔹^n){
 
 def pp_cell_div[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
     (sign,s,t) := state;
-    (sign,s,t) := pp_fused_core[1:!𝔹][f][n](sign,s,t);
+    (sign,s,t) := pp_fused_core[1:!𝔹][1][f][n](sign,s,t);
+    (b0,)~(rest:𝔹^(n sub 1)) := t;
+    return (sign,s,(rest~(b0,)) coerce 𝔹^n);
+}
+
+def pp_cell_div_wide[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (sign,s,t) := pp_fused_core[1:!𝔹][3][f][n](sign,s,t);
+    (b0,)~(rest:𝔹^(n sub 1)) := t;
+    return (sign,s,(rest~(b0,)) coerce 𝔹^n);
+}
+
+def pp_cell_div_quad[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (sign,s,t) := pp_fused_core[1:!𝔹][2][f][n](sign,s,t);
     (b0,)~(rest:𝔹^(n sub 1)) := t;
     return (sign,s,(rest~(b0,)) coerce 𝔹^n);
 }
@@ -194,7 +289,44 @@ def pp_cell_mul[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
     (rest:𝔹^(n sub 1))~(top,) := t;
     t := ((top,)~rest) coerce 𝔹^n;
     sign := X(sign);
-    (sign,s,t) := pp_fused_core[0:!𝔹][f][n](sign,s,t);
+    (sign,s,t) := pp_fused_core[0:!𝔹][1][f][n](sign,s,t);
+    sign := X(sign);
+    return (sign,s,t);
+}
+
+def pp_cell_mul_wide[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (rest:𝔹^(n sub 1))~(top,) := t;
+    t := ((top,)~rest) coerce 𝔹^n;
+    sign := X(sign);
+    (sign,s,t) := pp_fused_core[0:!𝔹][3][f][n](sign,s,t);
+    sign := X(sign);
+    return (sign,s,t);
+}
+
+def pp_cell_mul_quad[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (rest:𝔹^(n sub 1))~(top,) := t;
+    t := ((top,)~rest) coerce 𝔹^n;
+    sign := X(sign);
+    (sign,s,t) := pp_fused_core[0:!𝔹][2][f][n](sign,s,t);
+    sign := X(sign);
+    return (sign,s,t);
+}
+
+def pp_cell_div_full[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (sign,s,t) := pp_fused_core[1:!𝔹][0][f][n](sign,s,t);
+    (b0,)~(rest:𝔹^(n sub 1)) := t;
+    return (sign,s,(rest~(b0,)) coerce 𝔹^n);
+}
+
+def pp_cell_mul_full[f:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (sign,s,t) := state;
+    (rest:𝔹^(n sub 1))~(top,) := t;
+    t := ((top,)~rest) coerce 𝔹^n;
+    sign := X(sign);
+    (sign,s,t) := pp_fused_core[0:!𝔹][0][f][n](sign,s,t);
     sign := X(sign);
     return (sign,s,t);
 }
@@ -371,36 +503,76 @@ def pp_modular_map[inverse:!𝔹][p:!ℕ][n:!ℕ][rounds:!ℕ](state:𝔹^n×�
     v := c_const_addsub[1:!𝔹][W](q,v,p);
     q := CNOT(v[W sub 1],q); forget(q=0);
     tape := (x~(0:uint[rounds sub n] as 𝔹^(rounds sub n))) coerce 𝔹^rounds;
-    for r in [0..rounds){
-        (u1,v1,tape[r]) := pp_round[n][r]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
-        u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
-    }
-    wl := pp_width[n](rounds sub 1);
-    (su,sv) := pp_pack_rails[n][wl]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2)));
     a := 0:uint[n] as 𝔹^n; b := y;
+    wl := pp_width[n](rounds sub 1);
     if !inverse{
-        (tape[1],a,b) := pp_seed_div[f][n]((tape[1],a,b));
-        for r in [2..rounds){
-            if r%2=0{(tape[r],a,b) := pp_cell_div[f][n]((tape[r],a,b));}
-            else{(tape[r],b,a) := pp_cell_div[f][n]((tape[r],b,a));}
+        // A walk step and its payload commute with all other steps' payloads.
+        // Consume each recorded sign immediately, before later signs exist.
+        for r in [0..rounds){
+            (u1,v1,tape[r]) := pp_round[n][r]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
+            u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
+            if r=1{(tape[1],a,b) := pp_seed_div[f][n]((tape[1],a,b));}
+            if r>=2{
+                if r+2*pp_width[n](r)<pp_full_threshold[n](){
+                    if r%2=0{(tape[r],a,b) := pp_cell_div_full[f][n]((tape[r],a,b));}
+                    else{(tape[r],b,a) := pp_cell_div_full[f][n]((tape[r],b,a));}
+                }else if r+2*pp_width[n](r)<656{
+                    if r%2=0{(tape[r],a,b) := pp_cell_div_wide[f][n]((tape[r],a,b));}
+                    else{(tape[r],b,a) := pp_cell_div_wide[f][n]((tape[r],b,a));}
+                }else if r+2*pp_width[n](r)<pp_quad_threshold[n](){
+                    if r%2=0{(tape[r],a,b) := pp_cell_div[f][n]((tape[r],a,b));}
+                    else{(tape[r],b,a) := pp_cell_div[f][n]((tape[r],b,a));}
+                }else{
+                    if r%2=0{(tape[r],a,b) := pp_cell_div_quad[f][n]((tape[r],a,b));}
+                    else{(tape[r],b,a) := pp_cell_div_quad[f][n]((tape[r],b,a));}
+                }
+            }
         }
+        (su,sv) := pp_pack_rails[n][wl]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2)));
         (su,sv,a,b) := pp_end_div[f][n]((su,sv,a,b));
+        pp_drop[n](a);
+        (u2,v2) := pp_unpack_rails[n][wl]((su,sv));
+        u := u2 coerce 𝔹^W; v := v2 coerce 𝔹^W;
+        for back in [0..rounds){
+            r := rounds sub back sub 1;
+            (u1,v1,tape[r]) := pp_unround[n][r][r>=n]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
+            u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
+        }
     }else{
+        for r in [0..rounds){
+            (u1,v1,tape[r]) := pp_round[n][r]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
+            u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
+        }
+        (su,sv) := pp_pack_rails[n][wl]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2)));
         (su,sv,a,b) := pp_seed_mul[f][n]((su,sv,a,b));
+        (u2,v2) := pp_unpack_rails[n][wl]((su,sv));
+        u := u2 coerce 𝔹^W; v := v2 coerce 𝔹^W;
         for back in [0..rounds sub 2){
             r := rounds sub back sub 1;
-            if r%2=0{(tape[r],a,b) := pp_cell_mul[f][n]((tape[r],a,b));}
-            else{(tape[r],b,a) := pp_cell_mul[f][n]((tape[r],b,a));}
+            if r+2*pp_width[n](r)<pp_mul_full_threshold[n](){
+                if r%2=0{(tape[r],a,b) := pp_cell_mul_full[f][n]((tape[r],a,b));}
+                else{(tape[r],b,a) := pp_cell_mul_full[f][n]((tape[r],b,a));}
+            }else if r+2*pp_width[n](r)<656{
+                if r%2=0{(tape[r],a,b) := pp_cell_mul_wide[f][n]((tape[r],a,b));}
+                else{(tape[r],b,a) := pp_cell_mul_wide[f][n]((tape[r],b,a));}
+            }else if r+2*pp_width[n](r)<pp_quad_threshold[n](){
+                if r%2=0{(tape[r],a,b) := pp_cell_mul[f][n]((tape[r],a,b));}
+                else{(tape[r],b,a) := pp_cell_mul[f][n]((tape[r],b,a));}
+            }else{
+                if r%2=0{(tape[r],a,b) := pp_cell_mul_quad[f][n]((tape[r],a,b));}
+                else{(tape[r],b,a) := pp_cell_mul_quad[f][n]((tape[r],b,a));}
+            }
+            // Release this sign before allocating the next payload's scratch.
+            (u1,v1,tape[r]) := pp_unround[n][r][r>=n]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
+            u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
         }
         (tape[1],a,b) := pp_end_mul[f][n]((tape[1],a,b));
-    }
-    pp_drop[n](a);
-    (u2,v2) := pp_unpack_rails[n][wl]((su,sv));
-    u := u2 coerce 𝔹^W; v := v2 coerce 𝔹^W;
-    for back in [0..rounds){
-        r := rounds sub back sub 1;
-        (u1,v1,tape[r]) := pp_unround[n][r][r>=n]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
-        u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
+        pp_drop[n](a);
+        for back in [0..2){
+            r := 1 sub back;
+            (u1,v1,tape[r]) := pp_unround[n][r][r>=n]((u coerce 𝔹^(n+2),v coerce 𝔹^(n+2),tape[r]));
+            u := u1 coerce 𝔹^W; v := v1 coerce 𝔹^W;
+        }
     }
     (x:𝔹^n)~(rest:𝔹^(rounds sub n)) := tape coerce 𝔹^(n+(rounds sub n));
     forget(rest=0:uint[rounds sub n]);
@@ -415,10 +587,4 @@ def pp_modular_map[inverse:!𝔹][p:!ℕ][n:!ℕ][rounds:!ℕ](state:𝔹^n×�
     for j in [0..n){vx[j] := CNOT(x[j],vx[j]);}
     forget(vx=0:uint[n]);
     return (x,b);
-}
-
-def main(){
-    p := (2^64-59) coerce !ℕ;
-    (x,y) := pp_modular_map[0:!𝔹][p][64][260]((1234567:uint[64] as 𝔹^64,7654321:uint[64] as 𝔹^64));
-    return (x as uint[64],y as uint[64]);
 }

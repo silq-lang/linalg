@@ -394,17 +394,3 @@ def binary_div_modp_inplace[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
     for j in [0..n){y := double_modp[p][n](y);}
     return (x,y);
 }
-
-// Map: |x,y> -> |x,x*y*R^(-1) mod p>.
-def binary_mult_modp_inplace[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
-    for j in [0..n){y := half_modp[p][n](y);}
-    return binary_modular_map[1:!𝔹][p][n]((x,y));
-}
-
-// Canonical-residue example: 7/3 mod 17 = 8, with denominator preserved.
-
-// Map: Example: |3>|7> -> |3>|8> for p=17.
-def main(){
-    (x,y) := binary_modular_map[0:!𝔹][17][5]((3:uint[5] as 𝔹^5,7:uint[5] as 𝔹^5));
-    return (x as uint[5],y as uint[5]);
-}

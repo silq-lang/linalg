@@ -1,0 +1,132 @@
+import arithmetic.CQ_adder;
+import arithmetic.QQ_adder;
+import arithmetic.QQ_mult;
+import arithmetic.miscellaneous;
+import arithmetic.ecc.mod_div;
+import arithmetic.ecc.pingpong;
+
+// Fused secp256k1 field kernels used by ecc_challenge.slq. For 256-bit
+// pseudo-Mersenne primes they use bounded carry windows; other primes fall
+// back to the exact QQ_adder / CQ_adder operations.
+
+// ---- from arithmetic/ecc/ecc_challenge.slq ----
+// Fused kernels that affine_add_in_place's modular updates lower to (see
+// lower_affine in source_build.py). Both boundaries preserve their first n
+// bits. At cryptographic sizes the pseudo-Mersenne correction uses 64 low bits;
+// this is a bounded carry window. The comparison phase is exact over n bits.
+def challenge_field_sub[p:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n) @noinline{
+    (x,y) := state;
+    f := (2^n sub p) coerce !ℕ;
+    if n<256 || f>=2^40{return QQ_sub_modp[p](x,y);}
+    for j in [0..n){y[j] := X(y[j]);}
+    (x,wide) := adder_carry[n](0:𝔹,x,y~(0:𝔹,));
+    (y:𝔹^n)~(borrow,) := wide;
+    for j in [0..n){y[j] := X(y[j]);}
+    (lo:𝔹^64)~(hi:𝔹^(n sub 64)) := y;
+    lo := c_const_addsub[1:!𝔹][64](borrow,lo,f);
+    y := (lo~hi) coerce 𝔹^n;
+    borrow := H(borrow); m := measure(borrow);
+    if m{(x,y) := phase_sum_ge[p][n](1:𝔹,x,y);}
+    return (x,y);
+}
+
+def challenge_field_add[p:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n) @noinline{
+    (x,y) := state;
+    f := (2^n sub p) coerce !ℕ;
+    if n<256 || f>=2^40{return QQ_add_modp[p](x,y);}
+    shifted := dup(x);
+    shifted := c_const_addsub[0:!𝔹][n](1:𝔹,shifted,f);
+    (shifted,wide) := adder_carry[n](0:𝔹,shifted,y~(0:𝔹,));
+    (y:𝔹^n)~(carry,) := wide;
+    carry := X(carry);
+    (lo:𝔹^64)~(hi:𝔹^(n sub 64)) := y;
+    lo := c_const_addsub[1:!𝔹][64](carry,lo,f);
+    y := (lo~hi) coerce 𝔹^n; carry := X(carry);
+    shifted := c_const_addsub[1:!𝔹][n](1:𝔹,shifted,f);
+    for j in [0..n){shifted[j] := CNOT(x[j],shifted[j]);}
+    forget(shifted=0:uint[n]);
+    carry := H(carry); m := measure(carry);
+    if m{(y,x) := phase_lt[n](y,x);}
+    return (x,y);
+}
+
+// Reverse subtraction: |x,y> -> |x,x-y mod p>. This combines the final
+// point negation and offset addition into one carry ladder.
+def challenge_field_rsub[p:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n) @noinline{
+    (x,y) := state; f := (2^n sub p) coerce !ℕ;
+    if n<256 || f>=2^40{
+        y := c_neg_modp[p](1:𝔹,y); return QQ_add_modp[p](x,y);
+    }
+    for j in [0..n){y[j] := X(y[j]);}
+    (x,wide) := adder_carry[n](1:𝔹,x,y~(0:𝔹,));
+    (y:𝔹^n)~(carry,) := wide; carry := X(carry);
+    (lo:𝔹^64)~(hi:𝔹^(n sub 64)) := y;
+    lo := c_const_addsub[1:!𝔹][64](carry,lo,f);
+    y := (lo~hi) coerce 𝔹^n;
+    carry := H(carry); m := measure(carry);
+    if m{(x,y) := phase_lt[n](x,y);}
+    return (x,y);
+}
+
+// Preserve the conditional tangent operand and return all native scratch clean.
+def challenge_tangent_sub[p:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (c,x,y) := state; (x,y) := c_QQ_sub_modp[p](c,x,y); return (c,x,y);
+}
+
+// Toggle the zero predicate, erasing the AND ladder before returning. No
+// comparison garbage stays live while the caller changes x and later replays it.
+def challenge_zero_flag[n:!ℕ](state:𝔹^n×𝔹) @noinline{
+    (x,z) := state;
+    assert(n>=1);
+    for j in [0..n){x[j] := X(x[j]);}
+    if n=1{
+        z := CNOT(x[0],z); x[0] := X(x[0]); return (x,z);
+    }
+    chain := 0:uint[n sub 1] as 𝔹^(n sub 1);
+    chain[0] := AND(x[0],x[1],chain[0]);
+    for j in [1..n sub 1){chain[j] := AND(chain[j sub 1],x[j+1],chain[j]);}
+    z := CNOT(chain[n sub 2],z);
+    for back in [0..n sub 1){
+        j := n sub back sub 2;
+        anc := 0:𝔹; (anc,chain[j]) := (chain[j],anc);
+        if j=0{(x[0],x[1]) := AND_uncomp(x[0],x[1],anc);}
+        else{(chain[j sub 1],x[j+1]) := AND_uncomp(chain[j sub 1],x[j+1],anc);}
+    }
+    forget(chain=0:uint[n sub 1]);
+    for j in [0..n){x[j] := X(x[j]);}
+    return (x,z);
+}
+
+// Classical tangent precomputation for the exporter; mu starts at zero.
+def challenge_tangent[p:!ℕ][ca:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n×𝔹^n) @noinline{
+    (bx,by,mu) := state;
+    for j in [0..n){bx := double_modp[p](bx); by := double_modp[p](by);}
+    (bx,z) := square_modp[p](bx);
+    for j in [0..3){(z,mu) := QQ_add_modp[p](z,mu);}
+    (bx,z) := square_modp_into[p](bx,z);
+    forget(z=0:uint[n]);
+    mu := QC_add_modp[p](mu,montgomery_const[p](ca));
+    by := double_modp[p](by);
+    (by,mu) := binary_div_modp_inplace[p](by,mu);
+    for j in [0..n){mu := half_modp[p](mu);}
+    return (bx,by,mu);
+}
+
+// Toggle z by [x == v]: XOR v into x, test x for zero, XOR v back.
+def challenge_eq_flag[n:!ℕ](state:𝔹^n×𝔹^n×𝔹) @noinline{
+    (v,x,z) := state;
+    for j in [0..n){x[j] := CNOT(v[j],x[j]);}
+    (x,z) := challenge_zero_flag[n]((x,z));
+    for j in [0..n){x[j] := CNOT(v[j],x[j]);}
+    return (v,x,z);
+}
+
+def challenge_tangent_add[p:!ℕ][n:!ℕ](state:𝔹×𝔹^n×𝔹^n) @noinline{
+    (c,x,y) := state; (x,y) := c_QQ_add_modp[p](c,x,y); return (c,x,y);
+}
+
+// Map: |x,y> -> |x-y^2 mod p,y>.
+def challenge_square_sub[p:!ℕ][n:!ℕ](state:𝔹^n×𝔹^n) @noinline{
+    (x,y) := state;
+    return square_sub_modp[0:!𝔹][p][n](1:𝔹,x,y);
+}

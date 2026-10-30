@@ -1,6 +1,8 @@
-"""Export Silq to QECCOPSZ; --run builds and runs the pinned official evaluator.
+"""Build Silq from source and run the pinned official evaluator.
 
 Requires Python 3.14+, Silq, hqir-rs, Git and Cargo.
+Running this file without arguments recompiles all secp256k1 stages without
+cached QASM, exports the circuit, and reports the verified resource metrics.
 """
 import argparse
 from compression import zstd
@@ -27,6 +29,7 @@ class Block:
     width: int
     bits: int
     body: list
+    preserves: tuple = ()
 
 
 def qids(text):
@@ -40,25 +43,201 @@ def qids(text):
     return tuple(result)
 
 
+def collapse_mbu_ands(lines):
+    """Represent an exact four-T fresh-target AND as one logical Toffoli."""
+    lines = list(lines)
+    result, i = [], 0
+    q = r'(q(?:\[\d+\]|\d+))'
+    def pi_phase(controls):
+        modifiers = ' @ '.join('negctrl' if negative else 'ctrl'
+                               for _,negative in controls)
+        operands = ', '.join(wire for wire,_ in controls)
+        return f'{modifiers} @ gphase({math.pi}) {operands};'
+    def condition_boundary(line):
+        line = line.strip()
+        return line == '}' or bool(re.fullmatch(r'if \(.*\) \{', line))
+    while i < len(lines):
+        # The same AND template constant-folds both controls true to this
+        # Clifford sequence. Its target is fresh |0>, on which it is exactly X.
+        if i+4 < len(lines):
+            unary = lines[i:i+5]
+            h0 = re.fullmatch(r'h '+q+r';', unary[0].strip())
+            gp = re.fullmatch(r'negctrl @ gphase\(([^)]+)\) '+q+r';', unary[1].strip())
+            p1 = re.fullmatch(r'p\(([^)]+)\) '+q+r';', unary[2].strip())
+            h1 = re.fullmatch(r'h '+q+r';', unary[3].strip())
+            p2 = re.fullmatch(r'p\(([^)]+)\) '+q+r';', unary[4].strip())
+            if all((h0,gp,p1,h1,p2)) and len({h0[1],gp[2],p1[2],h1[1],p2[2]})==1:
+                angles = (float(gp[1]),float(p1[1]),float(p2[1]))
+                if all(abs(x-y)<1e-12 for x,y in zip(angles,
+                                                     (math.pi/2,-math.pi/2,-math.pi/2))):
+                    result.append(f'x {h0[1]};')
+                    i += 5
+                    continue
+        if re.fullmatch(r'h '+q+r';', lines[i].strip()):
+            target = re.fullmatch(r'h '+q+r';', lines[i].strip())[1]
+            # Scheduling may interleave preparation of a control before that
+            # control's first use. Such operations commute left across H(target).
+            window, hoisted, consumed = [], [], 0
+            for offset, line in enumerate(lines[i:i+24]):
+                if target in re.findall(q, line):
+                    window.append(line)
+                    if len(window) == 11:
+                        consumed = offset+1
+                        break
+                else:
+                    hoisted.append((offset, line))
+            if len(window) != 11:
+                window = []
+        else:
+            window = []
+        if window:
+            h0 = re.fullmatch(r'h '+q+r';', window[0].strip())
+            controlled_x = r'(?:(negctrl) @ x|cx) '+q+r', '+q+r';'
+            c1 = re.fullmatch(controlled_x, window[1].strip())
+            p1 = re.fullmatch(r'p\(([^)]+)\) '+q+r';', window[2].strip())
+            c2 = re.fullmatch(controlled_x, window[3].strip())
+            p2 = re.fullmatch(r'p\(([^)]+)\) '+q+r';', window[4].strip())
+            c3 = re.fullmatch(controlled_x, window[5].strip())
+            p3 = re.fullmatch(r'p\(([^)]+)\) '+q+r';', window[6].strip())
+            c4 = re.fullmatch(controlled_x, window[7].strip())
+            p4 = re.fullmatch(r'p\(([^)]+)\) '+q+r';', window[8].strip())
+            h1 = re.fullmatch(r'h '+q+r';', window[9].strip())
+            ps = re.fullmatch(r'p\(([^)]+)\) '+q+r';', window[10].strip())
+            u1 = re.fullmatch(r'x '+q+r';', window[1].strip())
+            u3 = re.fullmatch(r'x '+q+r';', window[5].strip())
+            constant_matches = (h0,u1,p1,c2,p2,u3,p3,c4,p4,h1,ps)
+            if all(constant_matches):
+                target, b = h0[1], c2[2]
+                same_target = (u1[1]==c2[3]==u3[1]==c4[3]
+                    ==p1[2]==p2[2]==p3[2]==p4[2]==h1[1]==ps[2]==target)
+                angles = tuple(float(m[1])/math.pi for m in (p1,p2,p3,p4,ps))
+                expected = (0.25,-0.25,0.25,-0.25)
+                first_use = next(offset for offset,line in enumerate(lines[i:i+consumed])
+                                 if (match := re.fullmatch(controlled_x,line.strip()))
+                                 and match[2]==b and match[3]==target)
+                safe_hoist = all(condition_boundary(line)
+                                 or (unary := re.fullmatch(r'x '+q+r';',line.strip()))
+                                 and offset < first_use and unary[1]==b
+                                 or (cnot := re.fullmatch(controlled_x,line.strip()))
+                                 and offset < first_use and cnot[3]==b
+                                 for offset,line in hoisted)
+                if (same_target and c4[2]==b and c4[1]==c2[1] and safe_hoist
+                        and all(abs(x-y)<1e-12 for x,y in zip(angles,expected))
+                        and abs(abs(angles[4])-0.5)<1e-12):
+                    result.extend(line for _,line in hoisted)
+                    result.append(window[3])
+                    if angles[4] > 0:
+                        result.append(pi_phase([(b,bool(c2[1]))]))
+                    i += consumed
+                    continue
+            u2 = re.fullmatch(r'x '+q+r';', window[3].strip())
+            u4 = re.fullmatch(r'x '+q+r';', window[7].strip())
+            constant_matches = (h0,c1,p1,u2,p2,c3,p3,u4,p4,h1,ps)
+            if all(constant_matches):
+                target, a = h0[1], c1[2]
+                same_target = (c1[3]==u2[1]==c3[3]==u4[1]
+                    ==p1[2]==p2[2]==p3[2]==p4[2]==h1[1]==ps[2]==target)
+                angles = tuple(float(m[1])/math.pi for m in (p1,p2,p3,p4,ps))
+                expected = (0.25,-0.25,0.25,-0.25)
+                first_use = next(offset for offset,line in enumerate(lines[i:i+consumed])
+                                 if (match := re.fullmatch(controlled_x,line.strip()))
+                                 and match[2]==a and match[3]==target)
+                safe_hoist = all(condition_boundary(line)
+                                 or (unary := re.fullmatch(r'x '+q+r';',line.strip()))
+                                 and offset < first_use and unary[1]==a
+                                 or (cnot := re.fullmatch(controlled_x,line.strip()))
+                                 and offset < first_use and cnot[3]==a
+                                 for offset,line in hoisted)
+                if (same_target and c3[2]==a and c3[1]==c1[1] and safe_hoist
+                        and all(abs(x-y)<1e-12 for x,y in zip(angles,expected))
+                        and abs(abs(angles[4])-0.5)<1e-12):
+                    result.extend(line for _,line in hoisted)
+                    result.append(window[1])
+                    if angles[4] > 0:
+                        result.append(pi_phase([(a,bool(c1[1]))]))
+                    i += consumed
+                    continue
+            matches = (h0,c1,p1,c2,p2,c3,p3,c4,p4,h1,ps)
+            if all(matches):
+                target, a, b = h0[1], c1[2], c2[2]
+                same_target = (c1[3]==c2[3]==c3[3]==c4[3]
+                    ==p1[2]==p2[2]==p3[2]==p4[2]==h1[1]==ps[2]==target)
+                angles = tuple(float(m[1])/math.pi for m in (p1,p2,p3,p4,ps))
+                expected = (0.25,-0.25,0.25,-0.25)
+                first_use = {
+                    wire: next(offset for offset, line in enumerate(lines[i:i+consumed])
+                               if (match := re.fullmatch(controlled_x, line.strip()))
+                               and match[2] == wire and match[3] == target)
+                    for wire in (a,b)
+                }
+                def changed_wire(line):
+                    unary = re.fullmatch(r'x '+q+r';', line.strip())
+                    cnot = re.fullmatch(controlled_x, line.strip())
+                    return unary[1] if unary else cnot[3] if cnot else None
+                safe_hoist = all(condition_boundary(line)
+                                 or (wire := changed_wire(line)) is not None
+                                 and offset < first_use.get(wire, consumed)
+                                 for offset, line in hoisted)
+                same_controls = (c3[2]==a and c4[2]==b
+                                 and c3[1]==c1[1] and c4[1]==c2[1])
+                if (same_target and same_controls and safe_hoist
+                        and all(abs(x-y)<1e-12 for x,y in zip(angles,expected))
+                        and abs(abs(angles[4])-0.5)<1e-12):
+                    result.extend(line for _,line in hoisted)
+                    result.extend(f'x {wire};' for wire,negative in
+                                  ((a,c1[1]),(b,c2[1])) if negative)
+                    result.append(f'ccx {a}, {b}, {target};')
+                    result.extend(f'x {wire};' for wire,negative in
+                                  ((b,c2[1]),(a,c1[1])) if negative)
+                    if angles[4] > 0:
+                        result.append(pi_phase([(a,bool(c1[1])),(b,bool(c2[1]))]))
+                    i += consumed
+                    continue
+        result.append(lines[i])
+        i += 1
+    return result
+
+
 def parse_body(lines):
+    lines = collapse_mbu_ands(lines)
     body, bits, i, depth = [], 0, 0, 0
     condition_sizes = []
+    named_bits = {}
+
+    def bit_id(name):
+        nonlocal bits
+        numbered = re.fullmatch(r'm(\d+)', name)
+        if numbered:
+            result = int(numbered[1])
+            bits = max(bits, result+1)
+            return result
+        if name not in named_bits:
+            named_bits[name] = bits
+            bits += 1
+        return named_bits[name]
+
     while i < len(lines):
         line = lines[i].strip()
         i += 1
         if not line or line.startswith('//'):
             continue
-        m = re.fullmatch(r'bit m(\d+);', line)
+        m = re.fullmatch(r'bit ([A-Za-z_]\w*);', line)
         if m:
-            bits = max(bits, int(m[1])+1)
+            bit_id(m[1])
             continue
         if line.startswith('if (') and line.endswith(') {'):
             parts = line[4:-3].split(' && ')
             for part in parts:
-                m = re.fullmatch(r'm(\d+)==(true|false)', part.strip('()'))
+                condition = part.strip('()')
+                m = re.fullmatch(r'([A-Za-z_]\w*)==(true|false)', condition)
+                if not m:
+                    m = re.fullmatch(r'(!?)([A-Za-z_]\w*)', condition)
+                    if m:
+                        body.append(('if', bit_id(m[2]), m[1] != '!'))
+                        continue
                 if not m:
                     raise ValueError(f'Unsupported classical condition: {line}')
-                body.append(('if', int(m[1]), m[2] == 'true'))
+                body.append(('if', bit_id(m[1]), m[2] == 'true'))
             condition_sizes.append(len(parts)); depth += len(parts)
             continue
         if line == '}':
@@ -72,15 +251,16 @@ def parse_body(lines):
             # HMR must match H, measurement, then reset exactly.
             if i+1 >= len(lines):
                 raise ValueError('Unmatched Hadamard')
-            measure = re.fullmatch(r'm(\d+) = measure '+m[1]+r';', lines[i].strip())
+            measure = re.fullmatch(r'([A-Za-z_]\w*) = measure '+m[1]+r';', lines[i].strip())
             if not measure or lines[i+1].strip() != f'reset {m[1]};':
-                raise ValueError(f'Unsupported non-HMR Hadamard: {line}')
-            body.append(('hmr', int(m[1][1:]), int(measure[1])))
+                context = ' | '.join(item.strip() for item in lines[max(0,i-4):i+12])
+                raise ValueError(f'Unsupported non-HMR Hadamard: {context}')
+            body.append(('hmr', int(m[1][1:]), bit_id(measure[1])))
             i += 2
             continue
-        m = re.fullmatch(r'(silq_function_\w+)\((.*)\);', line)
+        m = re.fullmatch(r'((?:silq_function|primitive_wrap_circuit)_\w+)\((.*)\);', line)
         if not m:
-            m = re.fullmatch(r'(silq_function_\w+) (.*);', line)
+            m = re.fullmatch(r'((?:silq_function|primitive_wrap_circuit)_\w+) (.*);', line)
         if m:
             body.append(('call', m[1], qids(m[2])))
             continue
@@ -121,57 +301,6 @@ def parse_body(lines):
     return bits, body
 
 
-def read_qasm(path, n, marker='_challenge_point_add_runtime_', registers=5):
-    lines = iter(path.read_text().splitlines())
-    blocks, main = {}, []
-    for raw in lines:
-        line = raw.strip()
-        if not line or line.startswith(('include ', 'OPENQASM ', '//')):
-            continue
-        m = re.fullmatch(r'def (\w+)\((.*)\) \{', line)
-        gate = re.fullmatch(r'gate (\w+) (.*) \{', line)
-        if gate:
-            m = gate
-        if not m:
-            main.append(line)
-            continue
-        name, params = m.groups()
-        params = params.split(',') if params else []
-        prefix = '' if gate else 'qubit '
-        if any(param.strip() != f'{prefix}q{i}' for i, param in enumerate(params)):
-            raise ValueError('Only quantum-parameter subroutines are supported')
-        depth, body = 1, []
-        for raw in lines:
-            depth += raw.count('{')-raw.count('}')
-            if depth == 0:
-                break
-            body.append(raw)
-        else:
-            raise ValueError('Unclosed subroutine')
-        bits, body = parse_body(body)
-        blocks[name] = Block(len(params), bits, body)
-    roots = [name for name in blocks if marker in name]
-    if len(roots) != 1:
-        raise ValueError('Expected one runtime point-add subroutine')
-    root = roots[0]
-    # Input order comes from the call signature.
-    calls = [re.fullmatch(re.escape(root)+r'\((.*)\);', line) for line in main]
-    calls = [m for m in calls if m]
-    if len(calls) != 1:
-        raise ValueError('Expected exactly one point-add call in the probe')
-    callqs = qids(calls[0][1])
-    hs = [int(m[1]) for line in main if (m := re.fullmatch(r'h q\[(\d+)\];', line))]
-    if len(hs) != registers*n or set(hs) != set(callqs[:registers*n]):
-        raise ValueError('Probe input preparation does not match its registers')
-    for line in main:
-        if not (re.fullmatch(r'qubit\[\d+\] q;', line) or
-                re.fullmatch(r'h q\[\d+\];', line) or
-                re.fullmatch(r'swap q\[\d+\], q\[\d+\];', line) or
-                re.fullmatch(re.escape(root)+r'\(.*\);', line)):
-            raise ValueError(f'Unexpected probe operation: {line}')
-    return blocks, root
-
-
 class ClassicalControls:
     """Exact classical-control propagation and clean-wire reuse in native output.
 
@@ -188,6 +317,7 @@ class ClassicalControls:
         self.free = []
         self.peak = inputs
         self.temporary = temporary
+        self.dynamic_next = temporary+4
         self.immutable = set(immutable)
         self.depth = 0
         self.scopes = []
@@ -235,12 +365,35 @@ class ClassicalControls:
 
     def assign(self, q, value, cleared=False):
         self.expr[q] = value
-        if not self.scopes and q >= self.inputs and q in self.mapping and self.classical(value):
+        if not self.scopes and q in self.mapping and self.classical(value):
             physical = self.mapping.pop(q)
             if not cleared:
                 self.toggle_classical(physical, value)
                 self.output(11, (physical,))
             self.free.append(physical)
+
+    def restore_outputs(self):
+        """Return logical outputs to the harness ABI using Clifford swaps.
+
+        Input wires may join the scratch pool only after a Boolean certificate
+        proves them classical and they are cleared. Their logical identities
+        stay in expr; only physical locations change.
+        """
+        for q in range(self.inputs):
+            self.wire(q)
+        for q in range(self.inputs):
+            physical = self.mapping[q]
+            if physical == q:
+                continue
+            other = next((owner for owner, wire in self.mapping.items()
+                          if wire == q), None)
+            self.output(10, (physical, q))
+            self.mapping[q] = q
+            if other is not None:
+                self.mapping[other] = physical
+            else:
+                self.free.remove(q)
+                self.free.append(physical)
 
     def product(self, a, b):
         # Boolean products certify guarded XORs; they never evaluate a qubit.
@@ -535,6 +688,22 @@ class ClassicalControls:
                         self.output(6, (physical,))
                     self.assign(target, (constant, frozenset()), cleared=not constant)
                     return
+        if not quantum:
+            # Snapshot nonlinear classical controls into a fresh immutable bit.
+            # Retain a classical certificate instead of inventing a quantum one.
+            token = self.dynamic_next
+            self.dynamic_next += 1
+            self.output(4, bit=token)
+            self.conditions(classical)
+            self.output(5, bit=token)
+            for _ in classical:
+                self.output(16)
+            self.immutable.add(token)
+            term = (False, frozenset({token+1}))
+            if target in self.mapping:
+                self.toggle_classical(self.mapping[target], term)
+            self.assign(target, self.xor(old, term))
+            return
         value = self.xor(old, self.value(quantum[0])) if len(quantum) == 1 and not classical else self.fresh()
         if len(quantum) == 2 and not classical and not old[1]:
             literal = value[0] ^ old[0], value[1]
@@ -622,12 +791,19 @@ class Exporter:
                     touched.update(range(self.width, self.width+count-2))
             elif inst[0] in ('hmr', 'reset'):
                 touched.add(mapping[inst[1]]); writes = True
+            elif inst[0] == 'tangent':
+                touched.update(mapping[q] for q in inst[1]); writes = True
         return touched, writes
 
     def block(self, name, mapping, bitbase):
         block = self.blocks[name]
         if len(mapping) != block.width or len(set(mapping)) != len(mapping):
             raise ValueError(f'Invalid subroutine arguments: {name}')
+        # Source-declared unchanged operands retain their Boolean certificates.
+        # Gates and phases are still emitted normally; this only prevents a
+        # verified classical input from becoming an opaque quantum value.
+        preserved = ([(mapping[q], self.optimizer.value(mapping[q]))
+                      for q in block.preserves] if self.optimizer is not None else [])
         # Child measurements must not overwrite their parent's bits.
         childbase = bitbase+block.bits
         self.next_bit = max(self.next_bit, childbase)
@@ -663,6 +839,10 @@ class Exporter:
                 self.emit(12, (mapping[inst[1]],), bitbase+inst[2])
             elif op == 'reset':
                 self.emit(11, (mapping[inst[1]],))
+            elif op == 'tangent':
+                # XOR the exactly precomputed classical tangent slope.
+                for q, bit in zip(inst[1], self.tangent_bits, strict=True):
+                    self.emit(6, (mapping[q],), condition=bit)
             else:
                 _, gate, signs, qs = inst
                 qs = tuple(mapping[q] for q in qs)
@@ -675,6 +855,8 @@ class Exporter:
                 self.controlled(gate, qs[:len(signs)], qs[len(signs):])
                 for q in reversed(negative):
                     self.emit(6, (q,))
+        for q, value in preserved:
+            self.optimizer.assign(q, value)
 
     def classical_block(self, blocks, name, mapping, bitbase):
         """Classical Boolean evaluation: discard phases, select zero HMR outcomes."""
@@ -742,7 +924,7 @@ class Exporter:
             self.emit(3, bit=cbase+j, condition=j)
         self.classical_block(classical, tangent_root,
                              tuple(range(cbase, cbase+cwidth)), cbase+cwidth)
-        tangent_bits = tuple(range(cbase+2*n, cbase+3*n))
+        tangent_bits = self.tangent_bits = tuple(range(cbase+2*n, cbase+3*n))
         if self.classical_controls:
             from functools import lru_cache
             @lru_cache(None)
@@ -764,52 +946,9 @@ class Exporter:
             self.emit(6, (4*n+j,), condition=bit)
             self.emit(11, (4*n+j,))
         if self.optimizer is not None:
+            self.optimizer.restore_outputs()
             self.peak = self.optimizer.peak
-            self.next_bit = max(self.next_bit, self.optimizer.temporary+4)
-
-
-def compile_qasm(work, hqir, p, n, ca=0, tangent=False):
-    source = work/'source'
-    arithmetic = source/'arithmetic'
-    arithmetic.mkdir(parents=True, exist_ok=True)
-    for path in ARITHMETIC_ROOT.glob('*.slq'):
-        shutil.copy2(path, arithmetic/path.name)
-    challenge = arithmetic/'ecc'
-    challenge.mkdir(parents=True, exist_ok=True)
-    for path in ROOT.glob('*.slq'):
-        shutil.copy2(path, challenge/path.name)
-    primitives = source/'primitives'
-    primitives.mkdir(parents=True, exist_ok=True)
-    for path in (ARITHMETIC_ROOT.parent/'primitives').glob('*.slq'):
-        shutil.copy2(path, primitives/path.name)
-    probe = f'challenge_tangent_probe[{p}][{ca}][{n}]' if tangent else f'challenge_runtime_probe[{p}][{n}]'
-    (source/'probe.slq').write_text('import arithmetic.ecc.ecc_challenge;\n'
-        f'def main(){{return {probe}();}}\n')
-    output = work/('tangent.qasm' if tangent else 'circuit.qasm')
-    started = time.monotonic()
-    with output.open('w') as out, output.with_suffix('.compile.log').open('w') as err:
-        subprocess.run([hqir, 'probe.slq', '-O3', '--flatten', '-R3',
-                        '--no-use-rccx', '--qasm'], cwd=source,
-                       stdout=out, stderr=err, check=True)
-    print(f'Compiled native-basis QASM in {time.monotonic()-started:.2f}s', flush=True)
-    return output
-
-
-def export(qasm, tangent_qasm, destination, n):
-    blocks, root = read_qasm(qasm, n)
-    tangent = read_qasm(tangent_qasm, n, '_challenge_tangent_', 3)
-    temporary = destination.with_suffix('.bin.tmp')
-    with temporary.open('w+b') as raw:
-        raw.write(b'QECCOPSZ'+struct.pack('<Q', 0))
-        with zstd.ZstdFile(raw, 'w', level=3) as compressed:
-            exporter = Exporter(blocks, root, n, compressed.write, tangent, classical_controls=True)
-            exporter.run()
-        raw.seek(8)
-        raw.write(struct.pack('<Q', exporter.count))
-    temporary.replace(destination)
-    print(f'Exported {exporter.count:,} native operations; '
-          f'{exporter.peak} qubits; {exporter.next_bit} classical bits', flush=True)
-    return exporter
+            self.next_bit = max(self.next_bit, self.optimizer.dynamic_next)
 
 
 def prepare_evaluator(harness):
@@ -853,30 +992,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--work-dir', type=Path, default=ROOT/'.challenge/run_final')
     parser.add_argument('--hqir', default=str(Path.home()/'.local/bin/hqir-rs'))
-    parser.add_argument('--qasm', type=Path, help='Reuse a previously compiled native-basis probe')
-    parser.add_argument('--tangent-qasm', type=Path)
-    parser.add_argument('--bits', type=int, default=256)
-    parser.add_argument('--prime', type=int, default=SECP_P)
-    parser.add_argument('--curve-a', type=int, default=0)
-    parser.add_argument('--run', action='store_true', help='Build, export and run the official evaluation')
+    parser.add_argument('--jobs', type=int, default=4, help='Parallel source compilation jobs')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--run', dest='run', action='store_true', default=True,
+                      help='Build, export and run the official evaluation (default)')
+    mode.add_argument('--export-only', dest='run', action='store_false',
+                      help='Build and export without running the official evaluation')
     parser.add_argument('--evaluate-only', action='store_true', help='Re-evaluate the existing ops.bin')
     parser.add_argument('--harness', type=Path, default=ROOT/'.challenge/harness')
     args = parser.parse_args()
     args.work_dir = args.work_dir.resolve()
     args.harness = args.harness.resolve()
     run = args.run or args.evaluate_only
-    if args.prime.bit_length() != args.bits:
-        parser.error('--bits must equal the field modulus bit length')
-    if run and (args.bits != 256 or args.prime != SECP_P or args.curve_a != 0):
-        parser.error('The official evaluator requires exact secp256k1 parameters')
     if args.evaluate_only and not (args.work_dir/'ops.bin').is_file():
         parser.error('No ops.bin to evaluate; use --run first')
     evaluator = prepare_evaluator(args.harness) if run else None
     args.work_dir.mkdir(parents=True, exist_ok=True)
     if not args.evaluate_only:
-        qasm = args.qasm or compile_qasm(args.work_dir, args.hqir, args.prime, args.bits)
-        tangent_qasm = args.tangent_qasm or compile_qasm(args.work_dir, args.hqir, args.prime, args.bits, args.curve_a, True)
-        export(qasm, tangent_qasm, args.work_dir/'ops.bin', args.bits)
+        from source_build import export_source
+        export_source(args.work_dir, args.hqir, args.jobs)
     if run:
         evaluate(evaluator, args.harness, args.work_dir)
 

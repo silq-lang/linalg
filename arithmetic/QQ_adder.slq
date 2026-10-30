@@ -3,6 +3,27 @@ import arithmetic.CQ_adder;
 // Map: |a,b,p> -> |a,b,p xor ab>.
 def AND(const a:𝔹, const b:𝔹, prod:𝔹) qfree{return toffoli(a,b,prod);}
 
+// Four-T AND, exact on a fresh zero target. Its controls may be entangled.
+def mbu_AND_zero(const a:𝔹, const b:𝔹) mfree:𝔹{
+    prod := 0:𝔹;
+    prod := H(S(prod));
+    prod := T(CNOT(a,prod));
+    T(prod) := CNOT(b,prod);
+    prod := T(CNOT(a,prod));
+    T(prod) := CNOT(b,prod);
+    prod := H(prod);
+    S(prod) := prod;
+    return prod;
+}
+
+// Exact arbitrary-target Toffoli: compute a temporary AND, use it, then erase it.
+def mbu_toffoli(const a:𝔹, const b:𝔹, target:𝔹){
+    prod := mbu_AND_zero(a,b);
+    target := CNOT(prod,target);
+    if measure(H(prod)) && a && b{phase(π);}
+    return target;
+}
+
 // Map: |a,b,ab> -> |a,b> by measurement-based uncomputation.
 def AND_uncomp(a:𝔹, b:𝔹, prod:𝔹){
     prod := H(prod);
@@ -14,10 +35,10 @@ def AND_uncomp(a:𝔹, b:𝔹, prod:𝔹){
 }
 
 // Map: |c,i,t> -> |c,i xor c,t xor c,carry(c+i+t)>.
-def add_unit(const c:𝔹,i:𝔹,t:𝔹) qfree{
+def add_unit(const c:𝔹,i:𝔹,t:𝔹) mfree{
     i := CNOT(c,i);
     t := CNOT(c,t);
-    prod := AND(i,t,0);
+    prod := mbu_AND_zero(i,t);
     prod := CNOT(c,prod);
     return (i,t,prod);
 }
@@ -79,7 +100,7 @@ def subst_nocarry[n:!ℕ](const cin:𝔹,a:𝔹^n,b:𝔹^n){
 def c_add_unit_uncomp(const control:𝔹,const c:𝔹,a:𝔹,b:𝔹,carry:𝔹){
     carry := CNOT(c,carry);
     (a,b) := AND_uncomp(a,b,carry);
-    b := toffoli(control,a,b);
+    b := mbu_toffoli(control,a,b);
     a := CNOT(c,a);
     b := CNOT(c,b);
     return (a,b);
@@ -90,7 +111,7 @@ def c_adder_nocarry_rec[n:!ℕ](const control:𝔹,const cin:𝔹,a:𝔹^n,b:�
     assert(n>=1);
     if n=1{
         a[0] := CNOT(cin,a[0]);
-        b[0] := toffoli(control,a[0],b[0]);
+        b[0] := mbu_toffoli(control,a[0],b[0]);
         a[0] := CNOT(cin,a[0]);
         return (a,b);
     }
@@ -142,24 +163,23 @@ def swap_registers[n:!ℕ](const control:𝔹,a:𝔹^n,b:𝔹^n) qfree{
 }
 
 // Map: |c,a,b,c*carry(a+b)> -> |c,a,b> by measurement.
+// Fixed-T schedule: the carry network runs every time; only the phase is guarded.
 def erase_carry[n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n,flag:𝔹){
-    flag := H(flag); outcome := measure(flag);
-    if outcome{
-        c := 0:uint[n+1] as 𝔹^(n+1);
-        for j in [0..n){
-            (a[j],b[j],prod) := add_unit(c[j],a[j],b[j]);
-            (c[j+1],prod) := (prod,c[j+1]);forget(prod=0);
-        }
-        if ctrl{c[n] := Z(c[n]);}
-        for back in [0..n){
-            j := n sub back sub 1;
-            anc := 0:𝔹;(anc,c[j+1]) := (c[j+1],anc);
-            anc := CNOT(c[j],anc);
-            (a[j],b[j]) := AND_uncomp(a[j],b[j],anc);
-            a[j] := CNOT(c[j],a[j]);b[j] := CNOT(c[j],b[j]);
-        }
-        forget(c=0:uint[n+1]);
+    outcome := measure(H(flag));
+    c := 0:uint[n+1] as 𝔹^(n+1);
+    for j in [0..n){
+        (a[j],b[j],prod) := add_unit(c[j],a[j],b[j]);
+        (c[j+1],prod) := (prod,c[j+1]);forget(prod=0);
     }
+    if outcome && ctrl{c[n] := Z(c[n]);}
+    for back in [0..n){
+        j := n sub back sub 1;
+        anc := 0:𝔹;(anc,c[j+1]) := (c[j+1],anc);
+        anc := CNOT(c[j],anc);
+        (a[j],b[j]) := AND_uncomp(a[j],b[j],anc);
+        a[j] := CNOT(c[j],a[j]);b[j] := CNOT(c[j],b[j]);
+    }
+    forget(c=0:uint[n+1]);
     return (a,b);
 }
 
@@ -225,19 +245,42 @@ def c_const_addsub[subt:!𝔹][n:!ℕ](const ctrl:𝔹,x:𝔹^n,d:!ℕ){
     return add_masked_constants[subt][n](ctrl,0:𝔹,x,d,0);
 }
 
-// Map: |x,y> -> |x,y+x mod p>.
-def QQ_add_modp[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
-    return c_QQ_add_modp[p][n](1:𝔹,x,y);
+// Full sum with a fresh output carry, without padding the source register.
+def mbu_fullsum_rec[n:!ℕ](const cin:𝔹,a:𝔹^n,b:𝔹^n){
+    if n=1{
+        a[0] := CNOT(cin,a[0]);b[0] := CNOT(cin,b[0]);
+        high := mbu_AND_zero(a[0],b[0]);high := CNOT(cin,high);
+        a[0] := CNOT(cin,a[0]);b[0] := CNOT(a[0],b[0]);
+        return (a,b,high);
+    }
+    (a0,)~(at:𝔹^(n sub 1)) := a;
+    (b0,)~(bt:𝔹^(n sub 1)) := b;
+    (a0,b0,carry) := add_unit(cin,a0,b0);
+    (at,bt,high) := mbu_fullsum_rec[n sub 1](carry,at,bt);
+    (a0,b0) := add_unit_uncomp(cin,a0,b0,carry);
+    return ((a0,)~at,(b0,)~bt,high);
 }
 
-// Map: |c,x,y> -> |c,x,y+c*x mod p>.
-def c_QQ_add_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
-    assert(p>2); assert(p>=2^(n sub 1)); assert(p<2^n);
-    (x,y) := c_adder_nocarry[n+1](ctrl,x~(0,),y~(0,));
+def mbu_c_fullsum_rec[n:!ℕ](const ctrl:𝔹,const cin:𝔹,a:𝔹^n,b:𝔹^n){
+    if n=1{
+        (a[0],b[0],carry) := add_unit(cin,a[0],b[0]);
+        high := mbu_AND_zero(ctrl,carry);
+        (a[0],b[0]) := c_add_unit_uncomp(ctrl,cin,a[0],b[0],carry);
+        return (a,b,high);
+    }
+    (a0,)~(at:𝔹^(n sub 1)) := a;
+    (b0,)~(bt:𝔹^(n sub 1)) := b;
+    (a0,b0,carry) := add_unit(cin,a0,b0);
+    (at,bt,high) := mbu_c_fullsum_rec[n sub 1](ctrl,carry,at,bt);
+    (a0,b0) := c_add_unit_uncomp(ctrl,cin,a0,b0,carry);
+    return ((a0,)~at,(b0,)~bt,high);
+}
+
+// The flag is [result<source] on the enabled branch and zero otherwise.
+def mbu_reduce_sum[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^(n+1)){
     y := c_const_addsub[1:!𝔹][n+1](1:𝔹,y,p);
     (body:𝔹^n)~(sign,) := y;
     y := c_const_addsub[0:!𝔹][n](sign,body,p);
-    (x:𝔹^n)~(0,) := x;
     sign := X(sign);
     for j in [0..n){y[j] := X(y[j]);}
     (x,y) := erase_carry[n](ctrl,x,y,sign);
@@ -245,9 +288,37 @@ def c_QQ_add_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
     return (x,y);
 }
 
-// Map: |x,y> -> |x,y-x mod p>.
+// Map: |x,y> -> |x,y+x mod p>, for canonical residues.
+def QQ_add_modp[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
+    assert(p>=1);assert(p<=2^n);
+    if p=1{return (x,y);}
+    assert(n>=1);
+    if p=2^n{return adder_nocarry[n](0:𝔹,x,y);}
+    (x,y,high) := mbu_fullsum_rec[n](0:𝔹,x,y);
+    return mbu_reduce_sum[p][n](1:𝔹,x,y~(high,));
+}
+
+// Map: |c,x,y> -> |c,x,y+c*x mod p>, for canonical residues.
+def c_QQ_add_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
+    assert(p>=1);assert(p<=2^n);
+    if p=1{return (x,y);}
+    assert(n>=1);
+    if p=2^n{return c_adder_nocarry[n](ctrl,x,y);}
+    (x,y,high) := mbu_c_fullsum_rec[n](ctrl,0:𝔹,x,y);
+    return mbu_reduce_sum[p][n](ctrl,x,y~(high,));
+}
+
+// Direct subtraction: compute the borrow, conditionally restore p, erase borrow.
 def QQ_sub_modp[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){
-    return c_QQ_sub_modp[p][n](1:𝔹,x,y);
+    assert(p>=1);assert(p<=2^n);
+    if p=1{return (x,y);}
+    assert(n>=1);
+    if p=2^n{return subst_nocarry[n](0:𝔹,x,y);}
+    for j in [0..n){y[j] := X(y[j]);}
+    (x,y,borrow) := mbu_fullsum_rec[n](0:𝔹,x,y);
+    for j in [0..n){y[j] := X(y[j]);}
+    y := c_const_addsub[0:!𝔹][n](borrow,y,p);
+    return erase_sum_ge[p][n](1:𝔹,x,y,borrow);
 }
 
 // s=a XOR b XOR d. The saved carry is a AND !s, or a OR !s.
@@ -262,7 +333,8 @@ def carry_save_phase[d:!𝔹](const t:𝔹,a:𝔹,s:𝔹){
 }
 
 // Map: |c,a,b> -> (-1)^(c*[a+b>=p]) |c,a,b>.
-def phase_sum_ge[p:!ℕ][n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n){
+// Low-space phase oracle: erase each carry-save bit immediately.
+def phase_sum_ge_compact[p:!ℕ][n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n){
     d := (2^n-p) as !uint[n];
     r := 0:uint[n+1] as 𝔹^(n+1);
     for j in [0..n){b[j] := CNOT(a[j],b[j]);if d[j]{b[j] := X(b[j]);}}
@@ -315,29 +387,116 @@ def phase_sum_ge[p:!ℕ][n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n){
     return (a,b);
 }
 
-// Map: Erases a saved modular comparison flag by measurement.
-def erase_sum_ge[p:!ℕ][n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n,flag:𝔹){
-    flag := H(flag); outcome := measure(flag);
-    if outcome{
-        (a,b) := phase_sum_ge[p][n](ctrl,a,b);
+// Small registers retain carry-save bits for fixed T cost; large ones favor space.
+def phase_sum_ge_if[p:!ℕ][n:!ℕ](const outcome:!𝔹,const ctrl:𝔹,a:𝔹^n,b:𝔹^n){
+    if n>=128{
+        if outcome{(a,b) := phase_sum_ge_compact[p][n](ctrl,a,b);}
+        return (a,b);
     }
+    d := (2^n-p) as !uint[n];
+    r := 0:uint[n+1] as 𝔹^(n+1);
+    saved := 0:uint[n sub 1] as 𝔹^(n sub 1);
+    for j in [0..n){b[j] := CNOT(a[j],b[j]);if d[j]{b[j] := X(b[j]);}}
+    for j in [0..n){
+        if j>0{
+            b[j sub 1] := CNOT(r[j sub 1],b[j sub 1]);
+            if d[j sub 1]{a[j sub 1] := X(a[j sub 1]);}
+            else{b[j sub 1] := X(b[j sub 1]);}
+            prod := mbu_AND_zero(a[j sub 1],b[j sub 1]);
+            if d[j sub 1]{prod := X(prod);}
+            (saved[j sub 1],prod) := (prod,saved[j sub 1]);forget(prod=0);
+            if d[j sub 1]{a[j sub 1] := X(a[j sub 1]);}
+            else{b[j sub 1] := X(b[j sub 1]);}
+            b[j sub 1] := CNOT(r[j sub 1],b[j sub 1]);
+            saved[j sub 1] := CNOT(r[j],saved[j sub 1]);
+            b[j] := CNOT(r[j],b[j]);
+            prod := mbu_AND_zero(b[j],saved[j sub 1]);
+            (r[j+1],prod) := (prod,r[j+1]);forget(prod=0);
+            r[j+1] := CNOT(r[j],r[j+1]);
+            saved[j sub 1] := CNOT(r[j],saved[j sub 1]);
+        }
+    }
+    if outcome && ctrl{r[n] := Z(r[n]);}
+    // Free the last carry before computing the final carry-save phase.
+    if n>1{
+        anc := 0:𝔹;(anc,r[n]) := (r[n],anc);anc := CNOT(r[n sub 1],anc);
+        saved[n sub 2] := CNOT(r[n sub 1],saved[n sub 2]);
+        (b[n sub 1],saved[n sub 2]) := AND_uncomp(b[n sub 1],saved[n sub 2],anc);
+        saved[n sub 2] := CNOT(r[n sub 1],saved[n sub 2]);
+        b[n sub 1] := CNOT(r[n sub 1],b[n sub 1]);
+    }
+    if d[n sub 1]{a[n sub 1] := X(a[n sub 1]);}
+    else{b[n sub 1] := X(b[n sub 1]);}
+    last := mbu_AND_zero(a[n sub 1],b[n sub 1]);
+    if outcome && ctrl{last := Z(last);}
+    (a[n sub 1],b[n sub 1]) := AND_uncomp(a[n sub 1],b[n sub 1],last);
+    if d[n sub 1]{
+        a[n sub 1] := X(a[n sub 1]);
+        if outcome && ctrl{phase(π);}
+    }else{b[n sub 1] := X(b[n sub 1]);}
+    for back in [0..n sub 1){
+        j := n sub back sub 2;
+        if j>0{
+            anc := 0:𝔹;(anc,r[j+1]) := (r[j+1],anc);anc := CNOT(r[j],anc);
+            saved[j sub 1] := CNOT(r[j],saved[j sub 1]);
+            (b[j],saved[j sub 1]) := AND_uncomp(b[j],saved[j sub 1],anc);
+            saved[j sub 1] := CNOT(r[j],saved[j sub 1]);
+            b[j] := CNOT(r[j],b[j]);
+        }
+        if d[j]{a[j] := X(a[j]);}
+        else{b[j] := X(b[j]);}
+        anc := 0:𝔹;(anc,saved[j]) := (saved[j],anc);
+        if d[j]{anc := X(anc);}
+        (a[j],b[j]) := AND_uncomp(a[j],b[j],anc);
+        if d[j]{a[j] := X(a[j]);}
+        else{b[j] := X(b[j]);}
+    }
+    forget(r=0:uint[n+1]);forget(saved=0:uint[n sub 1]);
+    for j in [0..n){if d[j]{b[j] := X(b[j]);}b[j] := CNOT(a[j],b[j]);}
     return (a,b);
 }
 
-// Map: |c,x,y> -> |c,x,y-c*x mod p>.
-def c_QQ_sub_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
-    assert(p>2); assert(p>=2^(n sub 1)); assert(p<2^n);
-    (x,y) := c_sub_nocarry[n+1](ctrl,x~(0,),y~(0,));
-    (body:𝔹^n)~(sign,) := y;
-    y := c_const_addsub[0:!𝔹][n](sign,body,p);
-    (x:𝔹^n)~(0,) := x;
-    return erase_sum_ge[p][n](ctrl,x,y,sign);
+def phase_sum_ge[p:!ℕ][n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n){
+    return phase_sum_ge_if[p][n](1:!𝔹,ctrl,a,b);
 }
 
-// Map: Example: |2>|3> -> |2>|5>.
-def main(){
-    control := 1:𝔹;
-    x := 2:uint[3] as 𝔹^3;
-    y := 3:uint[4] as 𝔹^4;
-    return c_add_sub_carry[3](control,x,y) coerce uint[3]×uint[4];
+// Map: Erases a saved modular comparison flag by measurement.
+def erase_sum_ge[p:!ℕ][n:!ℕ](const ctrl:𝔹,a:𝔹^n,b:𝔹^n,flag:𝔹){
+    flag := H(flag); outcome := measure(flag);
+    return phase_sum_ge_if[p][n](outcome,ctrl,a,b);
+}
+
+// Controlled direct borrow path; the source is never padded.
+def c_QQ_sub_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
+    assert(p>=1);assert(p<=2^n);
+    if p=1{return (x,y);}
+    assert(n>=1);
+    if p=2^n{return c_sub_nocarry[n](ctrl,x,y);}
+    for j in [0..n){y[j] := X(y[j]);}
+    (x,y,borrow) := mbu_c_fullsum_rec[n](ctrl,0:𝔹,x,y);
+    for j in [0..n){y[j] := X(y[j]);}
+    y := c_const_addsub[0:!𝔹][n](borrow,y,p);
+    return erase_sum_ge[p][n](ctrl,x,y,borrow);
+}
+
+// Map: |controls,x,y> -> |controls,x,(y+x) mod p> when all controls are one.
+// Inputs must be canonical residues (x<p and y<p).
+def mc_QQ_add_modp[p:!ℕ][n:!ℕ,k:!ℕ](const controls:𝔹^k,x:𝔹^n,y:𝔹^n){
+    if p=1{return (x,y);}
+    if k=0{return QQ_add_modp[p][n](x,y);}
+    if k=1{return c_QQ_add_modp[p][n](controls[0],x,y);}
+    enable := mbu_AND_zero(controls[0],controls[1]);
+    (x,y) := mc_QQ_add_modp[p][n,k sub 1]((enable,)~controls[2..k],x,y);
+    if measure(H(enable)) && controls[0] && controls[1]{phase(π);}
+    return (x,y);
+}
+
+def mc_QQ_sub_modp[p:!ℕ][n:!ℕ,k:!ℕ](const controls:𝔹^k,x:𝔹^n,y:𝔹^n){
+    if p=1{return (x,y);}
+    if k=0{return QQ_sub_modp[p][n](x,y);}
+    if k=1{return c_QQ_sub_modp[p][n](controls[0],x,y);}
+    enable := mbu_AND_zero(controls[0],controls[1]);
+    (x,y) := mc_QQ_sub_modp[p][n,k sub 1]((enable,)~controls[2..k],x,y);
+    if measure(H(enable)) && controls[0] && controls[1]{phase(π);}
+    return (x,y);
 }
