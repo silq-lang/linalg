@@ -1,0 +1,9 @@
+import primitives.trotter;
+
+def main(){
+    coefficients := [π/6,-π/5];
+    indices := [(11,6),(22,3)];
+    state := 0:uint[5] as 𝔹^5;
+    state := prepare_state(state);
+    return trotterization[5,2](state,coefficients,indices,1,1:!ℕ);
+}

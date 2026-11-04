@@ -1,0 +1,53 @@
+import primitives.trotter;
+import block_encodings.pauli_LCU;
+import QRISP.plain_qpe;
+
+def HHL_data[kappa:!ℝ,m:!ℕ][n:!ℕ](const A:(!ℝ^(2^n))^(2^n)) qfree{
+    assert(n>=1 && kappa>=1 && m>=2);
+    for j in [0..2^n){for k in [0..j){assert(A[j][k]==A[k][j]);}}
+    count := 0:!ℕ; coefficients := []; indices := [];
+    for r in [0..2^n){
+        for s in [0..2^n){
+            coefficient := creal(wh_coefficient(dup(A),r,s));
+            if coefficient!=0{
+                coefficients := coefficients~[coefficient];
+                indices := indices~[(r,s)];
+                count += 1;
+            }
+        }
+    }
+    angles := vector(2^m,π:!ℝ);
+    for j in [1..2^(m sub 1)){
+        amplitude := kappa*4*j/(2^m);
+        if amplitude>1{amplitude = 1/amplitude;}
+        angles[j] = 2*acos(amplitude);
+        angles[2^m sub j] = 2*π-angles[j];
+    }
+    return (count,coefficients,indices,angles);
+}
+
+def HHL[kappa:!ℝ,m:!ℕ,steps:!ℕ][n:!ℕ](const A:(!ℝ^(2^n))^(2^n))(anc:𝔹^(m+1),system:𝔹^n) mfree{
+    assert(steps>=1);
+    data := HHL_data[kappa,m][n](A);
+    coefficients := data[1] coerce !ℝ^data[0];
+    indices := data[2] coerce (!ℕ^2)^data[0];
+    def evolution(xs:𝔹^n) mfree:𝔹^n{
+        return trotterization[n,data[0]](xs,coefficients,indices,-π/2,steps);
+    }
+    (flag:𝔹^1)~(phase:𝔹^m) := anc;
+    for j in [0..m){phase[j] := H(phase[j]);}
+    (phase,system) := plain_QPE_coherent(evolution,phase,system);
+    for j in [0..2^m){
+        if (phase as uint[m])==j{flag[0] := rotY(data[3][j],flag[0]);}
+    }
+    plain_QPE_coherent(evolution,phase,system) := (phase,system);
+    for j in [0..m){phase[j] := H(phase[j]);}
+    return (flag~phase,system);
+}
+
+// One coherent HHL attempt for A x = |1>, without repeat-until-success.
+def main(){
+    A := [[3/4,-1/4],[-1/4,3/4]] coerce (!ℝ^2)^2;
+    system := 1:uint[1] as 𝔹^1;
+    return HHL[2,3,1][1](A)(0:uint[4] as 𝔹^4,system);
+}

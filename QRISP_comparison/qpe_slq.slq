@@ -1,0 +1,14 @@
+import QRISP.plain_qpe;
+
+def phase_unitary(system:𝔹^1) mfree{
+    if system[0]{phase(π/4);}
+    return system;
+}
+
+def main(){
+    phase_register := 0:uint[3] as 𝔹^3;
+    for j in [0..3){phase_register[j] := H(phase_register[j]);}
+    system := 0:uint[1] as 𝔹^1;
+    system[0] := rotY(π/5,system[0]);
+    return plain_QPE_coherent(phase_unitary,phase_register,system);
+}

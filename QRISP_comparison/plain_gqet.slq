@@ -1,0 +1,46 @@
+import block_encodings.block_subroutines;
+
+def signal_rotation(theta:!ℝ,phi:!ℝ)(flag:𝔹):𝔹{
+    with flag:=rotZ(phi,flag){flag:=rotY(theta,flag);}
+    return flag;
+}
+
+def plain_gqsp[k:!ℕ][d:!ℕ](theta:!ℝ^(d+1),phi:!ℝ^(d+1),rho:!ℝ)
+    [n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)
+    (anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+    (flag:𝔹^1)~(work:𝔹^m) := anc;
+    (flag,) := flag;
+    flag := signal_rotation(theta[0],phi[0])(flag);
+    for j in [1..d-k+1){
+        if flag=0{(work,qs):=f(work,qs);}
+        flag := signal_rotation(theta[j],phi[j])(flag);
+    }
+    for j in [d-k+1..d+1){
+        if flag=1{(work,qs):=reverse(f)(work,qs);}
+        flag := signal_rotation(theta[j],phi[j])(flag);
+    }
+    phase(rho);
+    return ((flag,)~work,qs);
+}
+
+def plain_gqet[k:!ℕ][d:!ℕ](theta:!ℝ^(d+1),phi:!ℝ^(d+1),rho:!ℝ)
+    [n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)
+    (anc:𝔹^(m+1),qs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+    def qubitized_f(work:𝔹^m,xs:𝔹^n)mfree:𝔹^m×𝔹^n{
+        return qubitize(work,xs,f);
+    }
+    return plain_gqsp[k][d](theta,phi,rho)(qubitized_f)(anc,qs);
+}
+
+def plain_gqsvt[k:!ℕ][d:!ℕ](theta:!ℝ^(d+1),phi:!ℝ^(d+1),rho:!ℝ)
+    [n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)
+    (anc:𝔹^(m+2),qs:𝔹^n)mfree:𝔹^(m+2)×𝔹^n{
+    def hermitianized_f(work:𝔹^(m+1),xs:𝔹^n)mfree:𝔹^(m+1)×𝔹^n{
+        (side:𝔹^1)~(block_anc:𝔹^m) := work;
+        side[0] := X(side[0]);
+        if side[0]=0{(block_anc,xs):=qubitize(block_anc,xs,f);}
+        if side[0]=1{(block_anc,xs):=qubitize(block_anc,xs,reverse(f));}
+        return (side~block_anc,xs);
+    }
+    return plain_gqsp[k][d](theta,phi,rho)(hermitianized_f)(anc,qs);
+}
