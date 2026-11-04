@@ -1,0 +1,26 @@
+import QRISP.plain_qpe;
+
+def reflection[n:!ℕ](const prepare:𝔹^n → mfree 𝔹^n,state:𝔹^n) mfree{
+    with prepare(state):=state{
+        if state==vector(n,0){phase(π);}
+    }
+    return state;
+}
+
+def state_preparation(state:𝔹^1) mfree{
+    state[0] := rotY(π/3,state[0]);
+    return state;
+}
+
+def identity(state:𝔹^1) mfree{return state;}
+
+def main(){
+    def grover_operator(state:𝔹^1) mfree{
+        state := reflection(identity,state);
+        return reflection(state_preparation,state);
+    }
+    phase := 0:uint[5] as 𝔹^5;
+    for j in [0..5){phase[j] := H(phase[j]);}
+    system := state_preparation(0:uint[1] as 𝔹^1);
+    return plain_QPE_coherent(grover_operator,phase,system);
+}

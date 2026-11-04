@@ -1,0 +1,9 @@
+import arithmetic.QQ_adder;
+
+def main(){
+    addend := 0:uint[4] as 𝔹^4;
+    for j in [0..4){addend[j] := H(addend[j]);}
+    target := 2:uint[4] as 𝔹^4;
+    (addend,target) := adder_nocarry[4](0:𝔹,addend,target);
+    return addend~target;
+}

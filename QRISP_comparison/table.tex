@@ -1,0 +1,72 @@
+\begin{table}[h]
+\centering
+\caption{Resource comparison between plain Silq, Qrisp, and CUDA-Q implementations.}
+\label{tab:silq-qrisp-fair}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+
+\begin{tabularx}{\columnwidth}{
+    >{\raggedright\arraybackslash}X
+    *{3}{
+      >{\centering\arraybackslash}p{0.042\columnwidth}
+      >{\centering\arraybackslash}p{0.052\columnwidth}
+      >{\centering\arraybackslash}p{0.046\columnwidth}
+      >{\centering\arraybackslash}p{0.086\columnwidth}
+    }
+}
+    & \multicolumn{4}{c}{Plain Silq}
+    & \multicolumn{4}{c}{Qrisp (width matched)}
+    & \multicolumn{4}{c}{CUDA-Q} \\
+
+Benchmark
+    & width & depth & T-count & norm.
+    & width & depth & T-count & norm.
+    & width & depth & T-count & norm. \\
+
+\cmidrule(lr){2-5}
+\cmidrule(lr){6-9}
+\cmidrule(lr){10-13}
+
+\multicolumn{13}{l}{\textit{Circuit-level compiler comparisons}} \\
+
+QFT (5 qubits) & 7 & 1971 & 1726 & \textemdash & 7 & 2702 & 2752 & \textemdash & 5 & 4478 & 2742 & \textemdash \\
+
+QPE ($\phi=\pi/4$, precision 3) & 6 & 1045 & 544 & \textemdash & 6 & 1623 & 892 & \textemdash & \multicolumn{4}{c}{\textemdash} \\
+
+QAE ($R_y(\pi/3)$, precision 5) & 8 & 4459 & 2318 & \textemdash & 8 & 5132 & 2766 & \textemdash & \multicolumn{4}{c}{\textemdash} \\
+
+Quantum--quantum addition (4 bits) & 8 & 52 & 8 & \textemdash & 10 & 52 & 24 & \textemdash & 9 & 77 & 42 & \textemdash \\
+
+Coherent comparator ($x<6$, 5-bit input) & 8 & 71 & 20 & \textemdash & 11 & 84 & 32 & \textemdash & 12 & 109 & 55 & \textemdash \\
+
+Two-term Pauli product formula (5 qubits) & 5 & 968 & 503 & \textemdash & 5 & 964 & 503 & \textemdash & 5 & 971 & 503 & \textemdash \\
+
+Controlled phase ($\phi=\pi/4$, 5 qubits) & 11 & 157 & 49 & \textemdash & 11 & 59 & 33 & \textemdash & 8 & 972 & 408 & \textemdash \\
+
+TFIM product formula ($t=\pi/4$, 14 steps) & 2 & 1624 & 1251 & \textemdash & 2 & 1624 & 1251 & \textemdash & 2 & 1624 & 1251 & \textemdash \\
+
+\multicolumn{13}{l}{\textit{Task-level library comparisons}} \\
+
+Tridiagonal block encoding ($4\times4$) & 5 & 1786 & 1045 & $\substack{\alpha=1}$ & 6 & 1367 & 1021 & $\substack{\alpha=1}$ & 5 & 2684 & 1411 & $\substack{\alpha=1}$ \\
+
+TFIM block encoding (2 qubits) & 5 & 1730 & 1025 & $\substack{\alpha=1.25}$ & 5 & 2012 & 1023 & $\substack{\alpha=1.25}$ & 5 & 2023 & 1285 & $\substack{\alpha=1.25}$ \\
+
+Heisenberg block encoding (2 qubits) & 5 & 961 & 597 & $\substack{\alpha=0.75}$ & 6 & 871 & 587 & $\substack{\alpha=0.75}$ & 5 & 1859 & 1129 & $\substack{\alpha=0.75}$ \\
+
+TFIM Chebyshev polynomial $T_2$ & 9 & 3597 & 1841 & $\substack{\alpha_{\rm in}=1.25\\\beta=1}$ & 9 & 3835 & 2197 & $\substack{\alpha_{\rm in}=1.25\\\beta=1}$ & 5 & 5415 & 3545 & $\substack{\alpha_{\rm in}=1.25\\\beta=1}$ \\
+
+TFIM QSP simulation ($t=\pi/4$, target degree 28) & 11 & 107944 & 47677 & $\substack{\alpha_{\rm in}=1.25\\\beta=1}$ & 11 & 86775 & 41094 & $\substack{\alpha_{\rm in}=1.25\\\beta=1}$ & 5 & 166848 & 103962 & $\substack{\alpha_{\rm in}=1.25\\\beta=2}$ \\
+
+Pseudoinverse ($\epsilon=0.02$) & 5 & 52262 & 23308 & $\substack{\alpha_{\rm in}=1.33333\\\beta=3.61616}$ & 6 & 65935 & 28070 & $\substack{\alpha_{\rm in}=1.33333\\\beta=3.61616}$ & 2 & 2391 & 1122 & $\substack{\alpha_{\rm in}=1.33333\\\beta=2.17026}$ \\
+
+Eigenstate filter ($\lambda=0.65$, degree 28) & 10 & 51914 & 22444 & $\substack{\alpha_{\rm in}=2\\\beta=1.01}$ & 10 & 20289 & 10164 & $\substack{\alpha_{\rm in}=2\\\beta=1.01}$ & \multicolumn{4}{c}{\textemdash} \\
+
+HHL ($A=\left[\begin{smallmatrix}3/4&-1/4\\-1/4&3/4\end{smallmatrix}\right]$, $b=\lvert1\rangle$, precision 3) & 7 & 5154 & 2306 & \textemdash & 7 & 12113 & 5552 & \textemdash & \multicolumn{4}{c}{\textemdash} \\
+
+Cubic convolution (one coherent attempt) & 4 & 1363 & 522 & \textemdash & 4 & 1358 & 527 & \textemdash & \multicolumn{4}{c}{\textemdash} \\
+
+Fourier loader (6 qubits, five modes) & 10 & 9941 & 4210 & \textemdash & 10 & 7623 & 5377 & \textemdash & \multicolumn{4}{c}{\textemdash} \\
+
+\end{tabularx}
+\end{table}

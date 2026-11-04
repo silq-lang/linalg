@@ -1,0 +1,11 @@
+import primitives.trotter;
+
+// First-order product formula for
+// H = -0.25 Z_0 Z_1 + 0.5 X_0 + 0.5 X_1.
+def main(){
+    qs := 0:uint[2] as 𝔹^2;
+    qs[0] := rotY(π/7,qs[0]);
+    qs[1] := rotY(π/9,qs[1]);
+    return trotterization[2,3](qs,[-0.25,0.5,0.5],
+        [(0,3),(1,0),(2,0)],π/4,14);
+}

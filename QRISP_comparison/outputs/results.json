@@ -1,0 +1,1340 @@
+{
+  "tools": {
+    "python": "3.12.13",
+    "qrisp": "0.9.10",
+    "cudaq": "0.16.0",
+    "cudaq_algorithms": "0.2.0rc1",
+    "cudaq_algorithms_commit": "4891dbe62c0baeac4569bf608562ffee59635cca",
+    "qsppack": "0.4.0",
+    "qiskit": "2.5.2",
+    "silq": [
+      "Build: Oct 30 2026 18:28:33",
+      "Commit: 19b66448ff3aad32f554edac2dd57ef1924aa341"
+    ],
+    "hqir_executable": "/usr/local/bin/hqir",
+    "qasmviz_executable": "/usr/local/bin/qasmviz",
+    "common_target": "Clifford+T",
+    "qasmviz_optimization": 3,
+    "rotation_synthesis_epsilon": 1e-06
+  },
+  "benchmarks": [
+    {
+      "id": "qft",
+      "description": "QFT on a generic product state, 5 qubits",
+      "silq": {
+        "width": 7,
+        "depth": 1971,
+        "gates": {
+          "display_count": "4626",
+          "total_count": 4626,
+          "breakdown": "cx=126, h=1970, s=564, sdg=240, t=1262, tdg=464",
+          "gates": {
+            "cx": 126,
+            "h": 1970,
+            "s": 564,
+            "sdg": 240,
+            "t": 1262,
+            "tdg": 464
+          },
+          "ops": {}
+        },
+        "cx-count": 126,
+        "cx-depth": 118,
+        "t-count": 1726,
+        "t-depth": 704
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 2,
+      "qrisp_width_workspace_0": 5,
+      "qrisp": {
+        "width": 7,
+        "depth": 2702,
+        "gates": {
+          "display_count": "7275",
+          "total_count": 7275,
+          "breakdown": "cx=26, h=2981, s=1354, sdg=162, t=2519, tdg=233",
+          "gates": {
+            "cx": 26,
+            "h": 2981,
+            "s": 1354,
+            "sdg": 162,
+            "t": 2519,
+            "tdg": 233
+          },
+          "ops": {}
+        },
+        "cx-count": 26,
+        "cx-depth": 17,
+        "t-count": 2752,
+        "t-depth": 1002
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 4478,
+        "gates": {
+          "display_count": "7023",
+          "total_count": 7023,
+          "breakdown": "cx=26, h=2861, s=1312, sdg=82, t=2604, tdg=138",
+          "gates": {
+            "cx": 26,
+            "h": 2861,
+            "s": 1312,
+            "sdg": 82,
+            "t": 2604,
+            "tdg": 138
+          },
+          "ops": {}
+        },
+        "cx-count": 26,
+        "cx-depth": 23,
+        "t-count": 2742,
+        "t-depth": 1735
+      },
+      "elapsed_seconds": 36.88
+    },
+    {
+      "id": "qpe",
+      "description": "QPE: pi/4 phase, superposed input, precision=3",
+      "silq": {
+        "width": 6,
+        "depth": 1045,
+        "gates": {
+          "display_count": "1385",
+          "total_count": 1385,
+          "breakdown": "cx=44, h=524, s=267, sdg=6, t=525, tdg=19",
+          "gates": {
+            "cx": 44,
+            "h": 524,
+            "s": 267,
+            "sdg": 6,
+            "t": 525,
+            "tdg": 19
+          },
+          "ops": {}
+        },
+        "cx-count": 44,
+        "cx-depth": 40,
+        "t-count": 544,
+        "t-depth": 409
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 2,
+      "qrisp_width_workspace_0": 4,
+      "qrisp": {
+        "width": 6,
+        "depth": 1623,
+        "gates": {
+          "display_count": "2268",
+          "total_count": 2268,
+          "breakdown": "cx=15, h=896, s=460, sdg=5, t=890, tdg=2",
+          "gates": {
+            "cx": 15,
+            "h": 896,
+            "s": 460,
+            "sdg": 5,
+            "t": 890,
+            "tdg": 2
+          },
+          "ops": {}
+        },
+        "cx-count": 15,
+        "cx-depth": 15,
+        "t-count": 892,
+        "t-depth": 637
+      },
+      "cudaq_unavailable": true,
+      "cudaq_unavailable_reason": "CUDA-Q Algorithms PhaseEstimation targets qubitization walks, not this arbitrary-unitary QPE row",
+      "elapsed_seconds": 30.639
+    },
+    {
+      "id": "qae",
+      "description": "Amplitude estimation: Ry(pi/3), precision=5",
+      "silq": {
+        "width": 8,
+        "depth": 4459,
+        "gates": {
+          "display_count": "6035",
+          "total_count": 6035,
+          "breakdown": "cx=136, h=2332, s=1159, sdg=90, t=2198, tdg=120",
+          "gates": {
+            "cx": 136,
+            "h": 2332,
+            "s": 1159,
+            "sdg": 90,
+            "t": 2198,
+            "tdg": 120
+          },
+          "ops": {}
+        },
+        "cx-count": 136,
+        "cx-depth": 128,
+        "t-count": 2318,
+        "t-depth": 1721
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 2,
+      "qrisp_width_workspace_0": 6,
+      "qrisp": {
+        "width": 8,
+        "depth": 5132,
+        "gates": {
+          "display_count": "6998",
+          "total_count": 6998,
+          "breakdown": "cx=36, h=2808, s=1366, sdg=22, t=2759, tdg=7",
+          "gates": {
+            "cx": 36,
+            "h": 2808,
+            "s": 1366,
+            "sdg": 22,
+            "t": 2759,
+            "tdg": 7
+          },
+          "ops": {}
+        },
+        "cx-count": 36,
+        "cx-depth": 27,
+        "t-count": 2766,
+        "t-depth": 2014
+      },
+      "cudaq_unavailable": true,
+      "cudaq_unavailable_reason": "no CUDA-Q Algorithms amplitude-estimation primitive",
+      "elapsed_seconds": 30.995
+    },
+    {
+      "id": "qq_adder",
+      "description": "Quantum-quantum addition, 4 bits",
+      "silq": {
+        "width": 8,
+        "depth": 52,
+        "gates": {
+          "display_count": "66",
+          "total_count": 66,
+          "breakdown": "cx=25, h=13, x=5, p=11, cp=2, if_else=4; measure=3, reset=3",
+          "gates": {
+            "cx": 25,
+            "h": 13,
+            "x": 5,
+            "p": 11,
+            "cp": 2,
+            "if_else": 4
+          },
+          "ops": {
+            "measure": 3,
+            "reset": 3
+          }
+        },
+        "clbits": 3,
+        "2q-count": 31,
+        "2q-depth": 28,
+        "rotations": {
+          "count": 11,
+          "depth": 11,
+          "breakdown": {
+            "0": 3,
+            "1": 8
+          },
+          "t-count": 8
+        },
+        "mcm-count": 2,
+        "mcm-depth": 2,
+        "resets": 3,
+        "t-count": 8
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 10,
+      "qrisp": {
+        "width": 10,
+        "depth": 52,
+        "gates": {
+          "display_count": "74",
+          "total_count": 74,
+          "breakdown": "cx=33, h=4, x=1, sx=6, sxdg=6, p=24",
+          "gates": {
+            "cx": 33,
+            "h": 4,
+            "x": 1,
+            "sx": 6,
+            "sxdg": 6,
+            "p": 24
+          },
+          "ops": {}
+        },
+        "cx-count": 33,
+        "cx-depth": 27,
+        "rotations": {
+          "count": 24,
+          "depth": 18,
+          "breakdown": {
+            "1": 24
+          },
+          "t-count": 24,
+          "t-depth": 18
+        },
+        "t-count": 24
+      },
+      "cudaq": {
+        "width": 9,
+        "depth": 77,
+        "gates": {
+          "display_count": "108",
+          "total_count": 108,
+          "breakdown": "cx=49, h=16, x=1, p=42",
+          "gates": {
+            "cx": 49,
+            "h": 16,
+            "x": 1,
+            "p": 42
+          },
+          "ops": {}
+        },
+        "cx-count": 49,
+        "cx-depth": 41,
+        "rotations": {
+          "count": 42,
+          "depth": 28,
+          "breakdown": {
+            "1": 42
+          },
+          "t-count": 42,
+          "t-depth": 28
+        },
+        "t-count": 42
+      },
+      "elapsed_seconds": 32.191
+    },
+    {
+      "id": "comparator",
+      "description": "Coherent comparison: 5-bit x < 6",
+      "silq": {
+        "width": 8,
+        "depth": 71,
+        "gates": {
+          "display_count": "99",
+          "total_count": 99,
+          "breakdown": "cx=18, h=37, s=23, sdg=1, t=10, tdg=10",
+          "gates": {
+            "cx": 18,
+            "h": 37,
+            "s": 23,
+            "sdg": 1,
+            "t": 10,
+            "tdg": 10
+          },
+          "ops": {}
+        },
+        "cx-count": 18,
+        "cx-depth": 17,
+        "t-count": 20,
+        "t-depth": 16
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 11,
+      "qrisp": {
+        "width": 11,
+        "depth": 84,
+        "gates": {
+          "display_count": "164",
+          "total_count": 164,
+          "breakdown": "cx=35, h=44, s=38, sdg=15, t=16, tdg=16",
+          "gates": {
+            "cx": 35,
+            "h": 44,
+            "s": 38,
+            "sdg": 15,
+            "t": 16,
+            "tdg": 16
+          },
+          "ops": {}
+        },
+        "cx-count": 35,
+        "cx-depth": 29,
+        "t-count": 32,
+        "t-depth": 20
+      },
+      "cudaq": {
+        "width": 12,
+        "depth": 109,
+        "gates": {
+          "display_count": "185",
+          "total_count": 185,
+          "breakdown": "cx=75, h=37, s=18, t=28, tdg=27",
+          "gates": {
+            "cx": 75,
+            "h": 37,
+            "s": 18,
+            "t": 28,
+            "tdg": 27
+          },
+          "ops": {}
+        },
+        "cx-count": 75,
+        "cx-depth": 59,
+        "t-count": 55,
+        "t-depth": 36
+      },
+      "elapsed_seconds": 31.227
+    },
+    {
+      "id": "pauli_evolution",
+      "description": "Two-term Pauli product formula, 5 qubits",
+      "silq": {
+        "width": 5,
+        "depth": 968,
+        "gates": {
+          "display_count": "1290",
+          "total_count": 1290,
+          "breakdown": "cx=15, h=518, s=252, sdg=2, t=503",
+          "gates": {
+            "cx": 15,
+            "h": 518,
+            "s": 252,
+            "sdg": 2,
+            "t": 503
+          },
+          "ops": {}
+        },
+        "cx-count": 15,
+        "cx-depth": 14,
+        "t-count": 503,
+        "t-depth": 378
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 5,
+      "qrisp": {
+        "width": 5,
+        "depth": 964,
+        "gates": {
+          "display_count": "1290",
+          "total_count": 1290,
+          "breakdown": "cx=15, h=518, s=252, sdg=2, t=503",
+          "gates": {
+            "cx": 15,
+            "h": 518,
+            "s": 252,
+            "sdg": 2,
+            "t": 503
+          },
+          "ops": {}
+        },
+        "cx-count": 15,
+        "cx-depth": 12,
+        "t-count": 503,
+        "t-depth": 378
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 971,
+        "gates": {
+          "display_count": "1292",
+          "total_count": 1292,
+          "breakdown": "cx=15, h=520, s=252, sdg=2, t=503",
+          "gates": {
+            "cx": 15,
+            "h": 520,
+            "s": 252,
+            "sdg": 2,
+            "t": 503
+          },
+          "ops": {}
+        },
+        "cx-count": 15,
+        "cx-depth": 14,
+        "t-count": 503,
+        "t-depth": 378
+      },
+      "elapsed_seconds": 31.761
+    },
+    {
+      "id": "controlled_phase",
+      "description": "Controlled phase: phi=pi/4, 5 qubits",
+      "silq": {
+        "width": 11,
+        "depth": 157,
+        "gates": {
+          "display_count": "245",
+          "total_count": 245,
+          "breakdown": "cx=48, h=82, s=63, sdg=3, t=24, tdg=25",
+          "gates": {
+            "cx": 48,
+            "h": 82,
+            "s": 63,
+            "sdg": 3,
+            "t": 24,
+            "tdg": 25
+          },
+          "ops": {}
+        },
+        "cx-count": 48,
+        "cx-depth": 38,
+        "t-count": 49,
+        "t-depth": 35
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 2,
+      "qrisp_width_workspace_0": 9,
+      "qrisp": {
+        "width": 11,
+        "depth": 59,
+        "gates": {
+          "display_count": "113",
+          "total_count": 113,
+          "breakdown": "cx=24, h=22, s=18, sdg=16, t=17, tdg=16",
+          "gates": {
+            "cx": 24,
+            "h": 22,
+            "s": 18,
+            "sdg": 16,
+            "t": 17,
+            "tdg": 16
+          },
+          "ops": {}
+        },
+        "cx-count": 24,
+        "cx-depth": 16,
+        "t-count": 33,
+        "t-depth": 19
+      },
+      "cudaq": {
+        "width": 8,
+        "depth": 972,
+        "gates": {
+          "display_count": "1039",
+          "total_count": 1039,
+          "breakdown": "cx=38, h=399, s=191, sdg=3, t=390, tdg=18",
+          "gates": {
+            "cx": 38,
+            "h": 399,
+            "s": 191,
+            "sdg": 3,
+            "t": 390,
+            "tdg": 18
+          },
+          "ops": {}
+        },
+        "cx-count": 38,
+        "cx-depth": 32,
+        "t-count": 408,
+        "t-depth": 384
+      },
+      "elapsed_seconds": 30.361
+    },
+    {
+      "id": "tridiagonal",
+      "description": "4x4 non-cyclic tridiagonal block encoding",
+      "silq": {
+        "width": 5,
+        "depth": 1786,
+        "gates": {
+          "display_count": "2785",
+          "total_count": 2785,
+          "breakdown": "cx=51, h=1086, s=575, sdg=28, t=1028, tdg=17",
+          "gates": {
+            "cx": 51,
+            "h": 1086,
+            "s": 575,
+            "sdg": 28,
+            "t": 1028,
+            "tdg": 17
+          },
+          "ops": {}
+        },
+        "cx-count": 51,
+        "cx-depth": 51,
+        "t-count": 1045,
+        "t-depth": 662,
+        "block_encoding_normalization": 1.0
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 6,
+      "qrisp": {
+        "width": 6,
+        "depth": 1367,
+        "gates": {
+          "display_count": "2706",
+          "total_count": 2706,
+          "breakdown": "cx=27, h=1062, s=533, sdg=63, t=1013, tdg=8",
+          "gates": {
+            "cx": 27,
+            "h": 1062,
+            "s": 533,
+            "sdg": 63,
+            "t": 1013,
+            "tdg": 8
+          },
+          "ops": {}
+        },
+        "cx-count": 27,
+        "cx-depth": 26,
+        "t-count": 1021,
+        "t-depth": 512,
+        "block_encoding_normalization": 1.0
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 2684,
+        "gates": {
+          "display_count": "3722",
+          "total_count": 3722,
+          "breakdown": "cx=48, h=1540, s=610, sdg=113, t=1262, tdg=149",
+          "gates": {
+            "cx": 48,
+            "h": 1540,
+            "s": 610,
+            "sdg": 113,
+            "t": 1262,
+            "tdg": 149
+          },
+          "ops": {}
+        },
+        "cx-count": 48,
+        "cx-depth": 46,
+        "t-count": 1411,
+        "t-depth": 1017,
+        "block_encoding_normalization": 1.0
+      },
+      "elapsed_seconds": 31.862
+    },
+    {
+      "id": "tfim",
+      "description": "Two-qubit TFIM block encoding",
+      "silq": {
+        "width": 5,
+        "depth": 1730,
+        "gates": {
+          "display_count": "2701",
+          "total_count": 2701,
+          "breakdown": "cx=36, h=1073, s=553, sdg=14, t=1011, tdg=14",
+          "gates": {
+            "cx": 36,
+            "h": 1073,
+            "s": 553,
+            "sdg": 14,
+            "t": 1011,
+            "tdg": 14
+          },
+          "ops": {}
+        },
+        "cx-count": 36,
+        "cx-depth": 36,
+        "t-count": 1025,
+        "t-depth": 651,
+        "block_encoding_normalization": 1.25
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 5,
+      "qrisp": {
+        "width": 5,
+        "depth": 2012,
+        "gates": {
+          "display_count": "2677",
+          "total_count": 2677,
+          "breakdown": "cx=27, h=1056, s=539, sdg=32, t=1010, tdg=13",
+          "gates": {
+            "cx": 27,
+            "h": 1056,
+            "s": 539,
+            "sdg": 32,
+            "t": 1010,
+            "tdg": 13
+          },
+          "ops": {}
+        },
+        "cx-count": 27,
+        "cx-depth": 25,
+        "t-count": 1023,
+        "t-depth": 772,
+        "block_encoding_normalization": 1.25
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 2023,
+        "gates": {
+          "display_count": "3352",
+          "total_count": 3352,
+          "breakdown": "cx=41, h=1410, s=522, sdg=94, t=1079, tdg=206",
+          "gates": {
+            "cx": 41,
+            "h": 1410,
+            "s": 522,
+            "sdg": 94,
+            "t": 1079,
+            "tdg": 206
+          },
+          "ops": {}
+        },
+        "cx-count": 41,
+        "cx-depth": 39,
+        "t-count": 1285,
+        "t-depth": 778,
+        "block_encoding_normalization": 1.25
+      },
+      "elapsed_seconds": 31.866
+    },
+    {
+      "id": "heisenberg",
+      "description": "Two-qubit Heisenberg block encoding",
+      "silq": {
+        "width": 5,
+        "depth": 961,
+        "gates": {
+          "display_count": "1625",
+          "total_count": 1625,
+          "breakdown": "cx=38, h=632, s=343, sdg=15, t=584, tdg=13",
+          "gates": {
+            "cx": 38,
+            "h": 632,
+            "s": 343,
+            "sdg": 15,
+            "t": 584,
+            "tdg": 13
+          },
+          "ops": {}
+        },
+        "cx-count": 38,
+        "cx-depth": 38,
+        "t-count": 597,
+        "t-depth": 343,
+        "block_encoding_normalization": 0.75
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 6,
+      "qrisp": {
+        "width": 6,
+        "depth": 871,
+        "gates": {
+          "display_count": "1564",
+          "total_count": 1564,
+          "breakdown": "cx=26, h=607, s=310, sdg=34, t=579, tdg=8",
+          "gates": {
+            "cx": 26,
+            "h": 607,
+            "s": 310,
+            "sdg": 34,
+            "t": 579,
+            "tdg": 8
+          },
+          "ops": {}
+        },
+        "cx-count": 26,
+        "cx-depth": 24,
+        "t-count": 587,
+        "t-depth": 326,
+        "block_encoding_normalization": 0.75
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 1859,
+        "gates": {
+          "display_count": "2950",
+          "total_count": 2950,
+          "breakdown": "cx=66, h=1198, s=476, sdg=81, t=945, tdg=184",
+          "gates": {
+            "cx": 66,
+            "h": 1198,
+            "s": 476,
+            "sdg": 81,
+            "t": 945,
+            "tdg": 184
+          },
+          "ops": {}
+        },
+        "cx-count": 66,
+        "cx-depth": 62,
+        "t-count": 1129,
+        "t-depth": 697,
+        "block_encoding_normalization": 0.75
+      },
+      "elapsed_seconds": 31.96
+    },
+    {
+      "id": "chebyshev",
+      "description": "TFIM Chebyshev polynomial T_2",
+      "silq": {
+        "width": 9,
+        "depth": 3597,
+        "gates": {
+          "display_count": "4942",
+          "total_count": 4942,
+          "breakdown": "cx=120, h=1938, s=1019, sdg=24, t=1792, tdg=49",
+          "gates": {
+            "cx": 120,
+            "h": 1938,
+            "s": 1019,
+            "sdg": 24,
+            "t": 1792,
+            "tdg": 49
+          },
+          "ops": {}
+        },
+        "cx-count": 120,
+        "cx-depth": 112,
+        "t-count": 1841,
+        "t-depth": 1332,
+        "input_block_encoding_normalization": 1.25,
+        "subnormalization": 1.0
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 4,
+      "qrisp_width_workspace_0": 5,
+      "qrisp": {
+        "width": 9,
+        "depth": 3835,
+        "gates": {
+          "display_count": "5766",
+          "total_count": 5766,
+          "breakdown": "cx=53, h=2258, s=1176, sdg=82, t=2172, tdg=25",
+          "gates": {
+            "cx": 53,
+            "h": 2258,
+            "s": 1176,
+            "sdg": 82,
+            "t": 2172,
+            "tdg": 25
+          },
+          "ops": {}
+        },
+        "cx-count": 53,
+        "cx-depth": 44,
+        "t-count": 2197,
+        "t-depth": 1479,
+        "input_block_encoding_normalization": 1.25,
+        "subnormalization": 1.0
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 5415,
+        "gates": {
+          "display_count": "9425",
+          "total_count": 9425,
+          "breakdown": "cx=81, h=3963, s=1506, sdg=330, t=2979, tdg=566",
+          "gates": {
+            "cx": 81,
+            "h": 3963,
+            "s": 1506,
+            "sdg": 330,
+            "t": 2979,
+            "tdg": 566
+          },
+          "ops": {}
+        },
+        "cx-count": 81,
+        "cx-depth": 77,
+        "t-count": 3545,
+        "t-depth": 2035,
+        "input_block_encoding_normalization": 1.25,
+        "subnormalization": 1.0
+      },
+      "elapsed_seconds": 33.195
+    },
+    {
+      "id": "hamiltonian_simulation",
+      "description": "TFIM product formula: t=pi/4, 14 steps",
+      "silq": {
+        "width": 2,
+        "depth": 1624,
+        "gates": {
+          "display_count": "3195",
+          "total_count": 3195,
+          "breakdown": "cx=2, h=1275, s=643, sdg=24, t=1251",
+          "gates": {
+            "cx": 2,
+            "h": 1275,
+            "s": 643,
+            "sdg": 24,
+            "t": 1251
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 1251,
+        "t-depth": 627
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 2,
+      "qrisp": {
+        "width": 2,
+        "depth": 1624,
+        "gates": {
+          "display_count": "3195",
+          "total_count": 3195,
+          "breakdown": "cx=2, h=1275, s=643, sdg=24, t=1251",
+          "gates": {
+            "cx": 2,
+            "h": 1275,
+            "s": 643,
+            "sdg": 24,
+            "t": 1251
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 1251,
+        "t-depth": 627
+      },
+      "cudaq": {
+        "width": 2,
+        "depth": 1624,
+        "gates": {
+          "display_count": "3195",
+          "total_count": 3195,
+          "breakdown": "cx=2, h=1275, s=643, sdg=24, t=1251",
+          "gates": {
+            "cx": 2,
+            "h": 1275,
+            "s": 643,
+            "sdg": 24,
+            "t": 1251
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 1251,
+        "t-depth": 627
+      },
+      "elapsed_seconds": 33.018
+    },
+    {
+      "id": "hamiltonian_simulation_qsp",
+      "description": "TFIM QSP simulation: t=pi/4, target degree 28",
+      "silq": {
+        "width": 11,
+        "depth": 107944,
+        "gates": {
+          "display_count": "127664",
+          "total_count": 127664,
+          "breakdown": "cx=7892, h=47577, s=23038, sdg=1480, t=41464, tdg=6213",
+          "gates": {
+            "cx": 7892,
+            "h": 47577,
+            "s": 23038,
+            "sdg": 1480,
+            "t": 41464,
+            "tdg": 6213
+          },
+          "ops": {}
+        },
+        "cx-count": 7892,
+        "cx-depth": 7179,
+        "t-count": 47677,
+        "t-depth": 39895,
+        "input_block_encoding_normalization": 1.25,
+        "subnormalization": 1.0
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 5,
+      "qrisp_width_workspace_0": 6,
+      "qrisp": {
+        "width": 11,
+        "depth": 86775,
+        "gates": {
+          "display_count": "107685",
+          "total_count": 107685,
+          "breakdown": "cx=1878, h=42993, s=20085, sdg=1635, t=38291, tdg=2803",
+          "gates": {
+            "cx": 1878,
+            "h": 42993,
+            "s": 20085,
+            "sdg": 1635,
+            "t": 38291,
+            "tdg": 2803
+          },
+          "ops": {}
+        },
+        "cx-count": 1878,
+        "cx-depth": 1759,
+        "t-count": 41094,
+        "t-depth": 33491,
+        "input_block_encoding_normalization": 1.25,
+        "subnormalization": 1.0
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 166848,
+        "t-count": 103962,
+        "aggregation": "maximum width; summed depth and T count",
+        "components": {
+          "cos": {
+            "width": 5,
+            "depth": 85241,
+            "gates": {
+              "display_count": "140571",
+              "total_count": 140571,
+              "breakdown": "cx=1121, h=59028, s=22502, sdg=4650, t=45340, tdg=7930",
+              "gates": {
+                "cx": 1121,
+                "h": 59028,
+                "s": 22502,
+                "sdg": 4650,
+                "t": 45340,
+                "tdg": 7930
+              },
+              "ops": {}
+            },
+            "cx-count": 1121,
+            "cx-depth": 1065,
+            "t-count": 53270,
+            "t-depth": 32023
+          },
+          "sin": {
+            "width": 5,
+            "depth": 81607,
+            "gates": {
+              "display_count": "135969",
+              "total_count": 135969,
+              "breakdown": "cx=1081, h=58846, s=19235, sdg=6115, t=39533, tdg=11159",
+              "gates": {
+                "cx": 1081,
+                "h": 58846,
+                "s": 19235,
+                "sdg": 6115,
+                "t": 39533,
+                "tdg": 11159
+              },
+              "ops": {}
+            },
+            "cx-count": 1081,
+            "cx-depth": 1027,
+            "t-count": 50692,
+            "t-depth": 30453
+          }
+        },
+        "subnormalization": 2.0,
+        "input_block_encoding_normalization": 1.25
+      },
+      "cudaq_workflow_components": [
+        "cos",
+        "sin"
+      ],
+      "cudaq_workflow": {
+        "source": "CUDA-Q Algorithms official Hamiltonian-simulation example",
+        "time": 0.7853981633974483,
+        "tau": 0.9817477042468103,
+        "degree": 28,
+        "cosine_phase_count": 29,
+        "sine_phase_count": 28,
+        "recovery": "recover_real_time_evolution (classical combination)"
+      },
+      "elapsed_seconds": 45.564
+    },
+    {
+      "id": "matrix_inversion",
+      "description": "2x2 pseudoinverse: A=[[1,-1/3],[-1/3,1]], epsilon=0.02",
+      "silq": {
+        "width": 5,
+        "depth": 52262,
+        "gates": {
+          "display_count": "58730",
+          "total_count": 58730,
+          "breakdown": "cx=2964, h=21629, s=10663, sdg=166, t=21961, tdg=1347",
+          "gates": {
+            "cx": 2964,
+            "h": 21629,
+            "s": 10663,
+            "sdg": 166,
+            "t": 21961,
+            "tdg": 1347
+          },
+          "ops": {}
+        },
+        "cx-count": 2964,
+        "cx-depth": 2436,
+        "t-count": 23308,
+        "t-depth": 20532,
+        "input_block_encoding_normalization": 1.3333333333333333,
+        "subnormalization": 3.61616147677523
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 6,
+      "qrisp": {
+        "width": 6,
+        "depth": 65935,
+        "gates": {
+          "display_count": "72475",
+          "total_count": 72475,
+          "breakdown": "cx=924, h=28550, s=14318, sdg=613, t=27668, tdg=402",
+          "gates": {
+            "cx": 924,
+            "h": 28550,
+            "s": 14318,
+            "sdg": 613,
+            "t": 27668,
+            "tdg": 402
+          },
+          "ops": {}
+        },
+        "cx-count": 924,
+        "cx-depth": 824,
+        "t-count": 28070,
+        "t-depth": 25828,
+        "input_block_encoding_normalization": 1.3333333333333333,
+        "subnormalization": 3.61616147677523
+      },
+      "cudaq": {
+        "width": 2,
+        "depth": 2391,
+        "gates": {
+          "display_count": "3032",
+          "total_count": 3032,
+          "breakdown": "cx=2, h=1373, s=344, sdg=191, t=734, tdg=388",
+          "gates": {
+            "cx": 2,
+            "h": 1373,
+            "s": 344,
+            "sdg": 191,
+            "t": 734,
+            "tdg": 388
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 1122,
+        "t-depth": 874,
+        "subnormalization": 2.1702640212459205,
+        "input_block_encoding_normalization": 1.3333333333333333
+      },
+      "cudaq_workflow": {
+        "source": "CUDA-Q Algorithms official matrix-inversion example",
+        "epsilon": 0.02,
+        "x_min": 0.5,
+        "degree": 31,
+        "phase_count": 32,
+        "inverse_scale": 0.34558007351079556,
+        "block_encoding_alpha": 1.3333333333333333,
+        "recovery": "remove QSP global phase and take real good-subspace part"
+      },
+      "elapsed_seconds": 37.722
+    },
+    {
+      "id": "eigenstate_filter",
+      "description": "Eigenstate filter: lambda=0.65, degree 28",
+      "silq": {
+        "width": 10,
+        "depth": 51914,
+        "gates": {
+          "display_count": "59664",
+          "total_count": 59664,
+          "breakdown": "cx=5940, h=20724, s=10418, sdg=138, t=19242, tdg=3202",
+          "gates": {
+            "cx": 5940,
+            "h": 20724,
+            "s": 10418,
+            "sdg": 138,
+            "t": 19242,
+            "tdg": 3202
+          },
+          "ops": {}
+        },
+        "cx-count": 5940,
+        "cx-depth": 5325,
+        "t-count": 22444,
+        "t-depth": 19262,
+        "input_block_encoding_normalization": 2.0,
+        "subnormalization": 1.01
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 4,
+      "qrisp_width_workspace_0": 6,
+      "qrisp": {
+        "width": 10,
+        "depth": 20289,
+        "gates": {
+          "display_count": "26583",
+          "total_count": 26583,
+          "breakdown": "cx=1176, h=10080, s=4364, sdg=799, t=9468, tdg=696",
+          "gates": {
+            "cx": 1176,
+            "h": 10080,
+            "s": 4364,
+            "sdg": 799,
+            "t": 9468,
+            "tdg": 696
+          },
+          "ops": {}
+        },
+        "cx-count": 1176,
+        "cx-depth": 1092,
+        "t-count": 10164,
+        "t-depth": 7857,
+        "input_block_encoding_normalization": 2.0,
+        "subnormalization": 1.01
+      },
+      "cudaq_unavailable": true,
+      "cudaq_unavailable_reason": "CUDA-Q Algorithms has QSVT but no built-in eigenstate-filter function or official filter-phase workflow",
+      "elapsed_seconds": 35.18
+    },
+    {
+      "id": "hhl",
+      "description": "HHL: A=[[3/4,-1/4],[-1/4,3/4]], b=|1>, precision=3",
+      "silq": {
+        "width": 7,
+        "depth": 5154,
+        "gates": {
+          "display_count": "6080",
+          "total_count": 6080,
+          "breakdown": "cx=178, h=2319, s=1224, sdg=53, t=2228, tdg=78",
+          "gates": {
+            "cx": 178,
+            "h": 2319,
+            "s": 1224,
+            "sdg": 53,
+            "t": 2228,
+            "tdg": 78
+          },
+          "ops": {}
+        },
+        "cx-count": 178,
+        "cx-depth": 167,
+        "t-count": 2306,
+        "t-depth": 1988
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 1,
+      "qrisp_width_workspace_0": 6,
+      "qrisp": {
+        "width": 7,
+        "depth": 12113,
+        "gates": {
+          "display_count": "14327",
+          "total_count": 14327,
+          "breakdown": "cx=134, h=5636, s=2967, sdg=38, t=5503, tdg=49",
+          "gates": {
+            "cx": 134,
+            "h": 5636,
+            "s": 2967,
+            "sdg": 38,
+            "t": 5503,
+            "tdg": 49
+          },
+          "ops": {}
+        },
+        "cx-count": 134,
+        "cx-depth": 120,
+        "t-count": 5552,
+        "t-depth": 4716
+      },
+      "cudaq_unavailable": true,
+      "cudaq_unavailable_reason": "no CUDA-Q Algorithms HHL circuit primitive",
+      "elapsed_seconds": 32.847
+    },
+    {
+      "id": "convolution",
+      "description": "Cubic convolution, one coherent attempt",
+      "silq": {
+        "width": 4,
+        "depth": 1363,
+        "gates": {
+          "display_count": "1392",
+          "total_count": 1392,
+          "breakdown": "cx=22, h=575, s=234, sdg=39, t=478, tdg=44",
+          "gates": {
+            "cx": 22,
+            "h": 575,
+            "s": 234,
+            "sdg": 39,
+            "t": 478,
+            "tdg": 44
+          },
+          "ops": {}
+        },
+        "cx-count": 22,
+        "cx-depth": 22,
+        "t-count": 522,
+        "t-depth": 511
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 0,
+      "qrisp_width_workspace_0": 4,
+      "qrisp": {
+        "width": 4,
+        "depth": 1358,
+        "gates": {
+          "display_count": "1389",
+          "total_count": 1389,
+          "breakdown": "cx=24, h=528, s=275, sdg=35, t=515, tdg=12",
+          "gates": {
+            "cx": 24,
+            "h": 528,
+            "s": 275,
+            "sdg": 35,
+            "t": 515,
+            "tdg": 12
+          },
+          "ops": {}
+        },
+        "cx-count": 24,
+        "cx-depth": 24,
+        "t-count": 527,
+        "t-depth": 518
+      },
+      "cudaq_unavailable": true,
+      "cudaq_unavailable_reason": "no CUDA-Q Algorithms convolution-state primitive",
+      "elapsed_seconds": 45.207
+    },
+    {
+      "id": "fourier_loader",
+      "description": "Fourier loader: 6 qubits, five modes",
+      "silq": {
+        "width": 10,
+        "depth": 9941,
+        "gates": {
+          "display_count": "11245",
+          "total_count": 11245,
+          "breakdown": "cx=478, h=4412, s=1920, sdg=225, t=3597, tdg=613",
+          "gates": {
+            "cx": 478,
+            "h": 4412,
+            "s": 1920,
+            "sdg": 225,
+            "t": 3597,
+            "tdg": 613
+          },
+          "ops": {}
+        },
+        "cx-count": 478,
+        "cx-depth": 442,
+        "t-count": 4210,
+        "t-depth": 3771
+      },
+      "silq_compatibility_rewrites": 1,
+      "qrisp_workspace": 3,
+      "qrisp_width_workspace_0": 7,
+      "qrisp": {
+        "width": 10,
+        "depth": 7623,
+        "gates": {
+          "display_count": "13919",
+          "total_count": 13919,
+          "breakdown": "cx=48, h=5697, s=2552, sdg=245, t=5035, tdg=342",
+          "gates": {
+            "cx": 48,
+            "h": 5697,
+            "s": 2552,
+            "sdg": 245,
+            "t": 5035,
+            "tdg": 342
+          },
+          "ops": {}
+        },
+        "cx-count": 48,
+        "cx-depth": 48,
+        "t-count": 5377,
+        "t-depth": 2873
+      },
+      "cudaq_unavailable": true,
+      "cudaq_unavailable_reason": "CUDA-Q amplitude_encode is an opaque simulator state initializer, not an exportable gate circuit",
+      "elapsed_seconds": 34.891
+    }
+  ]
+}

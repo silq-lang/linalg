@@ -1,0 +1,10 @@
+import phase_estimation.QFT;
+
+def main(){
+    qs := 0:uint[5] as 𝔹^5;
+    for j in [0..5){
+        qs[j] := rotY((j+1)*π/11,qs[j]);
+        qs[j] := rotZ((j+1)*π/13,qs[j]);
+    }
+    return QFT(qs);
+}

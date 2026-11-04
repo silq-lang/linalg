@@ -1,0 +1,1238 @@
+[
+  {
+    "id": "qft",
+    "description": "QFT on a generic product state, 5 qubits",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 1.0166130809736812e-15,
+    "silq_width": 7,
+    "qrisp_width": 5,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "logical_wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_width": 5,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 0.9999999999999412,
+      "max_normalized_amplitude_error": 1.0356676328899903e-07,
+      "qrisp_success_probability": 1.0000000000000004,
+      "cudaq_success_probability": 1.0000000000000002,
+      "qrisp_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "qrisp_postselect_qubits": [],
+      "cudaq_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "cudaq_postselect_qubits": [],
+      "logical_wire_permutation": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "qpe",
+    "description": "QPE: pi/4 phase, superposed input, precision=3",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 5.551115123125783e-16,
+    "silq_width": 6,
+    "qrisp_width": 4,
+    "silq_active_qubits": [
+      0,
+      3
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1
+    ],
+    "logical_wire_permutation": [
+      0,
+      1
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_comparison": {
+      "passed": null,
+      "status": "unavailable"
+    },
+    "passed": true
+  },
+  {
+    "id": "qae",
+    "description": "Amplitude estimation: Ry(pi/3), precision=5",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 2.0658801409477063e-15,
+    "silq_width": 8,
+    "qrisp_width": 6,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "logical_wire_permutation": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      0
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_comparison": {
+      "passed": null,
+      "status": "unavailable"
+    },
+    "passed": true
+  },
+  {
+    "id": "qq_adder",
+    "description": "Quantum-quantum addition, 4 bits",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 2.7761254816576865e-16,
+    "silq_width": 8,
+    "qrisp_width": 10,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "logical_wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_width": 9,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 3.002224531865041e-16,
+      "qrisp_success_probability": 1.0000000000000004,
+      "cudaq_success_probability": 1.0000000000000009,
+      "qrisp_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "qrisp_postselect_qubits": [
+        8,
+        9
+      ],
+      "cudaq_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "cudaq_postselect_qubits": [
+        8
+      ],
+      "logical_wire_permutation": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "comparator",
+    "description": "Coherent comparison: 5-bit x < 6",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 4.518813144550864e-16,
+    "silq_width": 8,
+    "qrisp_width": 11,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "logical_wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_width": 12,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 2.9275225451776116e-16,
+      "qrisp_success_probability": 1.0000000000000009,
+      "cudaq_success_probability": 1.0,
+      "qrisp_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "qrisp_postselect_qubits": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "cudaq_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        11
+      ],
+      "cudaq_postselect_qubits": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "logical_wire_permutation": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "pauli_evolution",
+    "description": "Two-term Pauli product formula, 5 qubits",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 9.71445146547012e-17,
+    "silq_width": 5,
+    "qrisp_width": 5,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "logical_wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_width": 5,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 0.9999999999999996,
+      "max_normalized_amplitude_error": 1.4224732503009818e-16,
+      "qrisp_success_probability": 1.0,
+      "cudaq_success_probability": 0.9999999999999999,
+      "qrisp_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "qrisp_postselect_qubits": [],
+      "cudaq_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "cudaq_postselect_qubits": [],
+      "logical_wire_permutation": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "controlled_phase",
+    "description": "Controlled phase: phi=pi/4, 5 qubits",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 2.3551386880256624e-16,
+    "silq_width": 11,
+    "qrisp_width": 9,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "logical_wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_width": 8,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 0.9999999999999998,
+      "max_normalized_amplitude_error": 8.57872292554147e-09,
+      "qrisp_success_probability": 1.0,
+      "cudaq_success_probability": 1.0000000000000009,
+      "qrisp_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "qrisp_postselect_qubits": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "cudaq_logical_qubits": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "cudaq_postselect_qubits": [
+        0,
+        1,
+        2
+      ],
+      "logical_wire_permutation": [
+        3,
+        0,
+        2,
+        1,
+        4
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "tridiagonal",
+    "description": "4x4 non-cyclic tridiagonal block encoding",
+    "full_state_equivalent": false,
+    "full_state_max_amplitude_error": 0.47355289659570515,
+    "silq_width": 5,
+    "qrisp_width": 6,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "logical_wire_permutation": [
+      2,
+      3,
+      0,
+      1
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 1.0000000000000004,
+      "max_normalized_amplitude_error": 3.2398021848425307e-15,
+      "silq_success_probability": 0.21164839570082822,
+      "qrisp_success_probability": 0.21164839570082733,
+      "silq_logical_qubits": [
+        2,
+        3
+      ],
+      "silq_postselect_qubits": [
+        0,
+        1,
+        4
+      ],
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "cudaq_width": 4,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 2.248030287623391e-15,
+      "qrisp_success_probability": 0.21164839570082733,
+      "cudaq_success_probability": 0.2116483957008277,
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "cudaq_logical_qubits": [
+        0,
+        1
+      ],
+      "cudaq_postselect_qubits": [
+        2,
+        3
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "tfim",
+    "description": "Two-qubit TFIM block encoding",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 4.47545209131181e-16,
+    "silq_width": 5,
+    "qrisp_width": 5,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "logical_wire_permutation": [
+      2,
+      3,
+      0,
+      1
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 0.9999999999999998,
+      "max_normalized_amplitude_error": 4.308824046522781e-16,
+      "silq_success_probability": 0.40748703316469287,
+      "qrisp_success_probability": 0.40748703316469276,
+      "silq_logical_qubits": [
+        2,
+        3
+      ],
+      "silq_postselect_qubits": [
+        0,
+        1,
+        4
+      ],
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "cudaq_width": 4,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 1.3330308699542692e-16,
+      "qrisp_success_probability": 0.40748703316469276,
+      "cudaq_success_probability": 0.4074870331646926,
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4
+      ],
+      "cudaq_logical_qubits": [
+        0,
+        1
+      ],
+      "cudaq_postselect_qubits": [
+        2,
+        3
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "heisenberg",
+    "description": "Two-qubit Heisenberg block encoding",
+    "full_state_equivalent": false,
+    "full_state_max_amplitude_error": Infinity,
+    "silq_width": 5,
+    "qrisp_width": 6,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "logical_wire_permutation": null,
+    "permutations_checked": 0,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 0.9999999999999998,
+      "max_normalized_amplitude_error": 2.7166735031638933e-15,
+      "silq_success_probability": 0.11221538325213314,
+      "qrisp_success_probability": 0.112215383252133,
+      "silq_logical_qubits": [
+        2,
+        3
+      ],
+      "silq_postselect_qubits": [
+        0,
+        1,
+        4
+      ],
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "cudaq_width": 4,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 6.389813363550566e-16,
+      "qrisp_success_probability": 0.112215383252133,
+      "cudaq_success_probability": 0.11221538325213277,
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "cudaq_logical_qubits": [
+        0,
+        1
+      ],
+      "cudaq_postselect_qubits": [
+        2,
+        3
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "chebyshev",
+    "description": "TFIM Chebyshev polynomial T_2",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 6.662783593823664e-16,
+    "silq_width": 9,
+    "qrisp_width": 5,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "logical_wire_permutation": [
+      2,
+      3,
+      0,
+      1
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 8.737773046970893e-16,
+      "silq_success_probability": 0.4348145228555453,
+      "qrisp_success_probability": 0.4348145228555444,
+      "silq_logical_qubits": [
+        2,
+        3
+      ],
+      "silq_postselect_qubits": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "cudaq_width": 4,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 1.1050065994108394e-15,
+      "qrisp_success_probability": 0.4348145228555444,
+      "cudaq_success_probability": 0.4348145228555444,
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4
+      ],
+      "cudaq_logical_qubits": [
+        0,
+        1
+      ],
+      "cudaq_postselect_qubits": [
+        2,
+        3
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "hamiltonian_simulation",
+    "description": "TFIM product formula: t=pi/4, 14 steps",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 1.1710090180710446e-15,
+    "silq_width": 2,
+    "qrisp_width": 2,
+    "silq_active_qubits": [
+      0,
+      1
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1
+    ],
+    "logical_wire_permutation": [
+      0,
+      1
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_width": 2,
+    "cudaq_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 1.887379141862766e-15,
+      "qrisp_success_probability": 1.0000000000000002,
+      "cudaq_success_probability": 0.9999999999999984,
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [],
+      "cudaq_logical_qubits": [
+        0,
+        1
+      ],
+      "cudaq_postselect_qubits": [],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "passed": true
+  },
+  {
+    "id": "hamiltonian_simulation_qsp",
+    "description": "TFIM QSP simulation: t=pi/4, target degree 28",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 6.74089168700215e-14,
+    "silq_width": 10,
+    "qrisp_width": 6,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "logical_wire_permutation": [
+      4,
+      2,
+      3,
+      0,
+      1
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 6.248472997268232e-15,
+      "silq_success_probability": 0.9999988146676608,
+      "qrisp_success_probability": 0.999998814667492,
+      "silq_logical_qubits": [
+        3,
+        4
+      ],
+      "silq_postselect_qubits": [
+        0,
+        1,
+        2,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "cudaq_width": 4,
+    "cudaq_comparison": {
+      "passed": true,
+      "comparison_kind": "classically_recovered_official_workflow",
+      "fidelity": 0.999999999999982,
+      "max_normalized_amplitude_error": 7.371576053353449e-08,
+      "qrisp_success_probability": 0.999998814667492,
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "recovered_vector_norm_squared": 1.000000000611914,
+      "logical_wire_permutation": [
+        0,
+        1
+      ],
+      "cudaq_component_postselect_qubits": {
+        "cos": [
+          2,
+          3
+        ],
+        "sin": [
+          2,
+          3
+        ]
+      },
+      "cudaq_component_success_probabilities": {
+        "cos": 0.4956892232576107,
+        "sin": 0.6790675801768064
+      },
+      "cudaq_subnormalization": 2.0
+    },
+    "passed": true
+  },
+  {
+    "id": "matrix_inversion",
+    "description": "2x2 pseudoinverse: A=[[1,-1/3],[-1/3,1]], epsilon=0.02",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 2.094536202610817e-10,
+    "silq_width": 4,
+    "qrisp_width": 6,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "logical_wire_permutation": [
+      2,
+      3,
+      1,
+      0
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 0.9999999999999993,
+      "max_normalized_amplitude_error": 4.971822663968395e-10,
+      "silq_success_probability": 0.10753922562120347,
+      "qrisp_success_probability": 0.10753922562120394,
+      "silq_logical_qubits": [
+        3
+      ],
+      "silq_postselect_qubits": [
+        0,
+        1,
+        2
+      ],
+      "qrisp_logical_qubits": [
+        0
+      ],
+      "qrisp_postselect_qubits": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "logical_wire_permutation": [
+        0
+      ]
+    },
+    "cudaq_width": 2,
+    "cudaq_comparison": {
+      "passed": true,
+      "comparison_kind": "classically_recovered_official_workflow",
+      "fidelity": 0.9999567164078139,
+      "max_normalized_amplitude_error": 0.006252971725842228,
+      "qrisp_success_probability": 0.10753922562120394,
+      "qrisp_logical_qubits": [
+        0
+      ],
+      "qrisp_postselect_qubits": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "recovered_vector_norm_squared": 0.29835887618307144,
+      "logical_wire_permutation": [
+        0
+      ],
+      "cudaq_postselect_qubits": [
+        1
+      ],
+      "cudaq_raw_success_probability": 0.8931317229562205,
+      "cudaq_subnormalization": 2.1702640212459205
+    },
+    "passed": true
+  },
+  {
+    "id": "eigenstate_filter",
+    "description": "Eigenstate filter: lambda=0.65, degree 28",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 3.542117367768207e-14,
+    "silq_width": 9,
+    "qrisp_width": 6,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "logical_wire_permutation": [
+      3,
+      1,
+      2,
+      0
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 1.0,
+      "max_normalized_amplitude_error": 3.054626883036172e-15,
+      "silq_success_probability": 0.49020906424496064,
+      "qrisp_success_probability": 0.49020906424491806,
+      "silq_logical_qubits": [
+        3
+      ],
+      "silq_postselect_qubits": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "qrisp_logical_qubits": [
+        0
+      ],
+      "qrisp_postselect_qubits": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "logical_wire_permutation": [
+        0
+      ]
+    },
+    "cudaq_comparison": {
+      "passed": null,
+      "status": "unavailable"
+    },
+    "passed": true
+  },
+  {
+    "id": "hhl",
+    "description": "HHL: A=[[3/4,-1/4],[-1/4,3/4]], b=|1>, precision=3",
+    "full_state_equivalent": true,
+    "full_state_max_amplitude_error": 1.831026719408895e-15,
+    "silq_width": 7,
+    "qrisp_width": 6,
+    "silq_active_qubits": [
+      0,
+      4
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1
+    ],
+    "logical_wire_permutation": [
+      1,
+      0
+    ],
+    "permutations_checked": 1,
+    "comparison_kind": "full_coherent_state",
+    "cudaq_comparison": {
+      "passed": null,
+      "status": "unavailable"
+    },
+    "passed": true
+  },
+  {
+    "id": "convolution",
+    "description": "Cubic convolution, one coherent attempt",
+    "full_state_equivalent": false,
+    "full_state_max_amplitude_error": Infinity,
+    "silq_width": 4,
+    "qrisp_width": 4,
+    "silq_active_qubits": [
+      0,
+      1,
+      2
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2
+    ],
+    "logical_wire_permutation": null,
+    "permutations_checked": 0,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 0.9999999999999996,
+      "max_normalized_amplitude_error": 5.582969415826191e-10,
+      "silq_success_probability": 0.5208999978705807,
+      "qrisp_success_probability": 0.5426018599235105,
+      "silq_logical_qubits": [
+        1,
+        2
+      ],
+      "silq_postselect_qubits": [
+        0,
+        3
+      ],
+      "qrisp_logical_qubits": [
+        0,
+        1
+      ],
+      "qrisp_postselect_qubits": [
+        2,
+        3
+      ],
+      "logical_wire_permutation": [
+        0,
+        1
+      ]
+    },
+    "cudaq_comparison": {
+      "passed": null,
+      "status": "unavailable"
+    },
+    "passed": true
+  },
+  {
+    "id": "fourier_loader",
+    "description": "Fourier loader: 6 qubits, five modes",
+    "full_state_equivalent": false,
+    "full_state_max_amplitude_error": Infinity,
+    "silq_width": 10,
+    "qrisp_width": 7,
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "qrisp_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "logical_wire_permutation": null,
+    "permutations_checked": 0,
+    "comparison_kind": "postselected_logical_state",
+    "postselected_comparison": {
+      "passed": true,
+      "fidelity": 1.0000000000000004,
+      "max_normalized_amplitude_error": 2.896622683878915e-12,
+      "silq_success_probability": 1.0000000000000162,
+      "qrisp_success_probability": 0.3596601342398394,
+      "silq_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "silq_postselect_qubits": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "qrisp_logical_qubits": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "qrisp_postselect_qubits": [
+        6
+      ],
+      "logical_wire_permutation": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "cudaq_comparison": {
+      "passed": null,
+      "status": "unavailable"
+    },
+    "passed": true
+  }
+]

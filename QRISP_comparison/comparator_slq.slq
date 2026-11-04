@@ -1,0 +1,7 @@
+def main(){
+    value := 0:uint[5] as 𝔹^5;
+    flag := 0:𝔹;
+    for j in [0..5){value[j] := H(value[j]);}
+    if (value as uint[5])<6{flag := X(flag);}
+    return value~(flag,);
+}
