@@ -13,7 +13,7 @@ The tables were generated on macOS with Python 3.12 and these exact versions:
 | Tool | Repository | Commit |
 |---|---|---|
 | Silq | https://github.com/silq-lang/silq | `19b66448ff3aad32f554edac2dd57ef1924aa341` |
-| HQIR | https://github.com/silq-lang/hqir (branch `qasm-classical-int-ops`) | `afc301cf5ba7ef0b67afb38c4b4b6b2d22a24275` |
+| HQIR | https://github.com/silq-lang/hqir | `ebf0128` |
 | qasmviz | https://github.com/silq-lang/qasmviz | `2e48f2a` |
 
 `silq`, `hqir`, and `qasmviz` must be on `PATH`. The resource counts depend on
