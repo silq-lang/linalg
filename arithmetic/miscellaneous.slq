@@ -1,6 +1,6 @@
-import arithmetic.CQ_adder;
-import arithmetic.QQ_adder;
-import arithmetic.QQ_mult;
+import CQ_adder;
+import QQ_adder;
+import QQ_mult;
 
 // Map: |c,x> -> |c,-x mod p> if c=1, otherwise unchanged.
 def c_neg_modp[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n){
@@ -68,25 +68,29 @@ def ordinary_square_sub[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n){
     (low:𝔹^n)~(high:𝔹^n) := z;
     (high,low) := add_multiple[0:!𝔹][f][n,m](high,low~(0:uint[h] as 𝔹^h) coerce 𝔹^m);
     (low:𝔹^n)~(middle:𝔹^h) := low coerce 𝔹^(n+h);
-    (middle,low) := add_multiple[0:!𝔹][f][h,n+1](middle,low~(0,));
+    low := low~(0:𝔹,);
+    if n=256 && f=4294968273{
+        // The second fold adds at most 2^(2h) into a 256-bit word.
+        // A 96-bit propagation window is bounded-error, like the ECC walk.
+        (bottom:𝔹^96)~(upper:𝔹^(n+1 sub 96)) := low;
+        (middle,bottom) := add_multiple[0:!𝔹][f][h,96](middle,bottom);
+        low := (bottom~upper) coerce 𝔹^(n+1);
+    }else{(middle,low) := add_multiple[0:!𝔹][f][h,n+1](middle,low);}
     low := c_const_addsub[1:!𝔹][n+1](1:𝔹,low,p);
     (low:𝔹^n)~(sign,) := low;
     low := c_const_addsub[0:!𝔹][n](sign,low,p);
     (low,x) := c_QQ_sub_modp[p][n](ctrl,low,x);
     low := c_const_addsub[1:!𝔹][n](sign,low,p);
     low := c_const_addsub[0:!𝔹][n+1](1:𝔹,low~(sign,),p);
-    (middle,low) := add_multiple[1:!𝔹][f][h,n+1](middle,low);
+    if n=256 && f=4294968273{
+        (bottom:𝔹^96)~(upper:𝔹^(n+1 sub 96)) := low;
+        (middle,bottom) := add_multiple[1:!𝔹][f][h,96](middle,bottom);
+        low := (bottom~upper) coerce 𝔹^(n+1);
+    }else{(middle,low) := add_multiple[1:!𝔹][f][h,n+1](middle,low);}
     (low:𝔹^n)~(0,) := low;
     (high,low) := add_multiple[1:!𝔹][f][n,m](high,low~middle coerce 𝔹^m);
     (low:𝔹^n)~(0:uint[h] as 𝔹^h) := low coerce 𝔹^(n+h);
     (y,z) := integer_square[1:!𝔹][n](y,low~high);
     forget(z=0:uint[2*n]);
     return (x,y);
-}
-
-// Map: Example: |+>|5> -> (|0,5>+|1,8>)/sqrt(2) for p=13.
-def main(){
-    ctrl := H(0:𝔹);x := 5:uint[4] as 𝔹^4;
-    x := c_neg_modp[13](ctrl,x);
-    return (ctrl,x as uint[4]);
 }

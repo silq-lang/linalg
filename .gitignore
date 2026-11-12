@@ -5,3 +5,7 @@ prepare.slq
 select.slq
 correct.slq
 erroneous.slq
+.DS_Store
+.mplconfig/
+.cache/
+__pycache__/

@@ -1,0 +1,259 @@
+// QROAM from Berry, Gidney, Motta, McClean, Babbush,
+// arXiv:1902.02134, Appendices B and C.
+
+// Toggle target iff controls equals the lifted classical pattern.  Writing
+// the equality recursively avoids the expensive generic quantum-integer
+// comparison while implementing exactly the same predicate.
+def match_x[n:!ℕ](pattern:!ℕ,const controls:𝔹^n,target:𝔹) qfree{
+    if n=0{return X(target);}
+    bit := ((pattern div (2^(n sub 1)))%2)=1;
+    if bit{
+        if controls[n sub 1]{
+            target := match_x[n sub 1](pattern,controls[0..n sub 1],target);
+        }
+    }else{
+        if controls[n sub 1]=0{
+            target := match_x[n sub 1](pattern,controls[0..n sub 1],target);
+        }
+    }
+    return target;
+}
+
+def data_lookup[M:!ℕ](const f:!ℕ → lifted !𝔹^M)
+    [m:!ℕ,n:!ℕ](const control:𝔹^m,k:!ℕ,l:!ℕ,qs:𝔹^n) qfree{
+    for i in [0..2^m){
+        selected := 0:𝔹;
+        selected := match_x[m](i,control,selected);
+        r := f(k*i+l);
+        for j in [0..M){if r[j]{qs[j] := CNOT(selected,qs[j]);}}
+        selected := match_x[m](i,control,selected);
+        forget(selected=0:𝔹);
+    }
+    return qs;
+}
+
+// Same QROM lookup as k calls to data_lookup, but compute each address
+// equality once and fan it out across all k words in the selected block.
+def block_lookup[M:!ℕ](const f:!ℕ → lifted !𝔹^M)
+    [m:!ℕ,k:!ℕ](const control:𝔹^m,blocks:(𝔹^M)^k) qfree{
+    for i in [0..2^m){
+        uses := 0:!ℕ;
+        for slot in [0..k){
+            word := f(k*i+slot);
+            for bit in [0..M){if word[bit]{uses += 1;}}
+        }
+        if uses=1{
+            // Fuse a one-use predicate directly into its only target.
+            for slot in [0..k){
+                word := f(k*i+slot);
+                for bit in [0..M){
+                    if word[bit]{
+                        blocks[slot][bit] :=
+                            match_x[m](i,control,blocks[slot][bit]);
+                    }
+                }
+            }
+        }else{
+            if uses>1{
+                selected := 0:𝔹;
+                selected := match_x[m](i,control,selected);
+                for slot in [0..k){
+                    word := f(k*i+slot);
+                    for bit in [0..M){
+                        if word[bit]{
+                            blocks[slot][bit] :=
+                                CNOT(selected,blocks[slot][bit]);
+                        }
+                    }
+                }
+                selected := match_x[m](i,control,selected);
+                forget(selected=0:𝔹);
+            }
+        }
+    }
+    return blocks;
+}
+
+def ccx(const a:𝔹,const b:𝔹,target:𝔹) qfree{
+    if a{target := CNOT(b,target);}
+    return target;
+}
+
+// Gate-level form of the same controlled swap used by cont_swap.
+def fredkin_at[k:!ℕ,n:!ℕ](const control:𝔹,left:!ℕ,right:!ℕ,
+    bit:!ℕ,qs:(𝔹^n)^k) qfree{
+    assert(left!=right);
+    copied_right := dup(qs[right][bit]);
+    qs[left][bit] := CNOT(copied_right,qs[left][bit]);
+    forget(copied_right=qs[right][bit]);
+    copied_left := dup(qs[left][bit]);
+    qs[right][bit] := ccx(copied_left,control,qs[right][bit]);
+    forget(copied_left=qs[left][bit]);
+    copied_right := dup(qs[right][bit]);
+    qs[left][bit] := CNOT(copied_right,qs[left][bit]);
+    forget(copied_right=qs[right][bit]);
+    return qs;
+}
+
+def cont_swap[k:!ℕ,m:!ℕ,n:!ℕ]
+    (const control:𝔹^m,qs:(𝔹^n)^k) qfree{
+    for i in [1..2^m){
+        selected := 0:𝔹;
+        selected := match_x[m](i,control,selected);
+        for bit in [0..n){qs := fredkin_at[k,n](selected,0,i,bit,qs);}
+        selected := match_x[m](i,control,selected);
+        forget(selected=0:𝔹);
+    }
+    return qs;
+}
+
+def qroam_comp[M:!ℕ](const f:!ℕ → lifted !𝔹^M)
+    [m:!ℕ](address:𝔹^m,k:!ℕ) qfree{
+    r := vector(k,vector(M,0:𝔹));
+    ml := floor(log₂(k)) coerce !ℕ;
+    (l:𝔹^ml)~(h:𝔹^(m sub ml coerce !ℕ)) := address;
+    r := block_lookup(f)[m sub ml coerce !ℕ,k](h,r);
+    r := cont_swap[k,ml,M](l,r);
+    return (l~h,r);
+}
+
+def bitwise_dotprod[M:!ℕ](x:!uint[M],y:!uint[M]) lifted:!𝔹{
+    parity := false:!𝔹;
+    for bit in [0..M){parity ⊕= x[bit]&y[bit];}
+    return parity;
+}
+
+def negate_bit[M:!ℕ](const f:!ℕ !→ lifted !𝔹^M)
+    [k:!ℕ](measurements:!ℕ,j:!ℕ,d:!ℕ) lifted:!𝔹{
+    def perm(l:!ℕ,s:!ℕ) lifted{
+        if s=0{return l;}
+        if s=l{return 0;}
+        return s;
+    }
+    sum := 0:!𝔹;
+    h := j div k;
+    l := (j-h*k) coerce !ℕ;
+    for s in [0..k){
+        idx := h*k+perm(l,s);
+        assert(idx<d);
+        word := f(idx);
+        for bit in [0..M){
+            measured_bit := ((measurements div 2^(s*M+bit))%2)=1;
+            if word[bit]{sum ⊕= measured_bit;}
+        }
+    }
+    return sum;
+}
+
+def negate_set[M:!ℕ](const f:!ℕ !→ lifted !𝔹^M)
+    [k:!ℕ](measurements:!ℕ,d:!ℕ) lifted:!𝔹^d{
+    S := vector(d,false:!𝔹);
+    for j in [0..d){S[j] = negate_bit[M](f)[k](measurements,j,d);}
+    return S;
+}
+
+def binary2unary[n:!ℕ](const qs:𝔹^n) lifted{
+    xs := 1:uint[2^n] as 𝔹^(2^n);
+    for j in [0..n){
+        m := 2^j;
+        for k in [0..m){if qs[j]{(xs[k],xs[k+m]):=(xs[k+m],xs[k]);}}
+    }
+    return xs;
+}
+
+def measure_x_reset(q:𝔹):𝔹×!𝔹{
+    bit := measure(H(q));
+    return (0:𝔹,bit);
+}
+
+// Recursive form of the paper's loop, required by current loop lowering.
+def unary2binary[n:!ℕ](const qs:𝔹^n,xs:𝔹^(2^n)){
+    if n=0{
+        (x,) := xs coerce 𝔹^1;
+        forget(x=1:𝔹);
+        return;
+    }
+    m := 2^(n sub 1);
+    (lo:𝔹^m)~(hi:𝔹^m) := xs coerce 𝔹^(m+m);
+    for k in [0..m){lo[k] := CNOT(hi[k],lo[k]);}
+    for k in [0..m){
+        (hi[k],bit) := measure_x_reset(hi[k]);
+        if bit&&qs[n sub 1]{lo[k] := Z(lo[k]);}
+    }
+    forget(hi=vector(m,0:𝔹));
+    unary2binary[n sub 1](qs[0..n sub 1],lo coerce 𝔹^(2^(n sub 1)));
+}
+
+def qroam_uncomp[M:!ℕ](const f:!ℕ !→ lifted !𝔹^M)
+    [m:!ℕ,k:!ℕ](address:𝔹^m,qs:(𝔹^M)^k,d:!ℕ){
+    measurements := 0:!ℕ;
+    for i in [0..k){
+        for j in [0..M){
+            (qs[i][j],bit) := measure_x_reset(qs[i][j]);
+            if bit{measurements += 2^(i*M+j);}
+        }
+    }
+    forget(qs=vector(k,vector(M,0:𝔹)));
+    ml := floor(log₂(k)) coerce !ℕ;
+    (l:𝔹^ml)~(h:𝔹^(m sub ml coerce !ℕ)) := address;
+    xs := binary2unary[ml](l);
+    for i in [0..k){xs[i] := H(xs[i]);}
+    // Exactly data_lookup(fixup_table[S]), inlined so the
+    // measurement-dependent table remains fixed-width in HQIR.
+    for i in [0..2^(m sub ml coerce !ℕ)){
+        uses := 0:!ℕ;
+        for j in [0..k div 2){
+            q := (k div 2)*i+j;
+            fix0 := negate_bit[M](f)[k](measurements,2*q,d);
+            fix1 := negate_bit[M](f)[k](measurements,2*q+1,d);
+            if fix0{uses += 1;}
+            if fix1{uses += 1;}
+        }
+        if uses<3{
+            // One or two targets are cheaper without a selector ancilla.
+            for j in [0..k div 2){
+                q := (k div 2)*i+j;
+                fix0 := negate_bit[M](f)[k](measurements,2*q,d);
+                fix1 := negate_bit[M](f)[k](measurements,2*q+1,d);
+                if fix0{
+                    xs[2*j] := match_x[m sub ml coerce !ℕ](i,h,xs[2*j]);
+                }
+                if fix1{
+                    xs[2*j+1] :=
+                        match_x[m sub ml coerce !ℕ](i,h,xs[2*j+1]);
+                }
+            }
+        }else{
+            selected := 0:𝔹;
+            selected := match_x[m sub ml coerce !ℕ](i,h,selected);
+            for j in [0..k div 2){
+                q := (k div 2)*i+j;
+                fix0 := negate_bit[M](f)[k](measurements,2*q,d);
+                fix1 := negate_bit[M](f)[k](measurements,2*q+1,d);
+                if fix0{xs[2*j] := CNOT(selected,xs[2*j]);}
+                if fix1{xs[2*j+1] := CNOT(selected,xs[2*j+1]);}
+            }
+            selected := match_x[m sub ml coerce !ℕ](i,h,selected);
+            forget(selected=0:𝔹);
+        }
+    }
+    for i in [0..k){xs[i] := H(xs[i]);}
+    unary2binary(l,xs);
+    return l~h;
+}
+
+def table(p:!ℕ) lifted:!𝔹^2{
+    assert(p<8);
+    pb := p as !uint[3];
+    return (pb[0]⊕pb[2],pb[1]);
+}
+
+def main():𝔹^5{
+    address := 0:uint[3] as 𝔹^3;
+    for j in [0..3){address[j] := H(address[j]);}
+    (address,qs) := qroam_comp[2](table)[3](address,2);
+    output := 0:uint[2] as 𝔹^2;
+    for j in [0..2){output[j] := CNOT(qs[0][j],output[j]);}
+    address := qroam_uncomp[2](table)[3,2](address,qs,8);
+    return address~output;
+}

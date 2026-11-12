@@ -1,6 +1,6 @@
-import arithmetic.QQ_adder;
-import arithmetic.CQ_adder;
-import arithmetic.QQ_mult;
+import QQ_adder;
+import CQ_adder;
+import QQ_mult;
 
 // Map: |v> -> |rotate_left_k(v)>.
 def cyclic_lshift[k:!ℕ][n:!ℕ](v:𝔹^n){s := k%n;(a:𝔹^s)~(b:𝔹^(n sub s)) := v;return b~a;}

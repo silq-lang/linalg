@@ -1,0 +1,20 @@
+def givens_rotation[n:!ℕ](θ:!ℝ)[p:!ℕ,q:!ℕ](qs:𝔹^n):𝔹^n{
+    assert(p<q && q<n);
+    with{
+        for j in [p+2..q){temp := dup(qs[j]); qs[p+1] := CNOT(temp,qs[p+1]); forget(temp=qs[j]);}
+        if (q-p>1){if qs[p]{qs[p+1] := Z(qs[p+1]);}}
+        qs[p] := H(qs[p]);
+        temp := dup(qs[p]); qs[q] := CNOT(temp,qs[q]); forget(temp=qs[p]);
+    }
+    do{qs[p] := rotY(-θ,qs[p]); qs[q] := rotY(-θ,qs[q]);}
+    return qs;
+}
+
+def main():𝔹^2{
+    qs := 0:uint[2] as 𝔹^2;
+    qs[0] := H(qs[0]);
+    qs[1] := H(qs[1]);
+    // CUDA-Q Algorithms' public Givens primitive is nearest-neighbour.
+    // Use the same adjacent pair in both implementations.
+    return givens_rotation[2](π/6)[0,1](qs);
+}

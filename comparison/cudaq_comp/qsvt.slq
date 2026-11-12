@@ -1,0 +1,38 @@
+import walk;
+
+def identity[m:!ℕ](state:𝔹^m) mfree{return state;}
+
+def reflection[n:!ℕ](const prepare:𝔹^n → mfree 𝔹^n,state:𝔹^n) mfree{
+    with prepare(state):=state{
+        if state==vector(n,0){phase(π);}
+    }
+    return state;
+}
+
+def qsvt[d:!ℕ](phi:!ℝ^(d+1),backward:!𝔹^d)
+    [n:!ℕ,m:!ℕ](const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n)
+    (anc:𝔹^m,qs:𝔹^n)mfree:𝔹^m×𝔹^n{
+    if anc==vector(m,0){phase(phi[0]);}
+    for j in [1..d+1){
+        if backward[j sub 1]{
+            anc := reflection(identity[m],anc);
+            (anc,qs) := f(anc,qs);
+        }else{
+            (anc,qs) := f(anc,qs);
+            anc := reflection(identity[m],anc);
+        }
+        if anc==vector(m,0){phase(phi[j]);}
+    }
+    return (anc,qs);
+}
+
+def main(){
+    coef := [sqrt(0.5),-sqrt(0.3),sqrt(0.2)];
+    index := [(0,3),(1,0),(1,2)];
+    def block(anc:𝔹^2,qs:𝔹^2) mfree{
+        return pauli_LCU[2,2,3](anc,qs,index,coef);
+    }
+    phi := [0.3,-0.7,1.1,0.4];
+    backward := [false,true,false]:!𝔹^3;
+    return qsvt[3](phi,backward)[2,2](block)(0:uint[2] as 𝔹^2,0:uint[2] as 𝔹^2);
+}

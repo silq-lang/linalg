@@ -186,6 +186,21 @@ def mult_modp_into[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n,result:𝔹^n) @noinline{
 // Map: |x,y> -> |x,y,x*y*R^(-1) mod p>.
 def mult_modp_clean[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){return mult_modp_into[p][n](x,y,0:uint[n] as 𝔹^n);}
 
+// Controlled canonical product: |c,x,y,r> -> |c,x,y,r xor c*(x*y mod p)>.
+def c_mult_modp_into[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n,result:𝔹^n) @noinline{
+    (x,y,z) := mult_modp_clean[p][n](x,y);
+    for j in [0..n){z := double_modp[p][n](z);}
+    for j in [0..n){
+        prod := mbu_AND_zero(ctrl,z[j]);
+        result[j] := CNOT(prod,result[j]);
+        if measure(H(prod)){if ctrl{z[j] := Z(z[j]);}}
+    }
+    for j in [0..n){z := half_modp[p][n](z);}
+    (x,y,z) := mult_modp_into[p][n](x,y,z);
+    forget(z=0:uint[n]);
+    return (x,y,result);
+}
+
 // Map: |x,r> -> |x,r xor (x^2*R^(-1) mod p)>.
 def square_modp_into[p:!ℕ][n:!ℕ](x:𝔹^n,result:𝔹^n){
     y := dup(x);(x,y,result) := mult_modp_into[p][n](x,y,result);
@@ -252,27 +267,82 @@ def integer_square[undo:!𝔹][n:!ℕ](y:𝔹^n,z:𝔹^(2*n)){
     return (y,z);
 }
 
+// Add a carry through a zero-padded tail without materializing operand bits.
+// The saved carry is cin & old bit = cin & !new bit, giving the HMR repair.
+def increment_zero_tail[n:!ℕ](const cin:𝔹,b:𝔹^n){
+    if n=0{return b;}
+    if n=1{b[0] := CNOT(cin,b[0]); return b;}
+    (b0,)~(bt:𝔹^(n sub 1)) := b;
+    carry := AND(cin,b0,0:𝔹);
+    b0 := CNOT(cin,b0);
+    bt := increment_zero_tail[n sub 1](carry,bt);
+    carry := H(carry); outcome := measure(carry);
+    if outcome && cin{b0 := X(b0); b0 := Z(b0); b0 := X(b0);}
+    return ((b0,)~bt) coerce 𝔹^n;
+}
+
+// Map: |cin,a,b> -> |cin,a,b+a+cin>, with n-k implicit high zero bits.
+def adder_zero_padded[k:!ℕ,n:!ℕ](const cin:𝔹,a:𝔹^k,b:𝔹^n){
+    assert(k<=n);
+    if k=0{b := increment_zero_tail[n](cin,b); return (a,b);}
+    if k=n{
+        (a,t) := adder_nocarry[k](cin,a,b coerce 𝔹^k);
+        return (a,t coerce 𝔹^n);
+    }
+    (a0,)~(at:𝔹^(k sub 1)) := a;
+    (b0,)~(bt:𝔹^(n sub 1)) := b;
+    (a0,b0,carry) := add_unit(cin,a0,b0);
+    (at,bt) := adder_zero_padded[k sub 1,n sub 1](carry,at,bt);
+    (a0,b0) := add_unit_uncomp(cin,a0,b0,carry);
+    return (((a0,)~at) coerce 𝔹^k,((b0,)~bt) coerce 𝔹^n);
+}
+
+// Map: |a,b> -> |a,b+a> with n-k implicit high zero bits, like
+// adder_zero_padded with no carry-in. The low half keeps only its carry-out,
+// so the high half and the tail need half the carry scratch. That carry is
+// erased exactly: carry(a+b) equals carry(a+~(a+b)) on the low half.
+def adder_zero_padded_split[k:!ℕ,n:!ℕ](a:𝔹^k,b:𝔹^n){
+    assert(k>=2); assert(k<=n);
+    h := k div 2;
+    (al:𝔹^h)~(ah:𝔹^(k sub h)) := a coerce 𝔹^(h+(k sub h));
+    (bl:𝔹^h)~(bh:𝔹^(n sub h)) := b coerce 𝔹^(h+(n sub h));
+    (al,wide) := adder_carry[h](0:𝔹,al,bl~(0:𝔹,));
+    (bl:𝔹^h)~(c,) := wide;
+    (ah,bh) := adder_zero_padded[k sub h,n sub h](c,ah,bh);
+    for j in [0..h){bl[j] := X(bl[j]);}
+    (al,bl,c) := QQ_carry[h](al,bl,c);
+    for j in [0..h){bl[j] := X(bl[j]);}
+    forget(c=0);
+    return ((al~ah) coerce 𝔹^k,(bl~bh) coerce 𝔹^n);
+}
+
 // Map: |x,y> -> |x,y +/- factor*x>.
 def add_multiple[subt:!𝔹][factor:!ℕ][k:!ℕ,m:!ℕ](x:𝔹^k,y:𝔹^m){
-    length := field_bits(factor);
-    bits := factor as !uint[length];
+    // Canonical signed digits replace long runs of ones by one subtraction.
+    // For 2^32+977 this uses five shifted additions instead of seven.
+    remain := factor; positive := 0:!ℕ; negative := 0:!ℕ; place := 1:!ℕ;
+    while remain>0{
+        if remain%2=1{
+            if remain%4=3{negative += place; remain += 1;}
+            else{positive += place; remain = remain sub 1;}
+        }
+        remain = remain div 2; place *= 2;
+    }
+    length := field_bits(positive+negative);
+    if k+length>m+1{positive = factor; negative = 0; length = field_bits(factor);}
+    plus := positive as !uint[length]; minus := negative as !uint[length];
     for step in [0..length){
         j := step; if subt{j = length sub step sub 1;}
-        if bits[j]{
+        if plus[j] || minus[j]{
+            subtract := subt; if minus[j]{subtract = !subtract;}
             assert(k+j<=m);
-            operand := (0:uint[j] as 𝔹^j)~x~(0:uint[m sub k sub j] as 𝔹^(m sub k sub j)) coerce 𝔹^m;
-            if subt{(operand,y) := subst_nocarry[m](0:𝔹,operand,y);}
-            else{(operand,y) := adder_nocarry[m](0:𝔹,operand,y);}
-            (0:uint[j] as 𝔹^j)~(part:𝔹^k)~(0:uint[m sub k sub j] as 𝔹^(m sub k sub j)) := operand coerce 𝔹^((j+k)+(m sub k sub j));
-            x := part;
+            (low:𝔹^j)~(tail:𝔹^(m sub j)) := y;
+            if subtract{for z in [0..m sub j){tail[z] := X(tail[z]);}}
+            if k>=128{(x,tail) := adder_zero_padded_split[k,m sub j](x,tail);}
+            else{(x,tail) := adder_zero_padded[k,m sub j](0:𝔹,x,tail);}
+            if subtract{for z in [0..m sub j){tail[z] := X(tail[z]);}}
+            y := (low~tail) coerce 𝔹^m;
         }
     }
     return (x,y);
-}
-
-// Map: Montgomery example: |1>|8> -> |1>|8>|7> for p=13.
-def main(){
-    x := montgomery_const[13](9) as uint[4] as 𝔹^4;
-    y := montgomery_const[13](7) as uint[4] as 𝔹^4;
-    return mult_modp_clean[13](x,y) as uint[4]×uint[4]×uint[4];
 }

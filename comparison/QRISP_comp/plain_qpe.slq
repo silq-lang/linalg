@@ -1,0 +1,16 @@
+import phase_estimation.QFT;
+
+def plain_multiplexed_unitaries[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,const control:𝔹^m,target:𝔹^n) mfree{
+    for j in [0..m){
+        if control[j]{
+            for k in [0..2^j){target := f(target);}
+        }
+    }
+    return target;
+}
+
+def plain_QPE_coherent[n:!ℕ,m:!ℕ](const f:𝔹^n → mfree 𝔹^n,phase:𝔹^m,system:𝔹^n) mfree{
+    system := plain_multiplexed_unitaries(f,phase,system);
+    QFT(phase) := phase;
+    return (phase,system);
+}

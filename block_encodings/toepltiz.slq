@@ -35,5 +35,6 @@ def main(){
         return toeplitz(anc,xs,v);
     }
     (anc,qs) := toepltiz_amp(0:uint[4] as 𝔹^4,qs);
-    return fixed_point_AA(anc,qs,toepltiz_amp[2,4],Up);
+    //return fixed_point_AA(anc,qs,toepltiz_amp[2,4],Up);
+    return (anc,qs);
 }

@@ -1,0 +1,9 @@
+cudaq==0.16.0
+qiskit==2.6.2
+setuptools==84.2.1
+numpy==2.5.4
+scipy==1.18.1
+# Official CUDA-Q Algorithms commit used by the paired CUDA-Q files.
+# Install the pinned packages above first, then this file with:
+#   pip install --no-deps --no-build-isolation -r requirements.txt
+cudaq-algorithms @ git+https://github.com/NVIDIA/cudaq-algorithms.git@e46eea91aa7a54b59aebacc0492902acecf87a0a

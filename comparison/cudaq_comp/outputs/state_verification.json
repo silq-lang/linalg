@@ -1,0 +1,255 @@
+[
+  {
+    "id": "qq_adder",
+    "passed": true,
+    "max_amplitude_error": 1.3922803094719345e-16,
+    "wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  {
+    "id": "qroam",
+    "passed": true,
+    "max_amplitude_error": 1.6653345369377348e-16,
+    "wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1,
+      2,
+      9,
+      10
+    ]
+  },
+  {
+    "id": "qft",
+    "passed": true,
+    "max_amplitude_error": 1.0325671005860945e-15,
+    "wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  {
+    "id": "givens",
+    "passed": true,
+    "max_amplitude_error": 2.2653708043370923e-16,
+    "wire_permutation": [
+      1,
+      0
+    ],
+    "silq_active_qubits": [
+      0,
+      1
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1
+    ]
+  },
+  {
+    "id": "slater",
+    "passed": true,
+    "max_amplitude_error": 2.3575483865458486e-16,
+    "wire_permutation": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  {
+    "id": "comparator",
+    "passed": true,
+    "max_amplitude_error": 1.7055188364893219e-16,
+    "wire_permutation": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      11
+    ]
+  },
+  {
+    "id": "trotter",
+    "passed": true,
+    "max_amplitude_error": 1.3048072926061981e-15,
+    "wire_permutation": [
+      0,
+      1
+    ],
+    "silq_active_qubits": [
+      0,
+      1
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1
+    ]
+  },
+  {
+    "id": "pauli_prepare",
+    "passed": true,
+    "max_amplitude_error": 0.0,
+    "wire_permutation": [
+      1,
+      0
+    ],
+    "silq_active_qubits": [
+      0,
+      1
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1
+    ]
+  },
+  {
+    "id": "pauli_select",
+    "passed": true,
+    "max_amplitude_error": 2.6120120267701266e-16,
+    "wire_permutation": [
+      1,
+      0,
+      2,
+      3
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cudaq_active_qubits": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  {
+    "id": "walk",
+    "passed": true,
+    "max_amplitude_error": 2.1995308636845124e-15,
+    "wire_permutation": [
+      2,
+      1,
+      0
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2
+    ],
+    "cudaq_active_qubits": [
+      0,
+      2,
+      3
+    ]
+  },
+  {
+    "id": "qsvt",
+    "passed": true,
+    "max_amplitude_error": 4.1660185173424294e-15,
+    "wire_permutation": [
+      2,
+      1,
+      0
+    ],
+    "silq_active_qubits": [
+      0,
+      1,
+      2
+    ],
+    "cudaq_active_qubits": [
+      0,
+      2,
+      3
+    ]
+  }
+]

@@ -1,8 +1,3 @@
-import arithmetic.CQ_adder;
-import arithmetic.QQ_adder;
-import arithmetic.QQ_mult;
-import arithmetic.mod_inv;
-import arithmetic.miscellaneous;
 import primitives.QROAM;
 
 def EEA_classical(a:!ℕ,m:!ℕ) lifted:!ℕ×!ℕ{
@@ -52,8 +47,8 @@ def window_classical[p:!ℕ][ca:!ℕ][w:!ℕ,n:!ℕ](bx:!ℕ,by:!ℕ,shift:!ℕ,
         if slot=3{(ai,ax,ay)=point_add[p][ca](0:!𝔹,qx,qy,0:!𝔹,qx,qy); ay=(p-ay)%p; if ai{valid=0:!𝔹;} if ax=qx{if ay=qy|(ay+qy)%p=0{valid=0:!𝔹;}}}
     }
     if !valid{(ai,ax,ay)=(1:!𝔹,0,0);} else{if output{(ai,ax,ay)=point_add[p][ca](ai,ax,ay,0:!𝔹,qx,qy);}}
-    point := (ai,)~(montgomery_const[p](ax) as !uint[n] as !𝔹^n)~(montgomery_const[p](ay) as !uint[n] as !𝔹^n) coerce !𝔹^(2*n+1);
-    mask := point; dummy := (0:!𝔹,)~(montgomery_const[p]((qx+1)%p) as !uint[n] as !𝔹^n)~(0:!uint[n] as !𝔹^n);
+    point := (ai,)~((ax%p) as !uint[n] as !𝔹^n)~((ay%p) as !uint[n] as !𝔹^n) coerce !𝔹^(2*n+1);
+    mask := point; dummy := (0:!𝔹,)~(((qx+1)%p) as !uint[n] as !𝔹^n)~(0:!uint[n] as !𝔹^n);
     for i in [0..2*n+1){mask[i] ⊕= dummy[i];}
     return ((valid,)~point coerce !𝔹^(2*n+2),mask);
 }
@@ -74,9 +69,15 @@ def c_lookup_xor[M:!ℕ](const table:!ℕ !→ lifted !𝔹^M)[m:!ℕ](const ctr
 }
 
 def lookup_add_modp[p:!ℕ](const table:!ℕ !→ lifted !ℕ)[m:!ℕ,n:!ℕ](const ctrl:𝔹,const sign:𝔹,const address:𝔹^m,x:𝔹^n,subtract:!𝔹){
-    def lookup(j:!ℕ)lifted:!𝔹^n{return montgomery_const[p](table(j)) as !uint[n] as !𝔹^n;}
-    (copy,rows) := qroam_comp[n](lookup)[m](dup(address),2); rows[0] := c_neg_modp[p](sign,rows[0]); if subtract{(rows[0],x) := c_QQ_sub_modp[p](ctrl,rows[0],x);} else{(rows[0],x) := c_QQ_add_modp[p](ctrl,rows[0],x);}
-    rows[0] := c_neg_modp[p](sign,rows[0]); copy := qroam_uncomp[n](lookup)[m,2](copy,rows,2^m);
+    def lookup(j:!ℕ)lifted:!𝔹^n{return (table(j)%p) as !uint[n] as !𝔹^n;}
+    (copy,rows) := qroam_comp[n](lookup)[m](dup(address),2);
+    if sign{(rows[0] as uint[n]) *= p-1 mod p;}
+    if ctrl{
+        if subtract{(x as uint[n]) -= (rows[0] as uint[n]) mod p;}
+        else{(x as uint[n]) += (rows[0] as uint[n]) mod p;}
+    }
+    if sign{(rows[0] as uint[n]) *= p-1 mod p;}
+    copy := qroam_uncomp[n](lookup)[m,2](copy,rows,2^m);
     for j in [0..m){copy[j] := CNOT(address[j],copy[j]);} forget(copy=vector(m,0:𝔹));
     return x;
 }
@@ -91,16 +92,18 @@ def lookup_match_point[n:!ℕ](const table:!ℕ !→ lifted !𝔹^(2*n+2))[m:!�
 def window_point_add_generic[p:!ℕ][ca:!ℕ][w:!ℕ,n:!ℕ](const active:𝔹,window:𝔹^w,x:𝔹^n,y:𝔹^n,bx:!ℕ,by:!ℕ,shift:!ℕ){
     assert(w>0); (address:𝔹^(w sub 1))~(top:𝔹^1) := window; (sign,) := top; neg := X(dup(sign)); 
     sign := CNOT(!neg,sign); index := address~(sign,); for j in [0..w sub 1){index[j] := CNOT(neg,index[j]);}
-    index := c_QC_adder[w](neg,0:𝔹,index,1);
+    if neg{(index as uint[w]) += 1;}
     def tx(j:!ℕ) lifted:!ℕ{(i,a,b) := window_multiple[p][ca][w sub 1](bx,by,shift,j); return a;}
     def ty(j:!ℕ) lifted:!ℕ{(i,a,b) := window_multiple[p][ca][w sub 1](bx,by,shift,j); return b;}
     def t3x(j:!ℕ) lifted:!ℕ{return (3*tx(j))%p;}
     x := lookup_add_modp[p](tx)[w,n](1:𝔹,0:𝔹,index,x,1:!𝔹); y := lookup_add_modp[p](ty)[w,n](active,neg,index,y,1:!𝔹); 
-    (x,y) := div_modp_inplace[p](x,y); (x,y) := square_minus_modp[p](active,x,y);
+    (y as uint[n]) /= (x as uint[n]) mod p;
+	if active{(x as uint[n]) -= (y as uint[n])*(y as uint[n]) mod p;}
     x := lookup_add_modp[p](t3x)[w,n](active,0:𝔹,index,x,0:!𝔹); 
-    (x,y) := mult[p](x,y); x := c_neg_modp[p](active,x); 
+    (y as uint[n]) *= (x as uint[n]) mod p;
+    if active{(x as uint[n]) *= p-1 mod p;}
     x := lookup_add_modp[p](tx)[w,n](1:𝔹,0:𝔹,index,x,0:!𝔹); y := lookup_add_modp[p](ty)[w,n](active,neg,index,y,1:!𝔹); 
-    index := c_QC_sub[w](neg,0:𝔹,index,1); for j in [0..w sub 1){index[j] := CNOT(neg,index[j]);}
+    if neg{(index as uint[w]) -= 1;} for j in [0..w sub 1){index[j] := CNOT(neg,index[j]);}
     (address:𝔹^(w sub 1))~(top:𝔹^1) := index; (sign,) := top; sign := CNOT(!neg,sign); forget(neg=X(dup(sign)));
     return (address~(sign,),x,y);
 }
@@ -111,7 +114,7 @@ def window_point_add[p:!ℕ][ca:!ℕ][w:!ℕ,n:!ℕ](window:𝔹^w,inf:𝔹,x:�
     flags[slot] := lookup_match_point[n](source)[w](window,inf,x,y,flags[slot]);}
     def identity_table(j:!ℕ) lifted:!𝔹^1{(qi,qx,qy) := window_multiple[p][ca][w sub 1](bx,by,shift,j-2^(w sub 1)); return (qi,);}
     (identity,) := c_lookup_xor[1](identity_table)[w](1:𝔹,window,(0:𝔹,)); 
-    guard := 0:𝔹; if identity{if (x as uint[n])=0{guard := X(guard);}} x := c_replace_value[n](guard,x,0,montgomery_const[p](1));
+    guard := 0:𝔹; if identity{if (x as uint[n])=0{guard := X(guard);}} x := c_replace_value[n](guard,x,0,1);
     for slot in [0..4){
         def mask(j:!ℕ) lifted:!𝔹^(2*n+1){(point,mask) := window_classical[p][ca][w,n](bx,by,shift,slot,j,0:!𝔹); return mask;}
         point := c_lookup_xor[2*n+1](mask)[w](flags[slot],window,(inf,)~x~y coerce 𝔹^(2*n+1)); (inf:𝔹,)~(x:𝔹^n)~(y:𝔹^n) := point coerce 𝔹^((n+1)+n);
@@ -123,7 +126,7 @@ def window_point_add[p:!ℕ][ca:!ℕ][w:!ℕ,n:!ℕ](window:𝔹^w,inf:𝔹,x:�
         def mask(j:!ℕ) lifted:!𝔹^(2*n+1){(point,mask) := window_classical[p][ca][w,n](bx,by,shift,slot,j,1:!𝔹); return mask;}
         point := c_lookup_xor[2*n+1](mask)[w](flags[slot],window,(inf,)~x~y coerce 𝔹^(2*n+1)); (inf:𝔹,)~(x:𝔹^n)~(y:𝔹^n) := point coerce 𝔹^((n+1)+n);
     }
-    x := c_replace_value[n](guard,x,0,montgomery_const[p](1)); 
+    x := c_replace_value[n](guard,x,0,1);
     if identity{if (x as uint[n])=0{guard := X(guard);}} forget(guard=0); 
     (identity,) := c_lookup_xor[1](identity_table)[w](1:𝔹,window,(identity,)); forget(identity=0);
     for slot in [0..4){def target(j:!ℕ) lifted:!𝔹^(2*n+2){(point,mask) := window_classical[p][ca][w,n](bx,by,shift,slot,j,1:!𝔹); return point;} 

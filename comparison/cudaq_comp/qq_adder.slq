@@ -1,0 +1,58 @@
+// Four-bit in-place register adder from the earlier Silq/QRISP benchmark.
+
+def mbu_AND_zero(const a:𝔹,const b:𝔹) mfree:𝔹{
+    prod := 0:𝔹;
+    prod := H(S(prod));
+    prod := T(CNOT(a,prod));
+    T(prod) := CNOT(b,prod);
+    prod := T(CNOT(a,prod));
+    T(prod) := CNOT(b,prod);
+    prod := H(prod);
+    S(prod) := prod;
+    return prod;
+}
+
+def AND_uncomp(a:𝔹,b:𝔹,prod:𝔹){
+    outcome := measure(H(prod));
+    if outcome&&a{b := Z(b);}
+    return (a,b);
+}
+
+def add_unit(const carry_in:𝔹,a:𝔹,b:𝔹) mfree{
+    a := CNOT(carry_in,a);
+    b := CNOT(carry_in,b);
+    carry_out := mbu_AND_zero(a,b);
+    carry_out := CNOT(carry_in,carry_out);
+    return (a,b,carry_out);
+}
+
+def add_unit_uncomp(const carry_in:𝔹,a:𝔹,b:𝔹,carry_out:𝔹){
+    carry_out := CNOT(carry_in,carry_out);
+    (a,b) := AND_uncomp(a,b,carry_out);
+    a := CNOT(carry_in,a);
+    b := CNOT(a,b);
+    return (a,b);
+}
+
+def adder_nocarry[n:!ℕ](const carry_in:𝔹,a:𝔹^n,b:𝔹^n){
+    assert(n>=1);
+    if n=1{
+        b[0] := CNOT(a[0],b[0]);
+        b[0] := CNOT(carry_in,b[0]);
+        return (a,b);
+    }
+    (a0,)~(at:𝔹^(n sub 1)) := a;
+    (b0,)~(bt:𝔹^(n sub 1)) := b;
+    (a0,b0,carry) := add_unit(carry_in,a0,b0);
+    (at,bt) := adder_nocarry[n sub 1](carry,at,bt);
+    (a0,b0) := add_unit_uncomp(carry_in,a0,b0,carry);
+    return ((a0,)~at,(b0,)~bt);
+}
+
+def main():𝔹^8{
+    addend := 0:uint[4] as 𝔹^4;
+    for j in [0..4){addend[j] := H(addend[j]);}
+    target := 2:uint[4] as 𝔹^4;
+    (addend,target) := adder_nocarry[4](0:𝔹,addend,target);
+    return addend~target;
+}

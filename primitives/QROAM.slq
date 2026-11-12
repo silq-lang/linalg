@@ -4,10 +4,10 @@
 // QROM: XOR f(k·i+l) into qs when the control equals i.
 def data_lookup[M:!ℕ](const f:!ℕ → lifted !𝔹^M)[m:!ℕ,n:!ℕ](const control:𝔹^m,k:!ℕ,l:!ℕ,qs:𝔹^n) qfree{
 	for i in [0..2^m){
-		if i == (control as uint[m]){
-			r := f(k*i+l);
-			for j in [0..M){if r[j]{qs[j] := X(qs[j]);}}
-		}
+		selected := i == (control as uint[m]);
+		r := f(k*i+l);
+		for j in [0..M){if r[j]{qs[j] := CNOT(selected,qs[j]);}}
+		forget(selected=i == (control as uint[m]));
 	}
 	return qs;
 }
@@ -30,26 +30,22 @@ def qroam_comp[M:!ℕ](const f:!ℕ → lifted !𝔹^M)[m:!ℕ](address:𝔹^m,k
 	return (l~h,r);
 }
 
-def bitwise_dotprod(x:!ℕ,y:!ℕ) lifted{
-	def hamming_weight(x:!ℕ) qfree{
-		count := 0;
-		while x!=0{
-			x &= x - 1;
-			count += 1;
-		}
-		return count;
+def bitwise_dotprod[M: !N](x: !uint[M], y: !uint[M]) lifted: !B {
+	r := 0;
+	for i in 0..M {
+		r xorb= x[i] & y[i];
 	}
-	return hamming_weight(x&y)%2;
+	return r;
 }
 
 // Addresses that need a phase fixup, from the X-measurement results m (App. C).
-def negate_set[M:!ℕ](const f: !ℕ !→ lifted !𝔹^M)[k:!ℕ](m:!ℕ^k, d:!ℕ) lifted{
+def negate_set[M: !ℕ](const f: !ℕ !→ lifted !𝔹^M)[k: !ℕ](m: !uint[M]^k, d: !ℕ) lifted: !B^d{
 	def perm(l:!ℕ, s:!ℕ) lifted{
 		if s = 0 {return l;}
 		if s = l {return 0;}
 		return s;
 	}
-	S := [];
+	S := vector(d, 0:!B);
 	for j in [0..d) {
 		sum := 0:!𝔹;
 		h := j div k;
@@ -57,21 +53,16 @@ def negate_set[M:!ℕ](const f: !ℕ !→ lifted !𝔹^M)[k:!ℕ](m:!ℕ^k, d:!�
 		for s in [0..k) {
 			idx := h*k + perm(l, s);
 			assert(idx<d);
-			sum ⊕= bitwise_dotprod(m[s],f(idx) as !uint[M] as !ℕ);
+			sum ⊕= bitwise_dotprod(m[s], f(idx) as !uint[M]);
 		}
-		if sum=1{S ~= [j];}
+		S[j] = sum;
 	}
 	return S;
 }
 
 // Fixup bits for addresses 2j and 2j+1.
-def fixup_table[S:!ℕ[]](j:!ℕ) lifted:!𝔹^2{
-	t1 := 0:!𝔹; t2 := 0:!𝔹;
-	for k in [0..S.length){
-		if S[k]=2*j{t1 = 1:!𝔹;}
-		if S[k]=2*j+1{t2 = 1:!𝔹;}
-	}
-	return (t1,t2);
+def fixup_table[S: !B[]](j: !ℕ) lifted: !𝔹^2{
+	return (S[2*j], S[2*j+1]);
 }
 
 // Low address bits to a one-hot register.
@@ -90,35 +81,58 @@ def binary2unary[n:!ℕ](const qs:𝔹^n) lifted{
 
 // Undo binary2unary with X measurements and Z fixups.
 def unary2binary[n:!ℕ](const qs:𝔹^n,xs:𝔹^(2^n)){
-	for j in [0..n){
-		xs := xs coerce 𝔹^(2^(n sub j));
-		m := 2^(n sub j sub 1);
-		(xs:𝔹^(2^(n sub j sub 1)))~(mxs:𝔹^(2^(n sub j) sub 2^(n sub j sub 1))) := xs;
-		for k in [0..m){
-			xs[m sub k sub 1] := CNOT(mxs[m sub k sub 1],xs[m sub k sub 1]);
-		}
-		for k in [0..m){mxs[m sub k sub 1] := H(mxs[m sub k sub 1]);}
-		r := measure(mxs) as !𝔹[];
-		for k in [0..m){
-			if r[m sub k sub 1]&&qs[j]{xs[m sub k sub 1] := Z(xs[m sub k sub 1]);}
-		}
-	}
-	forget(xs=(1:𝔹,));
+	// Recursive on n: the register width depends on the level.
+	if n=0{(x,) := xs coerce 𝔹^1; forget(x=1:𝔹); return;}
+	m := 2^(n sub 1);
+	(lo:𝔹^m)~(hi:𝔹^m) := xs coerce 𝔹^(m+m);
+	for k in [0..m){lo[k] := CNOT(hi[k],lo[k]);}
+	for k in [0..m){hi[k] := H(hi[k]);}
+	r := measure(hi);
+	for k in [0..m){if r[k]&&qs[n sub 1]{lo[k] := Z(lo[k]);}}
+	unary2binary[n sub 1](qs[0..n sub 1],lo coerce 𝔹^(2^(n sub 1)));
 }
 
 // Uncompute (App. C): measure the outputs in the X basis, then apply phase fixups on the one-hot register.
 def qroam_uncomp[M:!ℕ](const f: !ℕ !→ lifted !𝔹^M)[m:!ℕ,k:!ℕ](address:𝔹^m,qs:(𝔹^M)^k,d:!ℕ){
-	for i in [0..k){for j in [0..M){qs[i][j] := H(qs[i][j]);}}
-	r := measure(qs) as (!uint[M])^k as !ℕ^k;
-	S := negate_set[M](f)[k](r,d);
-	ml := floor(log₂(k)) coerce !ℕ;
-	(l:𝔹^ml)~(h:𝔹^(m sub ml coerce !ℕ)) := address;
-	xs := binary2unary[ml](l);
-	for i in [0..k){xs[i] := H(xs[i]);}
-	for j in [0..k div 2){(xs[2*j],xs[2*j+1]) := data_lookup(fixup_table[S])(h,k div 2,j,(xs[2*j],xs[2*j+1]));}
-	for i in [0..k){xs[i] := H(xs[i]);}
-	unary2binary(l,xs);
-	return l~h;
+    // Measure each output immediately after H to avoid 2^(k*M) transient
+    // simulator branches. Measurements on distinct bits commute.
+    def measure_x_reset(q:𝔹):𝔹×!𝔹{
+        bit := measure(H(q));
+        return (0:𝔹,bit);
+    }
+    r := vector(k,vector(M,0:!𝔹));
+    for i in [0..k){
+        for j in [0..M){
+            (qs[i][j],bit) := measure_x_reset(qs[i][j]);
+            r[i][j] = bit;
+        }
+    }
+    forget(qs=vector(k,vector(M,0:𝔹)));
+    def fixup(j:!ℕ) lifted:!𝔹^2{
+        result := (0:!𝔹,0:!𝔹);
+        for out in [0..2){
+            entry := 2*j+out; assert(entry<d);
+            h := entry div k; l := entry%k; parity := 0:!𝔹;
+            for s in [0..k){
+                index := s;
+                if s=0{index=l;}else{if s=l{index=0;}}
+                word := f(h*k+index);
+                for bit in [0..M){
+                    if word[bit]{parity ⊕= r[s][bit];}
+                }
+            }
+            result[out] = parity;
+        }
+        return result;
+    }
+    ml := floor(log₂(k)) coerce !ℕ;
+    (l:𝔹^ml)~(h:𝔹^(m sub ml coerce !ℕ)) := address;
+    xs := binary2unary[ml](l);
+    for i in [0..k){xs[i] := H(xs[i]);}
+    for j in [0..k div 2){(xs[2*j],xs[2*j+1]) := data_lookup(fixup)(h,k div 2,j,(xs[2*j],xs[2*j+1]));}
+    for i in [0..k){xs[i] := H(xs[i]);}
+    unary2binary(l,xs);
+    return l~h;
 }
 
 // Example table: 3-bit address, 2-bit words.

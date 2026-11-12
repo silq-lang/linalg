@@ -1,0 +1,5 @@
+.venv/
+.cache/
+.mplconfig/
+__pycache__/
+outputs/qasm/

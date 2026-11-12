@@ -1,0 +1,25 @@
+import comparison.QRISP_comp.TFIM_slq;
+
+//k applications of the qubitized operator block-encode T_k(A) 
+
+def Tf[k:!ℕ][n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n,const f:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n) mfree:𝔹^m×𝔹^n{
+    repeat (k div 2){
+        if anc != vector(m,0){phase(π);}
+        (anc,qs) := f(anc,qs);
+        if anc != vector(m,0){phase(π);}
+        (anc,qs) := reverse(f)(anc,qs);
+    }
+    if (k%2=1){
+        if anc != vector(m,0){phase(π);}
+        (anc,qs) := f(anc,qs);
+    }
+    return (anc,qs);
+}
+
+def main(){
+    qs := 0:uint[2] as 𝔹^2;
+    // Generic operand, so the compiler cannot specialize to a known |00>.
+    qs[0] := rotY(π/7,qs[0]);
+    qs[1] := rotY(π/9,qs[1]);
+    return Tf[2][2,2](0:uint[2] as 𝔹^2,qs,TFIM[-sqrt(0.25),sqrt(0.5)][2,2]);
+}
