@@ -1,0 +1,69 @@
+def pauli_basis_change(x:𝔹,rj:!𝔹,sj:!𝔹) mfree:𝔹{
+	if rj&&!sj{x := H(x);}
+	if rj&&sj{if x{phase(-π/2);}x := H(x);}
+	return x;
+}
+
+def cnot_col[N:!ℕ](qs:𝔹^N,r:!ℕ,s:!ℕ,j:!ℕ,target:!ℕ) mfree{
+	if (r as !uint[N])[j]||(s as !uint[N])[j]{
+		temp := dup(qs[j]); qs[target] := CNOT(temp,qs[target]); forget(temp=qs[j]);
+	}
+	return qs;
+}
+
+def identity_string[N:!ℕ](r:!ℕ,s:!ℕ) qfree{
+	k := 0:!ℕ;
+	for j in [0..N){if (r as !uint[N])[j]||(s as !uint[N])[j]{k = j;}}
+	return k;
+}
+
+def pauli_exp[N:!ℕ](θ:!ℝ,qs:𝔹^N,r:!ℕ,s:!ℕ) mfree{
+	if (r=0)&&(s=0){
+		phase(-θ);
+	}else{
+		target := identity_string[N](r,s);
+		for j in [0..N){qs[j] := pauli_basis_change(qs[j],(r as !uint[N])[j],(s as !uint[N])[j]);}
+		for j in [0..N){if j!=target{qs := cnot_col(qs,r,s,j,target);}}
+		qs[target] := rotZ(2*θ,qs[target]);
+		for j in (N..-1..0]{if j!=target{cnot_col(qs,r,s,j,target) := qs;}}
+		for j in [0..N){pauli_basis_change(qs[j],(r as !uint[N])[j],(s as !uint[N])[j]) := qs[j];}
+	}
+	return qs;
+}
+
+def step1[N:!ℕ,D:!ℕ](qs:𝔹^N,coef:!ℝ^D,index:(!ℕ^2)^D,τ:!ℝ) mfree{
+	for j in [0..D){qs := pauli_exp[N](τ*coef[j],qs,index[j][0],index[j][1]);}
+	return qs;
+}
+
+def step2[N:!ℕ,D:!ℕ](qs:𝔹^N,coef:!ℝ^D,index:(!ℕ^2)^D,τ:!ℝ) mfree{
+	for j in [0..D){qs := pauli_exp[N](τ/2*coef[j],qs,index[j][0],index[j][1]);}
+	for j in (D..-1..0]{qs := pauli_exp[N](τ/2*coef[j],qs,index[j][0],index[j][1]);}
+	return qs;
+}
+
+def step4[N:!ℕ,D:!ℕ](qs:𝔹^N,coef:!ℝ^D,index:(!ℕ^2)^D,τ:!ℝ) mfree{
+	w1 := 1.3512071919596578;
+	w0 := -1.7024143839193153;
+	qs := step2(qs,coef,index,w1*τ);
+	qs := step2(qs,coef,index,w0*τ);
+	qs := step2(qs,coef,index,w1*τ);
+	return qs;
+}
+
+def trotterization[N:!ℕ,D:!ℕ](qs:𝔹^N,coef:!ℝ^D,index:(!ℕ^2)^D,t:!ℝ,r:!ℕ,order:!ℕ) mfree{
+	assert(order=1||order=2||order=4);
+	repeat r{
+		if order=1{qs := step1(qs,coef,index,t/r);}
+		else if order=2{qs := step2(qs,coef,index,t/r);}
+		else{qs := step4(qs,coef,index,t/r);}
+	}
+	return qs;
+}
+
+def main(){
+	coef := [0.5,0.3,0.2];
+	index := [(0,3),(1,0),(2,2)];
+	qs := 0:uint[2] as 𝔹^2;
+	return trotterization[2,3](qs,coef,index,1,2:!ℕ,2:!ℕ);
+}

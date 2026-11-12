@@ -1,0 +1,14 @@
+// Signed Pauli-LCU SELECT using the implementation in slq's walk primitive.
+import walk;
+
+def main():𝔹^4{
+    anc := 0:uint[2] as 𝔹^2;
+    qs := 0:uint[2] as 𝔹^2;
+    for j in [0..2){anc[j] := H(anc[j]); qs[j] := H(qs[j]);}
+    index := [(0,3),(1,0),(1,2)];
+    qs := select[2,2,3](anc,qs,index);
+    // The second Pauli coefficient is negative; CUDA-Q folds this sign into
+    // its public SELECT kernel as the corresponding control-state phase.
+    if 1 == (anc as uint[2]){phase(π);}
+    return anc~qs;
+}

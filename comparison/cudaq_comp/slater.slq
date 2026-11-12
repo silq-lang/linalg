@@ -1,0 +1,53 @@
+import givens;
+
+def givens_schedule[n:!ℕ,k:!ℕ](V:(!ℝ^n)^k):!ℝ^(k*(n sub k))×!ℕ^(k*(n sub k))×!ℝ{
+    for i in [0..k sub 1){
+        c := n sub (i+1);
+        rmax := c sub (n sub k);
+        for r in [0..rmax){
+            if V[r][c]!=0{
+                θ := atan2(V[r][c],V[r+1][c]);
+                for cc in [0..n){
+                    a := V[r][cc]; b := V[r+1][cc];
+                    V[r][cc] = a*cos(θ)-b*sin(θ);
+                    V[r+1][cc] = a*sin(θ)+b*cos(θ);
+                }
+            }
+        }
+    }
+    m := k*(n sub k);
+    θs := vector(m,0:!ℝ); is := vector(m,0:!ℕ);
+    t := m;
+    for r in [0..k){
+        for j in [0..n sub k){
+            c := (n sub k)+r-j;
+            θ := 0:!ℝ;
+            if V[r][c]!=0{ θ = atan2(V[r][c],V[r][c sub 1]); }
+            for rr in [r..k){
+                a := V[rr][c sub 1]; b := V[rr][c];
+                V[rr][c sub 1] = a*cos(θ)+b*sin(θ);
+                V[rr][c] = -a*sin(θ)+b*cos(θ);
+            }
+            t -= 1; θs[t] = -θ; is[t] = c sub 1;
+        }
+    }
+    sign := 1:!ℝ;
+    for r in [0..k){ sign *= V[r][r]; }
+    return (θs,is,sign) coerce !ℝ^(k*(n sub k))×!ℕ^(k*(n sub k))×!ℝ;
+}
+
+def prepare_slater[n:!ℕ,k:!ℕ](V:(!ℝ^n)^k):𝔹^n{
+    (θs,is,sign) := givens_schedule[n,k](V);
+    qs := (((2^k) sub 1) as uint[n]) as 𝔹^n;
+    for t in [0..k*(n sub k)){
+        if θs[t]!=0{ qs := givens_rotation[n](θs[t])[is[t],is[t]+1](qs); }
+    }
+    if sign<0 { phase(π); }
+    return qs;
+}
+
+def main():𝔹^4{
+    α := π/6; β := π/4;
+    V := [[cos(α),0,-sin(α),0],[0,cos(β),0,-sin(β)]] coerce (!ℝ^4)^2;
+    return prepare_slater[4,2](V);
+}

@@ -1,0 +1,17 @@
+import comparison.QRISP_comp.pauli_lcu;
+
+def tridiag(anc:𝔹^2,qs:𝔹^2) mfree{
+    // pauli_LCU prepares amplitudes proportional to coef, so square roots
+    // are supplied to encode the desired signed Pauli coefficients.
+    coef := [sqrt(0.5),-sqrt(0.25),-sqrt(0.125),-sqrt(0.125)]:!ℝ^4;
+    ind := [(0,0),(1,0),(3,0),(3,3)]:(!ℕ^2)^4;
+    return pauli_LCU[2,2,4](anc,qs,ind,coef);
+}
+
+def main(){
+    qs := 0:uint[2] as 𝔹^2;
+    // Generic operand, so the compiler cannot specialize to a known |00>.
+    qs[0] := rotY(π/7,qs[0]);
+    qs[1] := rotY(π/9,qs[1]);
+    return tridiag(0:uint[2] as 𝔹^2,qs);
+}

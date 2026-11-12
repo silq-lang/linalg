@@ -1,0 +1,165 @@
+\begin{table}[h]
+\centering
+\caption{Resource comparison between Silq and Qrisp. Qrisp is compiled with extra workspace up to the Silq width where this helps. Bold entries indicate that Silq is at least as good on every metric and strictly better on at least one.}
+\label{tab:silq-qrisp}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+
+\begin{tabularx}{\columnwidth}{
+    >{\raggedright\arraybackslash}X
+    *{6}{>{\centering\arraybackslash}p{0.075\columnwidth}}
+}
+    & \multicolumn{3}{c}{Silq}
+    & \multicolumn{3}{c}{Qrisp} \\
+Algorithm
+    & width & depth & T-count
+    & width & depth & T-count \\
+\cmidrule(lr){2-4}
+\cmidrule(lr){5-7}
+
+\multicolumn{7}{l}{\textit{Circuit-level compiler comparisons}} \\
+
+Quantum Fourier transform
+    & \textbf{7} & \textbf{996} & \textbf{902}
+    & 7 & 1280 & 1352 \\
+
+Quantum phase estimation
+    & \textbf{6} & \textbf{543} & \textbf{284}
+    & 6 & 795 & 434 \\
+
+Quantum amplitude estimation
+    & \textbf{8} & \textbf{2301} & \textbf{1171}
+    & 8 & 2528 & 1367 \\
+
+Quantum addition
+    & \textbf{8} & \textbf{52} & \textbf{8}
+    & 10 & 52 & 24 \\
+
+Comparator
+    & \textbf{8} & \textbf{71} & \textbf{20}
+    & 11 & 84 & 32 \\
+
+Pauli product formula
+    & 5 & 493 & 249
+    & 5 & 493 & 249 \\
+
+Controlled phase
+    & 11 & 157 & 49
+    & 11 & 59 & 33 \\
+
+TFIM product formula
+    & 2 & 825 & 619
+    & 2 & 825 & 619 \\
+
+\multicolumn{7}{l}{\textit{Task-level library comparisons}} \\
+
+Tridiagonal block encoding
+    & 5 & 968 & 526
+    & 6 & 721 & 502 \\
+
+TFIM block encoding
+    & 5 & 951 & 520
+    & 5 & 1052 & 518 \\
+
+Heisenberg block encoding
+    & 5 & 554 & 310
+    & 6 & 465 & 300 \\
+
+TFIM Chebyshev polynomial
+    & 9 & 2045 & 958
+    & 9 & 1930 & 1071 \\
+
+TFIM QSP simulation
+    & 11 & 65425 & 27698
+    & 11 & 46001 & 21217 \\
+
+Pseudoinverse
+    & \textbf{5} & \textbf{27673} & \textbf{12753}
+    & 6 & 32902 & 14143 \\
+
+Eigenstate filter
+    & 10 & 33957 & 14093
+    & 10 & 11746 & 5556 \\
+
+HHL
+    & \textbf{7} & \textbf{2694} & \textbf{1202}
+    & 7 & 5750 & 2720 \\
+
+Cubic convolution
+    & 4 & 724 & 272
+    & 4 & 712 & 272 \\
+
+Fourier loader
+    & 10 & 5249 & 2324
+    & 10 & 3701 & 2653 \\
+
+\end{tabularx}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Resource comparison between Silq and CUDA-Q Algorithms. Bold entries indicate that Silq is at least as good on every metric and strictly better on at least one.}
+\label{tab:silq-cudaq}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+
+\begin{tabularx}{\columnwidth}{
+    >{\raggedright\arraybackslash}X
+    *{6}{>{\centering\arraybackslash}p{0.075\columnwidth}}
+}
+    & \multicolumn{3}{c}{Silq}
+    & \multicolumn{3}{c}{CUDA-Q} \\
+Algorithm
+    & width & depth & T-count
+    & width & depth & T-count \\
+\cmidrule(lr){2-4}
+\cmidrule(lr){5-7}
+
+Quantum Fourier transform
+    & 7 & 996 & 902
+    & 5 & 2227 & 1379 \\
+
+Givens rotation
+    & \textbf{2} & \textbf{163} & \textbf{124}
+    & 2 & 175 & 124 \\
+
+Slater determinant
+    & \textbf{4} & \textbf{174} & \textbf{126}
+    & 4 & 335 & 126 \\
+
+Quantum addition
+    & \textbf{8} & \textbf{52} & \textbf{8}
+    & 9 & 74 & 36 \\
+
+Comparator
+    & \textbf{8} & \textbf{71} & \textbf{20}
+    & 12 & 109 & 55 \\
+
+Second-order product formula
+    & \textbf{2} & \textbf{496} & \textbf{373}
+    & 2 & 516 & 380 \\
+
+QROAM
+    & 8 & 163 & 63
+    & 11 & 93 & 52 \\
+
+Pauli-LCU PREPARE
+    & 2 & 367 & 194
+    & 2 & 367 & 194 \\
+
+Pauli-LCU SELECT
+    & 5 & 163 & 30
+    & 5 & 106 & 50 \\
+
+Qubitization walk
+    & 9 & 2261 & 922
+    & 5 & 2912 & 1726 \\
+
+QSVT
+    & 6 & 3822 & 1524
+    & 5 & 5222 & 3233 \\
+
+\end{tabularx}
+\end{table}

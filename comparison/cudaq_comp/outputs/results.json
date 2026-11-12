@@ -1,0 +1,1544 @@
+{
+  "configuration": {
+    "cudaq_algorithms_commit": "e46eea91aa7a54b59aebacc0492902acecf87a0a",
+    "cudaq": "0.16.0",
+    "cudaq_algorithms": "official Git commit e46eea91",
+    "qasmviz_optimization": 3,
+    "rotation_synthesis_epsilon": 1e-06
+  },
+  "benchmarks": [
+    {
+      "id": "qft",
+      "description": "Quantum Fourier transform, 5 qubits",
+      "silq": {
+        "width": 7,
+        "depth": 996,
+        "gates": {
+          "display_count": "2321",
+          "total_count": 2321,
+          "breakdown": "cx=126, h=928, s=292, sdg=73, t=655, tdg=247",
+          "gates": {
+            "cx": 126,
+            "h": 928,
+            "s": 292,
+            "sdg": 73,
+            "t": 655,
+            "tdg": 247
+          },
+          "ops": {}
+        },
+        "cx-count": 126,
+        "cx-depth": 118,
+        "t-count": 902,
+        "t-depth": 398
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 2227,
+        "gates": {
+          "display_count": "3511",
+          "total_count": 3511,
+          "breakdown": "cx=20, h=1415, s=686, sdg=11, t=1373, tdg=6",
+          "gates": {
+            "cx": 20,
+            "h": 1415,
+            "s": 686,
+            "sdg": 11,
+            "t": 1373,
+            "tdg": 6
+          },
+          "ops": {}
+        },
+        "cx-count": 20,
+        "cx-depth": 20,
+        "t-count": 1379,
+        "t-depth": 874
+      }
+    },
+    {
+      "id": "givens",
+      "description": "Adjacent Givens rotation, 2 qubits",
+      "silq": {
+        "width": 2,
+        "depth": 163,
+        "gates": {
+          "display_count": "323",
+          "total_count": 323,
+          "breakdown": "cx=1, h=130, s=66, sdg=2, t=122, tdg=2",
+          "gates": {
+            "cx": 1,
+            "h": 130,
+            "s": 66,
+            "sdg": 2,
+            "t": 122,
+            "tdg": 2
+          },
+          "ops": {}
+        },
+        "cx-count": 1,
+        "cx-depth": 1,
+        "t-count": 124,
+        "t-depth": 62
+      },
+      "cudaq": {
+        "width": 2,
+        "depth": 175,
+        "gates": {
+          "display_count": "331",
+          "total_count": 331,
+          "breakdown": "cx=2, h=129, s=59, sdg=17, t=122, tdg=2",
+          "gates": {
+            "cx": 2,
+            "h": 129,
+            "s": 59,
+            "sdg": 17,
+            "t": 122,
+            "tdg": 2
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 124,
+        "t-depth": 62
+      }
+    },
+    {
+      "id": "slater",
+      "description": "Real Slater determinant, 4 orbitals / 2 electrons",
+      "silq": {
+        "width": 4,
+        "depth": 174,
+        "gates": {
+          "display_count": "354",
+          "total_count": 354,
+          "breakdown": "cx=8, h=148, s=66, sdg=6, t=120, tdg=6",
+          "gates": {
+            "cx": 8,
+            "h": 148,
+            "s": 66,
+            "sdg": 6,
+            "t": 120,
+            "tdg": 6
+          },
+          "ops": {}
+        },
+        "cx-count": 8,
+        "cx-depth": 6,
+        "t-count": 126,
+        "t-depth": 62
+      },
+      "cudaq": {
+        "width": 4,
+        "depth": 335,
+        "gates": {
+          "display_count": "361",
+          "total_count": 361,
+          "breakdown": "cx=16, h=144, s=65, sdg=10, t=123, tdg=3",
+          "gates": {
+            "cx": 16,
+            "h": 144,
+            "s": 65,
+            "sdg": 10,
+            "t": 123,
+            "tdg": 3
+          },
+          "ops": {}
+        },
+        "cx-count": 16,
+        "cx-depth": 12,
+        "t-count": 126,
+        "t-depth": 124
+      }
+    },
+    {
+      "id": "qq_adder",
+      "description": "In-place register addition, 4+4 qubits",
+      "silq": {
+        "width": 8,
+        "depth": 52,
+        "gates": {
+          "display_count": "66",
+          "total_count": 66,
+          "breakdown": "cx=25, h=13, x=5, p=11, cp=2, if_else=4; measure=3, reset=3",
+          "gates": {
+            "cx": 25,
+            "h": 13,
+            "x": 5,
+            "p": 11,
+            "cp": 2,
+            "if_else": 4
+          },
+          "ops": {
+            "measure": 3,
+            "reset": 3
+          }
+        },
+        "clbits": 3,
+        "2q-count": 31,
+        "2q-depth": 28,
+        "rotations": {
+          "count": 11,
+          "depth": 11,
+          "breakdown": {
+            "0": 3,
+            "1": 8
+          },
+          "t-count": 8
+        },
+        "mcm-count": 2,
+        "mcm-depth": 2,
+        "resets": 3,
+        "t-count": 8
+      },
+      "cudaq": {
+        "width": 9,
+        "depth": 74,
+        "gates": {
+          "display_count": "108",
+          "total_count": 108,
+          "breakdown": "cx=49, h=18, s=5, t=18, tdg=18",
+          "gates": {
+            "cx": 49,
+            "h": 18,
+            "s": 5,
+            "t": 18,
+            "tdg": 18
+          },
+          "ops": {}
+        },
+        "cx-count": 49,
+        "cx-depth": 41,
+        "t-count": 36,
+        "t-depth": 24
+      }
+    },
+    {
+      "id": "comparator",
+      "description": "Constant comparator ($x<6$), 5-bit input",
+      "silq": {
+        "width": 8,
+        "depth": 71,
+        "gates": {
+          "display_count": "99",
+          "total_count": 99,
+          "breakdown": "cx=18, h=37, s=23, sdg=1, t=10, tdg=10",
+          "gates": {
+            "cx": 18,
+            "h": 37,
+            "s": 23,
+            "sdg": 1,
+            "t": 10,
+            "tdg": 10
+          },
+          "ops": {}
+        },
+        "cx-count": 18,
+        "cx-depth": 17,
+        "t-count": 20,
+        "t-depth": 16
+      },
+      "cudaq": {
+        "width": 12,
+        "depth": 109,
+        "gates": {
+          "display_count": "185",
+          "total_count": 185,
+          "breakdown": "cx=75, h=37, s=18, t=28, tdg=27",
+          "gates": {
+            "cx": 75,
+            "h": 37,
+            "s": 18,
+            "t": 28,
+            "tdg": 27
+          },
+          "ops": {}
+        },
+        "cx-count": 75,
+        "cx-depth": 59,
+        "t-count": 55,
+        "t-depth": 36
+      }
+    },
+    {
+      "id": "trotter",
+      "description": "Second-order product formula, 2 steps",
+      "silq": {
+        "width": 2,
+        "depth": 496,
+        "gates": {
+          "display_count": "977",
+          "total_count": 977,
+          "breakdown": "cx=2, h=389, s=192, sdg=21, t=373",
+          "gates": {
+            "cx": 2,
+            "h": 389,
+            "s": 192,
+            "sdg": 21,
+            "t": 373
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 373,
+        "t-depth": 188
+      },
+      "cudaq": {
+        "width": 2,
+        "depth": 516,
+        "gates": {
+          "display_count": "1003",
+          "total_count": 1003,
+          "breakdown": "cx=2, h=395, s=198, sdg=28, t=380",
+          "gates": {
+            "cx": 2,
+            "h": 395,
+            "s": 198,
+            "sdg": 28,
+            "t": 380
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 380,
+        "t-depth": 194
+      }
+    },
+    {
+      "id": "qroam",
+      "description": "Paper QROAM, 8 two-bit entries, block size 2",
+      "silq": {
+        "dynamic_circuit": true,
+        "branch_count": 32,
+        "branch_probability": 0.03125,
+        "aggregation": "minimum, equiprobable average, and worst case",
+        "width": 8,
+        "depth": 163,
+        "t-count": 63,
+        "cx-count": 74,
+        "t-depth": 35,
+        "cx-depth": 59,
+        "branch_summary": {
+          "width": {
+            "minimum": 8,
+            "average": 8.0,
+            "maximum": 8
+          },
+          "depth": {
+            "minimum": 103,
+            "average": 136.0,
+            "maximum": 163
+          },
+          "t-count": {
+            "minimum": 35,
+            "average": 48.0,
+            "maximum": 63
+          },
+          "cx-count": {
+            "minimum": 48,
+            "average": 62.25,
+            "maximum": 74
+          },
+          "t-depth": {
+            "minimum": 19,
+            "average": 27.0625,
+            "maximum": 35
+          },
+          "cx-depth": {
+            "minimum": 34,
+            "average": 47.25,
+            "maximum": 59
+          }
+        },
+        "branches": [
+          {
+            "width": 8,
+            "depth": 103,
+            "gates": {
+              "display_count": "164",
+              "total_count": 164,
+              "breakdown": "cx=48, h=40, s=29, sdg=2, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 48,
+                "h": 40,
+                "s": 29,
+                "sdg": 2,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 48,
+            "cx-depth": 34,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 3,
+            "branch": 0,
+            "data_measurements": 0,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 103,
+            "gates": {
+              "display_count": "166",
+              "total_count": 166,
+              "breakdown": "cx=48, h=40, s=29, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 48,
+                "h": 40,
+                "s": 29,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 48,
+            "cx-depth": 34,
+            "t-count": 35,
+            "t-depth": 20,
+            "resets": 3,
+            "branch": 1,
+            "data_measurements": 0,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 121,
+            "gates": {
+              "display_count": "196",
+              "total_count": 196,
+              "breakdown": "cx=52, h=56, s=41, sdg=2, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 2,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 38,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 2,
+            "data_measurements": 1,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 121,
+            "gates": {
+              "display_count": "198",
+              "total_count": 198,
+              "breakdown": "cx=52, h=56, s=41, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 38,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 3,
+            "data_measurements": 1,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "240",
+              "total_count": 240,
+              "breakdown": "cx=74, h=52, s=41, sdg=4, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 52,
+                "s": 41,
+                "sdg": 4,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 4,
+            "data_measurements": 2,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "242",
+              "total_count": 242,
+              "breakdown": "cx=74, h=52, s=41, sdg=6, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 52,
+                "s": 41,
+                "sdg": 6,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 5,
+            "data_measurements": 2,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 163,
+            "gates": {
+              "display_count": "258",
+              "total_count": 258,
+              "breakdown": "cx=74, h=60, s=49, sdg=2, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 2,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 59,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 6,
+            "data_measurements": 3,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 163,
+            "gates": {
+              "display_count": "260",
+              "total_count": 260,
+              "breakdown": "cx=74, h=60, s=49, sdg=4, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 4,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 59,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 7,
+            "data_measurements": 3,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 120,
+            "gates": {
+              "display_count": "196",
+              "total_count": 196,
+              "breakdown": "cx=52, h=56, s=41, sdg=2, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 2,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 37,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 8,
+            "data_measurements": 4,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 120,
+            "gates": {
+              "display_count": "198",
+              "total_count": 198,
+              "breakdown": "cx=52, h=56, s=41, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 37,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 9,
+            "data_measurements": 4,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 119,
+            "gates": {
+              "display_count": "186",
+              "total_count": 186,
+              "breakdown": "cx=50, h=48, s=39, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 50,
+                "h": 48,
+                "s": 39,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 50,
+            "cx-depth": 36,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 10,
+            "data_measurements": 5,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 119,
+            "gates": {
+              "display_count": "188",
+              "total_count": 188,
+              "breakdown": "cx=50, h=48, s=39, sdg=6, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 50,
+                "h": 48,
+                "s": 39,
+                "sdg": 6,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 50,
+            "cx-depth": 36,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 11,
+            "data_measurements": 5,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "258",
+              "total_count": 258,
+              "breakdown": "cx=74, h=60, s=49, sdg=2, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 2,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 12,
+            "data_measurements": 6,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "260",
+              "total_count": 260,
+              "breakdown": "cx=74, h=60, s=49, sdg=4, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 4,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 13,
+            "data_measurements": 6,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "248",
+              "total_count": 248,
+              "breakdown": "cx=74, h=56, s=45, sdg=4, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 56,
+                "s": 45,
+                "sdg": 4,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 14,
+            "data_measurements": 7,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "250",
+              "total_count": 250,
+              "breakdown": "cx=74, h=56, s=45, sdg=6, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 56,
+                "s": 45,
+                "sdg": 6,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 15,
+            "data_measurements": 7,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "240",
+              "total_count": 240,
+              "breakdown": "cx=74, h=52, s=41, sdg=4, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 52,
+                "s": 41,
+                "sdg": 4,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 16,
+            "data_measurements": 8,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "242",
+              "total_count": 242,
+              "breakdown": "cx=74, h=52, s=41, sdg=6, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 52,
+                "s": 41,
+                "sdg": 6,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 17,
+            "data_measurements": 8,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 163,
+            "gates": {
+              "display_count": "258",
+              "total_count": 258,
+              "breakdown": "cx=74, h=60, s=49, sdg=2, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 2,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 59,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 18,
+            "data_measurements": 9,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 163,
+            "gates": {
+              "display_count": "260",
+              "total_count": 260,
+              "breakdown": "cx=74, h=60, s=49, sdg=4, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 4,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 59,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 19,
+            "data_measurements": 9,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 103,
+            "gates": {
+              "display_count": "164",
+              "total_count": 164,
+              "breakdown": "cx=48, h=40, s=29, sdg=2, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 48,
+                "h": 40,
+                "s": 29,
+                "sdg": 2,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 48,
+            "cx-depth": 34,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 3,
+            "branch": 20,
+            "data_measurements": 10,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 103,
+            "gates": {
+              "display_count": "166",
+              "total_count": 166,
+              "breakdown": "cx=48, h=40, s=29, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 48,
+                "h": 40,
+                "s": 29,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 48,
+            "cx-depth": 34,
+            "t-count": 35,
+            "t-depth": 20,
+            "resets": 3,
+            "branch": 21,
+            "data_measurements": 10,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 121,
+            "gates": {
+              "display_count": "196",
+              "total_count": 196,
+              "breakdown": "cx=52, h=56, s=41, sdg=2, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 2,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 38,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 22,
+            "data_measurements": 11,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 121,
+            "gates": {
+              "display_count": "198",
+              "total_count": 198,
+              "breakdown": "cx=52, h=56, s=41, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 38,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 23,
+            "data_measurements": 11,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "258",
+              "total_count": 258,
+              "breakdown": "cx=74, h=60, s=49, sdg=2, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 2,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 24,
+            "data_measurements": 12,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "260",
+              "total_count": 260,
+              "breakdown": "cx=74, h=60, s=49, sdg=4, t=36, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 60,
+                "s": 49,
+                "sdg": 4,
+                "t": 36,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 63,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 25,
+            "data_measurements": 12,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "248",
+              "total_count": 248,
+              "breakdown": "cx=74, h=56, s=45, sdg=4, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 56,
+                "s": 45,
+                "sdg": 4,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 26,
+            "data_measurements": 13,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 154,
+            "gates": {
+              "display_count": "250",
+              "total_count": 250,
+              "breakdown": "cx=74, h=56, s=45, sdg=6, t=32, tdg=27; measure=5, reset=5",
+              "gates": {
+                "cx": 74,
+                "h": 56,
+                "s": 45,
+                "sdg": 6,
+                "t": 32,
+                "tdg": 27
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 74,
+            "cx-depth": 58,
+            "t-count": 59,
+            "t-depth": 35,
+            "resets": 4,
+            "branch": 27,
+            "data_measurements": 13,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 120,
+            "gates": {
+              "display_count": "196",
+              "total_count": 196,
+              "breakdown": "cx=52, h=56, s=41, sdg=2, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 2,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 37,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 28,
+            "data_measurements": 14,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 120,
+            "gates": {
+              "display_count": "198",
+              "total_count": 198,
+              "breakdown": "cx=52, h=56, s=41, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 52,
+                "h": 56,
+                "s": 41,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 52,
+            "cx-depth": 37,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 29,
+            "data_measurements": 14,
+            "unary_measurement": 1
+          },
+          {
+            "width": 8,
+            "depth": 119,
+            "gates": {
+              "display_count": "186",
+              "total_count": 186,
+              "breakdown": "cx=50, h=48, s=39, sdg=4, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 50,
+                "h": 48,
+                "s": 39,
+                "sdg": 4,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 50,
+            "cx-depth": 36,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 30,
+            "data_measurements": 15,
+            "unary_measurement": 0
+          },
+          {
+            "width": 8,
+            "depth": 119,
+            "gates": {
+              "display_count": "188",
+              "total_count": 188,
+              "breakdown": "cx=50, h=48, s=39, sdg=6, t=20, tdg=15; measure=5, reset=5",
+              "gates": {
+                "cx": 50,
+                "h": 48,
+                "s": 39,
+                "sdg": 6,
+                "t": 20,
+                "tdg": 15
+              },
+              "ops": {
+                "measure": 5,
+                "reset": 5
+              }
+            },
+            "clbits": 5,
+            "cx-count": 50,
+            "cx-depth": 36,
+            "t-count": 35,
+            "t-depth": 19,
+            "resets": 4,
+            "branch": 31,
+            "data_measurements": 15,
+            "unary_measurement": 1
+          }
+        ],
+        "scope": "complete paper QROAM, branch-aware",
+        "full_dynamic_validation": {
+          "dynamic_circuit": true,
+          "width": null,
+          "depth": null,
+          "t-count": null,
+          "validation_runs": 32,
+          "note": "Mid-circuit measurement/feed-forward; static QASM metrics unavailable."
+        }
+      },
+      "cudaq": {
+        "width": 11,
+        "depth": 93,
+        "gates": {
+          "display_count": "197",
+          "total_count": 197,
+          "breakdown": "cx=86, h=37, s=20, sdg=2, t=28, tdg=24",
+          "gates": {
+            "cx": 86,
+            "h": 37,
+            "s": 20,
+            "sdg": 2,
+            "t": 28,
+            "tdg": 24
+          },
+          "ops": {}
+        },
+        "cx-count": 86,
+        "cx-depth": 62,
+        "t-count": 52,
+        "t-depth": 22
+      },
+      "directly_comparable": false
+    },
+    {
+      "id": "pauli_prepare",
+      "description": "Pauli-LCU PREPARE, 3 terms",
+      "silq": {
+        "width": 2,
+        "depth": 367,
+        "gates": {
+          "display_count": "530",
+          "total_count": 530,
+          "breakdown": "cx=2, h=207, s=121, sdg=6, t=193, tdg=1",
+          "gates": {
+            "cx": 2,
+            "h": 207,
+            "s": 121,
+            "sdg": 6,
+            "t": 193,
+            "tdg": 1
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 194,
+        "t-depth": 131
+      },
+      "cudaq": {
+        "width": 2,
+        "depth": 367,
+        "gates": {
+          "display_count": "530",
+          "total_count": 530,
+          "breakdown": "cx=2, h=207, s=121, sdg=6, t=193, tdg=1",
+          "gates": {
+            "cx": 2,
+            "h": 207,
+            "s": 121,
+            "sdg": 6,
+            "t": 193,
+            "tdg": 1
+          },
+          "ops": {}
+        },
+        "cx-count": 2,
+        "cx-depth": 2,
+        "t-count": 194,
+        "t-depth": 131
+      }
+    },
+    {
+      "id": "pauli_select",
+      "description": "Signed Pauli-LCU SELECT, 3 terms",
+      "silq": {
+        "width": 5,
+        "depth": 163,
+        "gates": {
+          "display_count": "170",
+          "total_count": 170,
+          "breakdown": "cx=36, h=53, s=44, sdg=7, t=16, tdg=14",
+          "gates": {
+            "cx": 36,
+            "h": 53,
+            "s": 44,
+            "sdg": 7,
+            "t": 16,
+            "tdg": 14
+          },
+          "ops": {}
+        },
+        "cx-count": 36,
+        "cx-depth": 36,
+        "t-count": 30,
+        "t-depth": 30
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 106,
+        "gates": {
+          "display_count": "151",
+          "total_count": 151,
+          "breakdown": "cx=52, h=34, s=13, sdg=2, t=26, tdg=24",
+          "gates": {
+            "cx": 52,
+            "h": 34,
+            "s": 13,
+            "sdg": 2,
+            "t": 26,
+            "tdg": 24
+          },
+          "ops": {}
+        },
+        "cx-count": 52,
+        "cx-depth": 49,
+        "t-count": 50,
+        "t-depth": 32
+      }
+    },
+    {
+      "id": "walk",
+      "description": "Pauli-LCU qubitization walk, power 2",
+      "silq": {
+        "width": 9,
+        "depth": 2261,
+        "gates": {
+          "display_count": "2725",
+          "total_count": 2725,
+          "breakdown": "cx=165, h=1009, s=603, sdg=26, t=849, tdg=73",
+          "gates": {
+            "cx": 165,
+            "h": 1009,
+            "s": 603,
+            "sdg": 26,
+            "t": 849,
+            "tdg": 73
+          },
+          "ops": {}
+        },
+        "cx-count": 165,
+        "cx-depth": 146,
+        "t-count": 922,
+        "t-depth": 763
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 2912,
+        "gates": {
+          "display_count": "4569",
+          "total_count": 4569,
+          "breakdown": "cx=107, h=1842, s=771, sdg=123, t=1545, tdg=181",
+          "gates": {
+            "cx": 107,
+            "h": 1842,
+            "s": 771,
+            "sdg": 123,
+            "t": 1545,
+            "tdg": 181
+          },
+          "ops": {}
+        },
+        "cx-count": 107,
+        "cx-depth": 101,
+        "t-count": 1726,
+        "t-depth": 1070
+      }
+    },
+    {
+      "id": "qsvt",
+      "description": "Degree-3 QSVT sequence",
+      "silq": {
+        "width": 6,
+        "depth": 3822,
+        "gates": {
+          "display_count": "4392",
+          "total_count": 4392,
+          "breakdown": "cx=207, h=1713, s=894, sdg=54, t=1395, tdg=129",
+          "gates": {
+            "cx": 207,
+            "h": 1713,
+            "s": 894,
+            "sdg": 54,
+            "t": 1395,
+            "tdg": 129
+          },
+          "ops": {}
+        },
+        "cx-count": 207,
+        "cx-depth": 198,
+        "t-count": 1524,
+        "t-depth": 1318
+      },
+      "cudaq": {
+        "width": 5,
+        "depth": 5222,
+        "gates": {
+          "display_count": "8525",
+          "total_count": 8525,
+          "breakdown": "cx=160, h=3437, s=1476, sdg=219, t=2937, tdg=296",
+          "gates": {
+            "cx": 160,
+            "h": 3437,
+            "s": 1476,
+            "sdg": 219,
+            "t": 2937,
+            "tdg": 296
+          },
+          "ops": {}
+        },
+        "cx-count": 160,
+        "cx-depth": 151,
+        "t-count": 3233,
+        "t-depth": 1965
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+// Pauli-LCU PREPARE using the implementation in slq's walk primitive.
+import walk;
+
+def main():𝔹^2{
+    amplitudes := [sqrt(0.5),sqrt(0.3),sqrt(0.2),0];
+    return prepare[2,4](0:uint[2] as 𝔹^2,amplitudes,vector(4,0));
+}

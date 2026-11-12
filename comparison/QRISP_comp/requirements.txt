@@ -1,0 +1,5 @@
+qrisp==0.9.10
+cudaq==0.16.0
+cudaq-algorithms @ git+https://github.com/NVIDIA/cudaq-algorithms.git@4891dbe62c0baeac4569bf608562ffee59635cca
+qsppack==0.4.0
+qiskit==2.5.2

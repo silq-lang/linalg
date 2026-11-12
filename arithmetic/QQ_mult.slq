@@ -186,6 +186,21 @@ def mult_modp_into[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n,result:𝔹^n) @noinline{
 // Map: |x,y> -> |x,y,x*y*R^(-1) mod p>.
 def mult_modp_clean[p:!ℕ][n:!ℕ](x:𝔹^n,y:𝔹^n){return mult_modp_into[p][n](x,y,0:uint[n] as 𝔹^n);}
 
+// Controlled canonical product: |c,x,y,r> -> |c,x,y,r xor c*(x*y mod p)>.
+def c_mult_modp_into[p:!ℕ][n:!ℕ](const ctrl:𝔹,x:𝔹^n,y:𝔹^n,result:𝔹^n) @noinline{
+    (x,y,z) := mult_modp_clean[p][n](x,y);
+    for j in [0..n){z := double_modp[p][n](z);}
+    for j in [0..n){
+        prod := mbu_AND_zero(ctrl,z[j]);
+        result[j] := CNOT(prod,result[j]);
+        if measure(H(prod)){if ctrl{z[j] := Z(z[j]);}}
+    }
+    for j in [0..n){z := half_modp[p][n](z);}
+    (x,y,z) := mult_modp_into[p][n](x,y,z);
+    forget(z=0:uint[n]);
+    return (x,y,result);
+}
+
 // Map: |x,r> -> |x,r xor (x^2*R^(-1) mod p)>.
 def square_modp_into[p:!ℕ][n:!ℕ](x:𝔹^n,result:𝔹^n){
     y := dup(x);(x,y,result) := mult_modp_into[p][n](x,y,result);

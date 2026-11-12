@@ -1,0 +1,64 @@
+import comparison.QRISP_comp.plain_gqet;
+import comparison.QRISP_comp.pauli_lcu;
+import GQSVT.gqsp_angles;
+
+def chebyshev_polynomial[d:!ℕ](x:!ℝ):!ℝ{
+    if d=0{return 1;}
+    if d=1{return x;}
+    previous := 1:!ℝ;
+    current := x;
+    for degree in [2..d+1){
+        next := 2*x*current-previous;
+        previous = current;
+        current = next;
+    }
+    return current;
+}
+
+def eigen_filt(d:!ℕ,Δ:!ℝ) {
+    N := 2*d+1;
+    denominator := chebyshev_polynomial[d](-(1+Δ^2)/(1-Δ^2));
+    coefficients := vector(2*d+1,0:!ℝ);
+    for sample in [0..N){
+        x := cos(π*(2*sample+1)/(2*N));
+        y := (2*x^2-(1+Δ^2))/(1-Δ^2);
+        value := chebyshev_polynomial[d](y)/denominator;
+        coefficients[0] += value/N;
+        previous := 1:!ℝ;
+        current := x;
+        for degree in [1..N){
+            if degree%2=0{coefficients[degree] += 2*value*current/N;}
+            next := 2*x*current-previous;
+            previous = current;
+            current = next;
+        }
+    }
+    return coefficients;
+}
+
+def eigenstate_filtering[n:!ℕ,m:!ℕ](const shifted_H:𝔹^m × 𝔹^n → mfree 𝔹^m × 𝔹^n,anc:𝔹^(m+1),qs:𝔹^n){
+    // Fixed degree-28 phase sequence generated from eigen_filt(14,0.7/4)/1.01.
+    // filter_Q.py uses these exact values and the same walk-call sequence.
+    θs := [3.0944233469791818,0.0,0.048271028391483256,0.0,0.07061931250846093,0.0,0.09768826570208763,0.0,0.12917087085113513,0.0,0.1642121736684469,0.0,0.201210554075707,0.0,0.23766073701641866,0.0,0.2701763729251538,0.0,0.29485997891881893,0.0,0.3080869698435683,0.0,0.3075064574390496,0.0,0.29279771369189794,0.0,0.2657489531527303,0.0,0.12474217817589621]:!ℝ^29;
+    φs := [2.5461367877870747e-16,0.0,-1.426721491027488e-16,0.0,-3.141592653589793,0.0,-8.216571016847195e-17,0.0,-3.141592653589793,0.0,-5.989817948262644e-17,0.0,3.141592653589793,0.0,-6.232064069468513e-17,0.0,3.141592653589793,0.0,-4.944916419923601e-17,0.0,3.141592653589793,0.0,-4.273863919602099e-17,0.0,-3.141592653589793,0.0,-4.143106828206193e-18,0.0,-3.141592653589793]:!ℝ^29;
+    l := 2.544963457069891e-16;
+    return plain_gqet[0][28](θs,φs,l)(shifted_H)(anc,qs);
+}
+
+def main(){
+    // Directly encode (A-0.65 I)/2 = 0.175(I+X), exactly as filter_Q.py.
+    // The cancelling +/-0.65 I terms keep the common LCU normalization alpha=2.
+    def shifted_H(anc:𝔹^2,qs:𝔹^1)mfree:𝔹^2×𝔹^1{
+        coefficients := [sqrt(0.35),sqrt(0.35),sqrt(0.65),sqrt(0.65)]:!ℝ^4;
+        anc := prepare[2,4](anc,coefficients,[0,0,0,0]:!ℝ^4);
+        qs := select[2,1,4](anc,qs,[(0,0),(1,0),(0,0),(0,0)]);
+        // Implement the fourth LCU unitary as -I. Keeping PREP identical on
+        // both sides makes this block encoding Hermitian/qubitizable.
+        if 3 == (anc as uint[2]){phase(π);}
+        prepare[2,4](anc,coefficients,[0,0,0,0]:!ℝ^4) := anc;
+        return (anc,qs);
+    }
+    (anc,qs) := eigenstate_filtering[1,2](shifted_H,0:uint[3] as 𝔹^3,
+        0:uint[1] as 𝔹^1);
+    return (anc,qs);
+}

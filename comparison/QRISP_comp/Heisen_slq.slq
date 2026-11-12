@@ -1,0 +1,19 @@
+import comparison.QRISP_comp.pauli_lcu;
+
+def Heisenberg_LCU[n:!ℕ,m:!ℕ](anc:𝔹^m,qs:𝔹^n) mfree{
+    assert(n>1);
+    coef := vector(3*(n sub 1) coerce !ℕ,sqrt(0.25));
+    ind := [];
+    for k in [0..n sub 1){
+        ind ~= [(0:!ℕ,3*2^k as !ℕ),(3*2^k as !ℕ,0:!ℕ),(3*2^k as !ℕ,3*2^k as !ℕ)]
+    }
+    return pauli_LCU[m,n,3*(n sub 1)](anc,qs,ind coerce (!ℕ^2)^(3*(n sub 1)),coef);
+}
+
+def main(){
+    qs := 0:uint[2] as 𝔹^2;
+    // Generic operand, so the compiler cannot specialize to a known |00>.
+    qs[0] := rotY(π/7,qs[0]);
+    qs[1] := rotY(π/9,qs[1]);
+    return Heisenberg_LCU[2,2](0:uint[2] as 𝔹^2,qs);
+}

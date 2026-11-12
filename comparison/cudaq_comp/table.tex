@@ -1,0 +1,43 @@
+\documentclass[10pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\pagestyle{empty}
+\begin{document}
+
+\begin{table}[h]
+\centering
+\caption{Resource comparison between plain Silq and CUDA-Q Algorithms.}
+\label{tab:silq-cudaq}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\columnwidth}{
+    >{\raggedright\arraybackslash}X
+    *{6}{>{\centering\arraybackslash}p{0.075\columnwidth}}
+}
+    & \multicolumn{3}{c}{Plain Silq}
+    & \multicolumn{3}{c}{CUDA-Q} \\
+Algorithm
+    & width & depth & T-count
+    & width & depth & T-count \\
+\cmidrule(lr){2-4}
+\cmidrule(lr){5-7}
+Quantum Fourier transform, 5 qubits & 7 & 996 & 902 & 5 & 2227 & 1379 \\
+Adjacent Givens rotation, 2 qubits & 2 & 163 & 124 & 2 & 175 & 124 \\
+Real Slater determinant, 4 orbitals / 2 electrons & 4 & 174 & 126 & 4 & 335 & 126 \\
+In-place register addition, 4+4 qubits & 8 & 52 & 8 & 9 & 74 & 36 \\
+Constant comparator ($x<6$), 5-bit input & 8 & 71 & 20 & 12 & 109 & 55 \\
+Second-order product formula, 2 steps & 2 & 496 & 373 & 2 & 516 & 380 \\
+Paper QROAM, 8 two-bit entries, block size 2 & 8 & 163 & 63 & 11 & 93 & 52 \\
+Pauli-LCU PREPARE, 3 terms & 2 & 367 & 194 & 2 & 367 & 194 \\
+Signed Pauli-LCU SELECT, 3 terms & 5 & 163 & 30 & 5 & 106 & 50 \\
+Pauli-LCU qubitization walk, power 2 & 9 & 2261 & 922 & 5 & 2912 & 1726 \\
+Degree-3 QSVT sequence & 6 & 3822 & 1524 & 5 & 5222 & 3233 \\
+\end{tabularx}
+\end{table}
+
+\end{document}
